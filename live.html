@@ -64,8 +64,9 @@
             100% { transform: translateX(0); }
         }
 
-        /* MEJORA: Ocultar el contenedor del cronómetro de presión solicitado */
-        #pressure-timer-card {
+        /* MEJORA: Ocultar secciones solicitadas sin borrar código */
+        #pressure-timer-card, 
+        #opportunity-window-card {
             display: none !important;
         }
     </style>
@@ -169,7 +170,7 @@
                     <div id="next-goal-timer-container" class="space-y-4"></div>
                 </div>
 
-                <div class="glass-card p-5 rounded-2xl">
+                <div id="opportunity-window-card" class="glass-card p-5 rounded-2xl">
                     <p class="text-[10px] text-slate-500 font-bold uppercase mb-4 text-center tracking-widest">Ventana de Oportunidad</p>
                     <div class="chart-container">
                         <canvas id="pressureChart"></canvas>
