@@ -51,6 +51,11 @@
         #time-bar {
             opacity: 0; 
         }
+
+        /* MEJORA: Ocultar el control visual del reloj solicitado */
+        #clock-control-wrapper {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -105,13 +110,14 @@
                             </div>
                         </div>
 
-                        <div>
+                        <div id="clock-control-wrapper">
                             <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (Control Visual)</label>
                             <div class="flex items-center gap-4">
                                 <input type="range" id="live-min-range" min="0" max="95" value="0" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
                                 <input type="number" id="live-min" value="0" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
                             </div>
                         </div>
+                        
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Local</label>
