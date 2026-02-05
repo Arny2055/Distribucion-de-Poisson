@@ -30,6 +30,10 @@
         /* Selector dinámico */
         .market-select { background: #0f172a; border: 1px solid #1e293b; color: #94a3b8; font-weight: 800; font-size: 10px; text-transform: uppercase; border-radius: 6px; padding: 4px 8px; outline: none; cursor: pointer; }
         .market-select:hover { border-color: #fbbf24; color: white; }
+
+        /* Estilo Botón Reset */
+        .btn-reset { background: #1e293b; color: #94a3b8; transition: all 0.3s; border: 1px solid #334155; }
+        .btn-reset:hover { background: #991b1b; color: white; border-color: #ef4444; }
     </style>
 </head>
 <body>
@@ -70,6 +74,9 @@
                                 <input type="number" id="live-ga" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
                             </div>
                         </div>
+                        <button onclick="resetMatch()" class="w-full py-2 rounded-lg text-[10px] font-black uppercase tracking-widest btn-reset">
+                            <i class="fa-solid fa-rotate-left mr-2"></i> Reiniciar Marcador y Reloj
+                        </button>
                     </div>
                 </div>
 
@@ -193,6 +200,15 @@
             if(type === 'range') num.value = range.value;
             else range.value = num.value;
             calculateLive();
+        }
+
+        // FUNCIÓN RESET AÑADIDA
+        function resetMatch() {
+            document.getElementById('live-min-range').value = 0;
+            document.getElementById('live-min').value = 0;
+            document.getElementById('live-gh').value = 0;
+            document.getElementById('live-ga').value = 0;
+            calculateLive(); // Recalcular todo con los nuevos valores
         }
 
         function loadMatch() {
@@ -388,7 +404,6 @@
             calculateROI();
         }
 
-        // NUEVA FUNCIÓN: Centraliza el cálculo de cualquier mercado dinámico
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, min) {
             if(market.includes("OVER")) {
                 let limit = parseFloat(market.split(" ")[1]);
@@ -511,4 +526,3 @@
     </script>
 </body>
 </html>
-ñ
