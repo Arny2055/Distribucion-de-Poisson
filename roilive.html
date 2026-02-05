@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetAGS - ROI Live History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .table-header { border-bottom: 2px solid rgba(251, 191, 36, 0.2); }
+        .status-win { background: #065f46; color: #34d399; }
+        .status-loss { background: #7f1d1d; color: #f87171; }
+        .status-pending { background: #1e293b; color: #94a3b8; }
+        .roi-positive { color: #10b981; }
+        .roi-negative { color: #ef4444; }
+        
+        /* Estilos para los filtros */
+        .filter-select { background: #0f172a; border: 1px solid #334155; color: #94a3b8; font-size: 11px; padding: 6px 12px; border-radius: 8px; outline: none; transition: all 0.2s; }
+        .filter-select:focus { border-color: #fbbf24; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="p-4 bg-black/60 border-b border-emerald-500/10 backdrop-blur-md sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-amber-500">ROI LIVE</span></h1>
+            <div class="flex gap-2">
+                <a href="live.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800">Volver al Panel</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 max-w-6xl">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass-card p-4 rounded-2xl text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Picks</p>
+                <p id="stat-total" class="text-2xl font-black">0</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-emerald-500/50">
+                <p class="text-[10px] text-emerald-500 font-bold uppercase mb-1">Win Rate</p>
+                <p id="stat-wr" class="text-2xl font-black">0%</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-amber-500/50">
+                <p class="text-[10px] text-amber-500 font-bold uppercase mb-1">Profit (u)</p>
+                <p id="stat-profit" class="text-2xl font-black">0.00</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-blue-500/50">
+                <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">ROI %</p>
+                <p id="stat-roi" class="text-2xl font-black">0%</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 rounded-2xl mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex flex-wrap gap-3">
+                <select id="filter-market" class="filter-select" onchange="renderHistory()">
+                    <option value="ALL">TODOS LOS MERCADOS</option>
+                    <option value="OVER">OVER FT</option>
+                    <option value="HT">HALFTIME (HT)</option>
+                    <option value="BTTS">BTTS</option>
+                </select>
+                <select id="filter-status" class="filter-select" onchange="renderHistory()">
+                    <option value="ALL">TODOS LOS ESTADOS</option>
+                    <option value="PENDIENTE">PENDIENTES</option>
+                    <option value="GANADA">GANADAS</option>
+                    <option value="PERDIDA">PERDIDAS</option>
+                </select>
+            </div>
+            <button onclick="clearHistory()" class="text-[10px] font-bold text-red-400 hover:text-red-300 transition-colors uppercase">
+                <i class="fa-solid fa-trash-can mr-2"></i>Borrar Historial
+            </button>
+        </div>
+
+        <div class="glass-card rounded-3xl overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header bg-slate-900/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <th class="p-4">Fecha / Evento</th>
+                            <th class="p-4">Mercado</th>
+                            <th class="p-4 text-center">Prob / Justa</th>
+                            <th class="p-4 text-center">Cuota / Edge</th>
+                            <th class="p-4 text-center">Stake</th>
+                            <th class="p-4 text-center">Estado</th>
+                            <th class="p-4 text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roi-table-body" class="text-sm">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'betags_v3_miner';
+
+        function loadHistory() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        }
+
+        function renderHistory() {
+            const history = loadHistory();
+            const tableBody = document.getElementById('roi-table-body');
+            const filterMarket = document.getElementById('filter-market').value;
+            const filterStatus = document.getElementById('filter-status').value;
+            
+            tableBody.innerHTML = '';
+            
+            let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
+
+            history.forEach(bet => {
+                // Filtros logicos
+                if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
+                if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
+
+                // Cálculo de Stats
+                stats.total++;
+                const stake = parseFloat(bet.stake) || 0;
+                if(bet.status === 'GANADA') {
+                    stats.wins++;
+                    stats.profit += (stake * parseFloat(bet.bookieOdd)) - stake;
+                    stats.invested += stake;
+                } else if(bet.status === 'PERDIDA') {
+                    stats.profit -= stake;
+                    stats.invested += stake;
+                }
+
+                const edgeValue = parseFloat(bet.edge);
+                const row = document.createElement('tr');
+                row.className = "border-b border-white/5 hover:bg-white/[0.02] transition-colors";
+                
+                row.innerHTML = `
+                    <td class="p-4">
+                        <div class="text-[10px] text-slate-500 font-mono">${bet.timestamp}</div>
+                        <div class="font-bold text-white uppercase tracking-tight">${bet.match}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 bg-amber-500/10 text-amber-500 rounded text-[10px] font-black">${bet.market}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="text-xs font-bold text-slate-300">${bet.prob}</div>
+                        <div class="text-[10px] text-slate-500">Fair: ${bet.fairOdd}</div>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="text-xs font-black text-emerald-400">${bet.bookieOdd}</div>
+                        <div class="text-[10px] ${edgeValue > 0 ? 'text-emerald-500' : 'text-red-500'} font-bold">${bet.edge} Edge</div>
+                    </td>
+                    <td class="p-4 text-center font-black text-slate-300">${bet.stake}u</td>
+                    <td class="p-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${getStatusClass(bet.status)}">
+                            ${bet.status}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <div class="flex gap-1 justify-end">
+                            <button onclick="updateStatus(${bet.id}, 'GANADA')" class="w-7 h-7 bg-emerald-500/20 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"><i class="fa-solid fa-check text-xs"></i></button>
+                            <button onclick="updateStatus(${bet.id}, 'PERDIDA')" class="w-7 h-7 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fa-solid fa-xmark text-xs"></i></button>
+                            <button onclick="deleteBet(${bet.id})" class="w-7 h-7 bg-slate-800 text-slate-400 rounded-lg hover:bg-white hover:text-black transition-all ml-2"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updateStatsUI(stats);
+        }
+
+        function getStatusClass(status) {
+            if(status === 'GANADA') return 'status-win';
+            if(status === 'PERDIDA') return 'status-loss';
+            return 'status-pending';
+        }
+
+        function updateStatus(id, newStatus) {
+            let history = loadHistory();
+            const index = history.findIndex(b => b.id === id);
+            if(index !== -1) {
+                history[index].status = newStatus;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+                renderHistory();
+            }
+        }
+
+        function deleteBet(id) {
+            if(!confirm("¿Eliminar este registro?")) return;
+            let history = loadHistory();
+            history = history.filter(b => b.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function clearHistory() {
+            if(!confirm("¿Estás seguro de borrar TODO el historial?")) return;
+            localStorage.removeItem(STORAGE_KEY);
+            renderHistory();
+        }
+
+        function updateStatsUI(s) {
+            const wr = s.invested > 0 ? (s.wins / s.total * 100).toFixed(1) : 0;
+            const roi = s.invested > 0 ? (s.profit / s.invested * 100).toFixed(1) : 0;
+
+            document.getElementById('stat-total').innerText = s.total;
+            document.getElementById('stat-wr').innerText = wr + "%";
+            document.getElementById('stat-profit').innerText = s.profit.toFixed(2);
+            document.getElementById('stat-roi').innerText = roi + "%";
+            document.getElementById('stat-roi').className = `text-2xl font-black ${roi >= 0 ? 'roi-positive' : 'roi-negative'}`;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', renderHistory);
+    </script>
+</body>
+</html>
