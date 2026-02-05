@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetAGS - Backtesting Engine</title>
+    <title>BetAGS - Backtesting Engine Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,21 +17,26 @@
             background-color: var(--deep-black); 
             color: #f8fafc; 
             font-family: 'Inter', sans-serif; 
+            background-image: radial-gradient(circle at top right, #1e293b, transparent);
         }
         .glass-card { 
-            background: var(--card-bg); 
+            background: rgba(15, 23, 42, 0.8); 
+            backdrop-blur: 10px;
             border: 1px solid rgba(255, 255, 255, 0.05); 
             border-radius: 1rem;
         }
         .stat-positive { color: #4ade80; }
         .stat-negative { color: #f87171; }
         
-        .excel-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .excel-table th { background: #1e293b; color: #10b981; padding: 10px; text-align: left; }
-        .excel-table td { padding: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .excel-table th { background: #1e293b; color: #10b981; padding: 12px 10px; text-align: left; text-transform: uppercase; letter-spacing: 0.05em; }
+        .excel-table td { padding: 12px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
 
         .progress-bar { height: 6px; border-radius: 3px; background: #1e293b; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.5s ease; }
+        .progress-fill { height: 100%; transition: width 0.8s ease-out; }
+        
+        .leak-card { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .golden-card { border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.05); }
     </style>
 </head>
 <body class="pb-10">
@@ -41,7 +46,7 @@
             <div class="flex gap-2">
                 <a href="index.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800 hover:border-emerald-500/50 transition">Calculadora</a>
                 <a href="roi.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800 hover:border-emerald-500/50 transition">ROI History</a>
-                <a href="backtesting.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/30">Backtesting</a>
+                <a href="backtesting.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/30">Backtesting Engine</a>
             </div>
         </div>
     </nav>
@@ -49,7 +54,7 @@
     <div class="container mx-auto p-4 lg:p-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div class="glass-card p-6 border-l-4 border-blue-500">
-                <p class="text-[10px] text-slate-500 uppercase font-black mb-1">Muestra Analizada</p>
+                <p class="text-[10px] text-slate-500 uppercase font-black mb-1">Picks Analizados</p>
                 <h3 id="bt-total-n" class="text-2xl font-black">0</h3>
             </div>
             <div class="glass-card p-6 border-l-4 border-emerald-500">
@@ -62,24 +67,56 @@
             </div>
             <div class="glass-card p-6 border-l-4 border-purple-500">
                 <button onclick="clearBacktest()" class="w-full h-full text-[10px] text-red-400 uppercase font-black hover:text-red-300 transition">
-                    <i class="fa-solid fa-trash-can mr-2"></i>Limpiar Base de Datos
+                    <i class="fa-solid fa-trash-can mr-2"></i>Limpiar Backtest
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass-card p-6 lg:col-span-2">
+                <h2 class="text-sm font-black uppercase tracking-widest text-blue-400 mb-6">Curva de Crecimiento (Equity Curve)</h2>
+                <div class="h-[250px] w-full">
+                    <canvas id="equityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-card p-6 lg:col-span-2 border-t-2 border-yellow-500/30">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-sm font-black uppercase tracking-widest text-yellow-400">Analizador de Fugas y Optimización</h2>
+                        <p class="text-[10px] text-slate-500 uppercase">Sugerencias automáticas para aumentar rentabilidad</p>
+                    </div>
+                    <i class="fa-solid fa-wand-magic-sparkles text-yellow-500"></i>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="leak-card p-4 rounded-xl">
+                        <p class="text-[10px] font-bold text-red-400 uppercase mb-3 flex items-center">
+                            <i class="fa-solid fa-filter-circle-xmark mr-2"></i> Fugas (Donde dejas de ganar)
+                        </p>
+                        <div id="leaks-container" class="space-y-2 text-[11px]"></div>
+                    </div>
+
+                    <div class="golden-card p-4 rounded-xl">
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase mb-3 flex items-center">
+                            <i class="fa-solid fa-star mr-2"></i> Golden Rules (Maximizar Stake)
+                        </p>
+                        <div id="golden-rule" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="glass-card p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-sm font-black uppercase tracking-widest text-emerald-400">Top 4 Mercados Rentables</h2>
                     <i class="fa-solid fa-trophy text-slate-600"></i>
                 </div>
-                <div id="top-markets" class="space-y-6">
-                    </div>
+                <div id="top-markets" class="space-y-6"></div>
             </div>
 
             <div class="glass-card p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-sm font-black uppercase tracking-widest text-blue-400">Rentabilidad por Cuotas</h2>
+                    <h2 class="text-sm font-black uppercase tracking-widest text-blue-400">Profit por Rango de Cuotas</h2>
                     <i class="fa-solid fa-chart-line text-slate-600"></i>
                 </div>
                 <div class="overflow-hidden">
@@ -87,7 +124,7 @@
                         <thead>
                             <tr>
                                 <th>Rango Cuota</th>
-                                <th>Picks</th>
+                                <th>N°</th>
                                 <th>Profit</th>
                                 <th>Yield</th>
                             </tr>
@@ -98,18 +135,18 @@
             </div>
 
             <div class="glass-card p-6 lg:col-span-2">
-                <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-6">Minería de Variables (Probabilidad, Edge, Stake)</h2>
+                <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-6">Minería de Datos: Prob, Edge y Stake</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Rango de Probabilidad</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 border-b border-slate-800 pb-1">Rango Probabilidad</p>
                         <div id="prob-stats" class="space-y-2 text-[11px]"></div>
                     </div>
                     <div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Rango de Edge (%)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 border-b border-slate-800 pb-1">Rango Edge %</p>
                         <div id="edge-stats" class="space-y-2 text-[11px]"></div>
                     </div>
                     <div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Rango de Stake (u)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 border-b border-slate-800 pb-1">Rango Stake (u)</p>
                         <div id="stake-stats" class="space-y-2 text-[11px]"></div>
                     </div>
                 </div>
@@ -117,15 +154,15 @@
 
             <div class="glass-card p-6 lg:col-span-2">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-sm font-black uppercase tracking-widest text-emerald-400">Ranking por Ligas / Equipos</h2>
-                    <span class="text-[10px] text-slate-500 uppercase">Ordenado por Mayor Beneficio</span>
+                    <h2 class="text-sm font-black uppercase tracking-widest text-emerald-400">Ranking de Beneficio por Liga/Evento</h2>
+                    <span class="text-[10px] text-slate-500 uppercase">Ordenado de Mayor a Menor Profit</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="excel-table">
                         <thead>
                             <tr>
-                                <th>Liga / Evento</th>
-                                <th>Muestra</th>
+                                <th>Liga / Torneo</th>
+                                <th>Picks</th>
                                 <th>Win Rate</th>
                                 <th>Profit Total</th>
                                 <th>Yield</th>
@@ -141,17 +178,17 @@
     <script>
         const BACKTEST_KEY = 'betags_backtesting';
         let data = JSON.parse(localStorage.getItem(BACKTEST_KEY)) || [];
+        let equityChart;
 
         function init() {
-            if (data.length === 0) {
-                alert("No hay datos en el Backtesting. Envía apuestas desde el ROI Lab.");
-                return;
-            }
+            if (data.length === 0) return;
             renderSummary();
             renderTopMarkets();
             renderOddsRanges();
             renderVariableStats();
             renderLeagueRanking();
+            analyzeStrategy();
+            renderEquityChart();
         }
 
         function renderSummary() {
@@ -162,7 +199,6 @@
             document.getElementById('bt-total-n').innerText = data.length;
             document.getElementById('bt-total-profit').innerText = totalProfit.toFixed(2) + "u";
             document.getElementById('bt-total-yield').innerText = yieldVal.toFixed(1) + "%";
-            
             document.getElementById('bt-total-profit').className = `text-2xl font-black ${totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
         }
 
@@ -185,8 +221,7 @@
 
             sorted.forEach(([name, stats]) => {
                 const yieldVal = (stats.profit / stats.staked * 100).toFixed(1);
-                const div = document.createElement('div');
-                div.innerHTML = `
+                container.innerHTML += `
                     <div class="flex justify-between items-end mb-1">
                         <div>
                             <span class="text-xs font-bold text-white uppercase">${name}</span>
@@ -196,23 +231,24 @@
                             ${stats.profit.toFixed(2)}u (${yieldVal}%)
                         </span>
                     </div>
-                    <div class="progress-bar">
+                    <div class="progress-bar mb-3">
                         <div class="progress-fill bg-emerald-500" style="width: ${Math.max(0, Math.min(100, yieldVal * 2))}%"></div>
                     </div>
                 `;
-                container.appendChild(div);
             });
         }
 
         function renderOddsRanges() {
-            // Definir rangos: 1.0-1.49, 1.5-1.69, 1.7-1.89, 1.9-2.09, 2.1-2.49, 2.5+
+            // Definir rangos específicos pedidos (0.10 en 0.10)
             const ranges = [
-                { label: '1.00 - 1.49', min: 1.0, max: 1.49 },
-                { label: '1.50 - 1.69', min: 1.5, max: 1.69 },
-                { label: '1.70 - 1.89', min: 1.7, max: 1.89 },
-                { label: '1.90 - 2.09', min: 1.9, max: 2.09 },
-                { label: '2.10 - 2.49', min: 2.1, max: 2.49 },
-                { label: '2.50+', min: 2.5, max: Infinity }
+                { label: '1.40 - 1.49', min: 1.40, max: 1.49 },
+                { label: '1.50 - 1.59', min: 1.50, max: 1.59 },
+                { label: '1.60 - 1.69', min: 1.60, max: 1.69 },
+                { label: '1.70 - 1.79', min: 1.70, max: 1.79 },
+                { label: '1.80 - 1.89', min: 1.80, max: 1.89 },
+                { label: '1.90 - 1.99', min: 1.90, max: 1.99 },
+                { label: '2.00 - 2.29', min: 2.00, max: 2.29 },
+                { label: '2.30+', min: 2.30, max: 99 }
             ];
 
             const tbody = document.getElementById('odds-ranges-body');
@@ -221,14 +257,13 @@
             ranges.forEach(r => {
                 const picks = data.filter(b => Number(b.odd) >= r.min && Number(b.odd) <= r.max);
                 if (picks.length === 0) return;
-
                 const profit = picks.reduce((a, b) => a + Number(b.profit), 0);
                 const staked = picks.reduce((a, b) => a + Number(b.stake), 0);
                 const yieldVal = (profit / staked * 100).toFixed(1);
 
                 tbody.innerHTML += `
-                    <tr>
-                        <td class="font-bold text-slate-300">${r.label}</td>
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="font-bold text-slate-300 font-mono">${r.label}</td>
                         <td>${picks.length}</td>
                         <td class="${profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${profit.toFixed(2)}u</td>
                         <td class="font-black">${yieldVal}%</td>
@@ -243,7 +278,7 @@
                 data.forEach(b => {
                     let val = parseFloat(b[key]);
                     if (isEdge && typeof b[key] === 'string') val = parseFloat(b[key].replace('%',''));
-                    if (key === 'prob') val = val * 100; // Normalizar a 0-100
+                    if (key === 'prob') val = val * 100;
 
                     const floor = Math.floor(val / step) * step;
                     const label = `${floor}-${floor + step}${isEdge ? '%' : ''}`;
@@ -254,32 +289,26 @@
                 return groups;
             };
 
-            const probG = process('prob', 10);
-            const edgeG = process('edge', 5, true);
-            const stakeG = process('stake', 2);
-
             const fill = (id, obj) => {
-                const el = document.getElementById(id);
-                el.innerHTML = '';
+                const el = document.getElementById(id); el.innerHTML = '';
                 Object.entries(obj).forEach(([label, s]) => {
                     el.innerHTML += `
                         <div class="flex justify-between border-b border-white/5 pb-1">
-                            <span class="text-slate-400">${label}</span>
-                            <span class="${s.profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${s.profit.toFixed(1)}u (${s.n})</span>
+                            <span class="text-slate-500 font-mono">${label}</span>
+                            <span class="${s.profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${s.profit.toFixed(1)}u <small class="text-slate-600">(${s.n})</small></span>
                         </div>
                     `;
                 });
             };
 
-            fill('prob-stats', probG);
-            fill('edge-stats', edgeG);
-            fill('stake-stats', stakeG);
+            fill('prob-stats', process('prob', 10));
+            fill('edge-stats', process('edge', 5, true));
+            fill('stake-stats', process('stake', 1));
         }
 
         function renderLeagueRanking() {
             const leagues = {};
             data.forEach(b => {
-                // Intentamos extraer la liga si el formato es "Liga - Local vs Visita"
                 const leagueName = b.teams.includes('-') ? b.teams.split('-')[0].trim() : 'Otras / Sin Clasificar';
                 if (!leagues[leagueName]) leagues[leagueName] = { profit: 0, n: 0, wins: 0, staked: 0 };
                 leagues[leagueName].profit += Number(b.profit);
@@ -296,19 +325,100 @@
                 const wr = (s.wins / s.n * 100).toFixed(1);
                 const yieldVal = (s.profit / s.staked * 100).toFixed(1);
                 tbody.innerHTML += `
-                    <tr>
+                    <tr class="hover:bg-white/5 transition">
                         <td class="font-bold text-white uppercase text-[10px]">${name}</td>
-                        <td class="text-slate-400">${s.n} partidos</td>
-                        <td>${wr}% WR</td>
-                        <td class="${s.profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-black text-sm">${s.profit.toFixed(2)}u</td>
+                        <td class="text-slate-400 font-mono">${s.n}</td>
+                        <td class="text-blue-400 font-bold">${wr}%</td>
+                        <td class="${s.profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-black">${s.profit.toFixed(2)}u</td>
                         <td class="text-slate-300 font-bold">${yieldVal}%</td>
                     </tr>
                 `;
             });
         }
 
+        function analyzeStrategy() {
+            const leaksContainer = document.getElementById('leaks-container');
+            const goldenContainer = document.getElementById('golden-rule');
+            let leaks = [];
+
+            // Análisis de Fugas por Mercado
+            const mStats = {};
+            data.forEach(b => {
+                if(!mStats[b.market]) mStats[b.market] = 0;
+                mStats[b.market] += Number(b.profit);
+            });
+            Object.entries(mStats).forEach(([name, p]) => { if(p < -1) leaks.push({t: 'Mercado', n: name, v: p}); });
+
+            // Fugas por Cuotas
+            const lowOdds = data.filter(b => Number(b.odd) < 1.5);
+            const lowOddsProfit = lowOdds.reduce((a,b) => a + Number(b.profit), 0);
+            if(lowOddsProfit < 0) leaks.push({t: 'Rango', n: 'Cuotas < 1.50', v: lowOddsProfit});
+
+            leaksContainer.innerHTML = leaks.length ? '' : '<p class="text-slate-600 italic">No se detectan fugas críticas.</p>';
+            leaks.sort((a,b) => a.v - b.v).slice(0, 3).forEach(l => {
+                leaksContainer.innerHTML += `
+                    <div class="flex justify-between bg-black/30 p-2 rounded">
+                        <span class="text-slate-400 font-bold">${l.t}: <span class="text-white">${l.n}</span></span>
+                        <span class="text-red-400 font-black">${l.v.toFixed(2)}u</span>
+                    </div>
+                `;
+            });
+
+            // Golden Rule: Identificar el mercado con mejor yield y muestra > 3
+            const bestM = Object.entries(mStats).sort((a,b) => b[1] - a[1])[0];
+            if(bestM) {
+                goldenContainer.innerHTML = `
+                    <div class="text-center">
+                        <p class="text-[9px] text-slate-500 uppercase font-black">Segmento más rentable</p>
+                        <h4 class="text-lg font-black text-emerald-400">${bestM[0]}</h4>
+                        <p class="text-[10px] text-slate-300 mt-2">Sugerencia: Aumentar Stake en este mercado para maximizar ROI.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderEquityChart() {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            if(equityChart) equityChart.destroy();
+
+            const sorted = [...data].sort((a,b) => new Date(a.date) - new Date(b.date));
+            let current = 0;
+            const points = [0];
+            const labels = ['0'];
+
+            sorted.forEach((b, i) => {
+                current += Number(b.profit);
+                points.push(current);
+                labels.push(i + 1);
+            });
+
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: points,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        x: { display: false }
+                    }
+                }
+            });
+        }
+
         function clearBacktest() {
-            if (confirm("¿Seguro que quieres borrar toda la base de datos de Backtesting?")) {
+            if (confirm("¿Borrar permanentemente todos los datos de Backtesting?")) {
                 localStorage.removeItem(BACKTEST_KEY);
                 location.reload();
             }
