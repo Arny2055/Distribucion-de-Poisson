@@ -35,26 +35,33 @@
         .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
         .input-manual:focus { border-color: #fbbf24; }
 
-        /* Mejora: Marcador de Rango Verde Neón */
         #time-bar-container { position: relative; background: #1e293b; }
         #range-highlight {
             position: absolute;
             height: 100%;
-            background: #39ff14; /* Verde Neón */
+            background: #39ff14; 
             box-shadow: 0 0 15px #39ff14;
             opacity: 0.8;
             transition: all 0.3s ease;
             z-index: 20;
         }
 
-        /* Ocultar visualmente la barra de reloj sin borrar su funcionalidad */
         #time-bar {
             opacity: 0; 
         }
 
-        /* MEJORA: Ocultar el control visual del reloj solicitado */
         #clock-control-wrapper {
             display: none !important;
+        }
+
+        /* Estilo para errores de validación */
+        .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(3px); }
+            50% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+            100% { transform: translateX(0); }
         }
     </style>
 </head>
@@ -343,11 +350,39 @@
 
         function calculateLive() {
             if(!currentMatch) return;
-            const currentMin = parseInt(document.getElementById('live-min').value);
-            const startMin = parseInt(document.getElementById('live-min-start').value);
-            const endMin = parseInt(document.getElementById('live-min-end').value);
-            const gH = parseInt(document.getElementById('live-gh').value);
-            const gA = parseInt(document.getElementById('live-ga').value);
+            
+            // --- NUEVO VALIDADOR EXTRA ---
+            const inputs = {
+                min: document.getElementById('live-min'),
+                start: document.getElementById('live-min-start'),
+                end: document.getElementById('live-min-end'),
+                gh: document.getElementById('live-gh'),
+                ga: document.getElementById('live-ga')
+            };
+
+            const currentMin = parseInt(inputs.min.value) || 0;
+            const startMin = parseInt(inputs.start.value) || 0;
+            const endMin = parseInt(inputs.end.value) || 0;
+            const gH = parseInt(inputs.gh.value) || 0;
+            const gA = parseInt(inputs.ga.value) || 0;
+
+            // Limpieza de estados visuales de error
+            Object.values(inputs).forEach(input => input.classList.remove('input-error'));
+
+            // Validaciones lógicas
+            let hasError = false;
+            if (startMin > endMin) { inputs.start.classList.add('input-error'); inputs.end.classList.add('input-error'); hasError = true; }
+            if (currentMin < 0 || currentMin > 120) { inputs.min.classList.add('input-error'); hasError = true; }
+            if (gH < 0) { inputs.gh.classList.add('input-error'); hasError = true; }
+            if (gA < 0) { inputs.ga.classList.add('input-error'); hasError = true; }
+
+            if (hasError) {
+                document.getElementById('live-prob-display').innerText = "ERROR";
+                document.getElementById('live-odd-fair').innerText = "--";
+                return; // Detiene el cálculo si hay datos absurdos
+            }
+            // --- FIN DEL VALIDADOR ---
+
             const currentTotal = gH + gA;
             const selectedMarket = document.getElementById('live-market-selector').value;
 
