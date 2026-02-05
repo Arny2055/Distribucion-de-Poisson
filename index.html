@@ -203,7 +203,8 @@
     <script>
         let pChart;
         let currentAnalysisMode = 'GOLES';
-        const STORAGE_KEY = 'betags_v3_miner';
+        // CAMBIO CLAVE: Llave única para Pre-Partido separada del Live
+        const STORAGE_KEY_PRE = 'betags_v3_pre'; 
         const MODE_KEY = 'betags_preferred_mode'; 
         
         // Parámetro Rho para Dixon-Coles
@@ -418,21 +419,23 @@
                 date: new Date().toISOString().split('T')[0], 
                 teams: `[${currentAnalysisMode}] ${league}: ${event}`, 
                 market: market, 
-                prob: prob, 
-                odd: odd, 
+                prob: (prob * 100).toFixed(1) + "%", // Formateado para roi.html
+                odd: odd.toFixed(2), 
                 edge: document.getElementById('edge_' + id).innerText, 
                 stake: parseFloat(document.getElementById('stake_' + id).innerText) || 0, 
                 status: 'pending', 
                 profit: 0
             };
             
-            let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            // CORRECCIÓN: Guardar usando STORAGE_KEY_PRE para no mezclar con Live
+            let bets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRE)) || [];
             bets.unshift(newBet); 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+            localStorage.setItem(STORAGE_KEY_PRE, JSON.stringify(bets));
             
             const btn = document.querySelector(`#row_${id} button`); 
             btn.innerHTML = '✅'; 
             setTimeout(() => btn.innerHTML = 'ROI', 2000);
+            alert("Apuesta guardada en ROI HISTORY (Pre-partido)");
         }
 
         function updateAssistant(p_h, p_a) {
