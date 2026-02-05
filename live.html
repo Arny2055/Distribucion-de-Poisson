@@ -5,13 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BetAGS - Análisis Live Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
         .suggestion-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
         .suggestion-card:hover { transform: translateX(5px); background: rgba(255,255,255,0.02); }
         .value-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
+        
+        .roi-positive { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+        .roi-negative { color: #ef4444; }
+        .btn-save-live { background: #10b981; color: white; transition: all 0.3s; }
+        .btn-save-live:hover { background: #059669; transform: translateY(-1px); }
+        
+        /* Estilo para el contenedor del gráfico */
+        .chart-container { position: relative; height: 200px; width: 100%; }
     </style>
 </head>
 <body>
@@ -71,26 +79,55 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="glass-card p-5 rounded-2xl">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-4 text-center tracking-widest">Ventana de Oportunidad</p>
+                    <div class="chart-container">
+                        <canvas id="pressureChart"></canvas>
+                    </div>
+                    <p class="text-[9px] text-slate-600 mt-2 italic text-center">Muestra la probabilidad acumulada de gol hasta el final.</p>
+                </div>
             </div>
 
             <div class="lg:col-span-2 space-y-6">
-                <div class="glass-card p-6 rounded-3xl relative overflow-hidden bg-gradient-to-br from-slate-900 to-black">
+                <div class="glass-card p-6 rounded-3xl relative overflow-hidden bg-gradient-to-br from-slate-900 to-black border-white/10">
                     <div class="absolute top-4 right-6 text-right">
                         <span class="text-[10px] text-slate-500 font-black uppercase block">Mercado Objetivo</span>
                         <span id="target-market-label" class="text-emerald-500 font-bold text-xs">--</span>
                     </div>
                     
-                    <div class="flex flex-col items-center justify-center py-4">
-                        <p class="text-[11px] text-slate-500 font-black uppercase mb-1">Probabilidad Actualizada</p>
-                        <div id="live-prob-display" class="text-7xl font-black text-white tracking-tighter">--%</div>
-                        <div class="flex gap-8 mt-4">
-                            <div class="text-center">
-                                <p class="text-[10px] text-slate-500 font-bold uppercase">Cuota Justa</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-4">
+                        <div class="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0">
+                            <p class="text-[11px] text-slate-500 font-black uppercase mb-1 tracking-widest">Probabilidad Live</p>
+                            <div id="live-prob-display" class="text-7xl font-black text-white tracking-tighter">--%</div>
+                            <div class="text-center mt-2">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">Cuota Justa</p>
                                 <p id="live-odd-fair" class="text-2xl font-black text-amber-500">--</p>
                             </div>
-                            <div class="text-center border-l border-white/10 pl-8">
-                                <p class="text-[10px] text-slate-500 font-bold uppercase">Estado de Valor</p>
-                                <p id="value-status" class="text-2xl font-black text-slate-600">--</p>
+                        </div>
+
+                        <div class="px-4">
+                            <p class="text-[11px] text-slate-500 font-black uppercase mb-4 tracking-widest text-center">Calculadora de Valor</p>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-slate-400 font-bold uppercase mb-1 block">Cuota Bookie</label>
+                                        <input type="number" id="bookie-odd" step="0.01" placeholder="2.10" class="w-full bg-black border border-slate-700 rounded-xl p-3 text-lg font-black text-center text-emerald-400 outline-none" oninput="calculateROI()">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-slate-400 font-bold uppercase mb-1 block">Stake (u)</label>
+                                        <input type="number" id="live-stake" value="1" step="0.5" class="w-full bg-black border border-slate-700 rounded-xl p-3 text-lg font-black text-center text-white outline-none" oninput="calculateROI()">
+                                    </div>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl text-center relative overflow-hidden">
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase">ROI Esperado / Edge</p>
+                                    <p id="roi-display" class="text-3xl font-black">--%</p>
+                                    <p id="bet-signal" class="text-[10px] font-black uppercase mt-1 text-slate-600">Sin Datos</p>
+                                    
+                                    <button id="btn-save-action" onclick="saveLiveBet()" class="hidden w-full mt-4 py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">
+                                        Confirmar Entrada Live
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -101,16 +138,14 @@
                         <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-brain"></i> Alternativas de Cobertura
                         </h3>
-                        <div id="suggestions-list" class="space-y-3">
-                            </div>
+                        <div id="suggestions-list" class="space-y-3"></div>
                     </div>
 
                     <div class="glass-card p-5 rounded-2xl border-amber-500/20">
                         <h3 class="text-[10px] font-black text-amber-500 uppercase mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-triangle-exclamation"></i> Alertas de Riesgo
                         </h3>
-                        <div id="alerts-list" class="space-y-3 text-[11px]">
-                            </div>
+                        <div id="alerts-list" class="space-y-3 text-[11px]"></div>
                     </div>
                 </div>
             </div>
@@ -118,7 +153,10 @@
     </div>
 
     <script>
+        const STORAGE_KEY = 'betags_v3_miner';
         let currentMatch = null;
+        let globalLiveProb = 0;
+        let pressureChart = null; // Instancia del gráfico
 
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
@@ -134,8 +172,39 @@
                 currentMatch = JSON.parse(data);
                 document.getElementById('live-match-name').innerText = currentMatch.teams;
                 document.getElementById('target-market-label').innerText = currentMatch.market;
+                initChart(); // Iniciar gráfico
                 calculateLive();
             }
+        }
+
+        // AÑADIDO: Inicialización de Chart.js
+        function initChart() {
+            const ctx = document.getElementById('pressureChart').getContext('2d');
+            pressureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 96}, (_, i) => i),
+                    datasets: [{
+                        label: 'Probabilidad Acumulada',
+                        data: [],
+                        borderColor: '#fbbf24',
+                        borderWidth: 2,
+                        fill: true,
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } },
+                        y: { display: false, min: 0, max: 1 }
+                    }
+                }
+            });
         }
 
         function poisson(k, lambda) {
@@ -149,7 +218,6 @@
         }
 
         function getLambdaFromProb(prob, market) {
-            // Resolver λ aproximado para Over 2.5
             if(market.includes("2.5")) {
                 if(prob > 0.8) return 4.0;
                 if(prob > 0.7) return 3.5;
@@ -157,37 +225,82 @@
                 if(prob > 0.5) return 2.6;
                 return 2.2;
             }
-            // Resolver λ aproximado para BTTS
-            if(market.includes("BTTS")) {
-                return prob > 0.6 ? 3.2 : 2.5;
+            if(market.includes("BTTS")) return prob > 0.6 ? 3.2 : 2.5;
+            return 2.8;
+        }
+
+        function calculateROI() {
+            const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
+            const roiDisplay = document.getElementById('roi-display');
+            const betSignal = document.getElementById('bet-signal');
+            const saveBtn = document.getElementById('btn-save-action');
+
+            if (!bookieOdd || globalLiveProb <= 0) {
+                roiDisplay.innerText = "--%";
+                saveBtn.classList.add('hidden');
+                return;
             }
-            return 2.8; // Default
+
+            const ev = (globalLiveProb * bookieOdd) - 1;
+            const roiPercent = (ev * 100).toFixed(2);
+            roiDisplay.innerText = (ev > 0 ? "+" : "") + roiPercent + "%";
+            
+            if (ev > 0) {
+                roiDisplay.className = "text-3xl font-black roi-positive";
+                betSignal.innerText = "¡VALOR DETECTADO!";
+                betSignal.className = "text-[10px] font-black uppercase mt-1 text-emerald-400";
+                saveBtn.classList.remove('hidden');
+            } else {
+                roiDisplay.className = "text-3xl font-black roi-negative";
+                betSignal.innerText = "SIN VALOR";
+                betSignal.className = "text-[10px] font-black uppercase mt-1 text-red-500";
+                saveBtn.classList.add('hidden');
+            }
+        }
+
+        function saveLiveBet() {
+            if(!currentMatch) return;
+            const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
+            const stake = parseFloat(document.getElementById('live-stake').value) || 1;
+            const ev = (globalLiveProb * bookieOdd) - 1;
+            const newBet = {
+                id: Date.now(),
+                teams: `${currentMatch.teams} (LIVE)`,
+                market: currentMatch.market,
+                prob: globalLiveProb,
+                odd: bookieOdd,
+                stake: stake,
+                status: 'pending',
+                profit: 0,
+                date: new Date().toISOString().split('T')[0],
+                edge: (ev * 100).toFixed(1) + "%",
+                fair_odd: (1/globalLiveProb).toFixed(2)
+            };
+            let history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            history.push(newBet);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            alert("¡Apuesta Live guardada!");
         }
 
         function calculateLive() {
             if(!currentMatch) return;
-
             const min = parseInt(document.getElementById('live-min').value);
             const gH = parseInt(document.getElementById('live-gh').value);
             const gA = parseInt(document.getElementById('live-ga').value);
             const currentTotal = gH + gA;
 
-            // 1. Inferencia de Lambda Pre-match
             const probPre = parseFloat(currentMatch.prob);
             const lambdaPre = getLambdaFromProb(probPre, currentMatch.market);
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
 
-            // 2. Ajuste Temporal (Time Decay)
             const timeRemaining = Math.max(0, 95 - min);
             const timeFactor = timeRemaining / 90;
-            // Factor de corrección: Los segundos tiempos suelen tener un 15% más de goles
             const intensityBoost = min > 45 ? 1.15 : 1.0; 
             const lambdaRemaining = lambdaPre * timeFactor * intensityBoost;
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
             document.getElementById('time-bar').style.width = (min/95*100) + "%";
 
-            // 3. Probabilidad Mercado Objetivo
             let liveProb = 0;
             if(currentMatch.market.includes("OVER 2.5")) {
                 const needed = Math.max(0, 3 - currentTotal);
@@ -204,27 +317,29 @@
                 liveProb = pLocal * pVisita;
             }
 
-            updateUI(liveProb, lambdaRemaining, min, currentTotal, gH, gA);
+            globalLiveProb = liveProb;
+            updateUI(liveProb, lambdaRemaining, min, currentTotal, gH, gA, lambdaPre);
+            calculateROI();
         }
 
-        function updateUI(prob, lRest, min, total, gH, gA) {
+        // MODIFICADO: Añadida actualización del gráfico
+        function updateUI(prob, lRest, min, total, gH, gA, lPre) {
             const display = document.getElementById('live-prob-display');
             const oddFair = document.getElementById('live-odd-fair');
-            const valStatus = document.getElementById('value-status');
-
             display.innerText = (prob * 100).toFixed(1) + "%";
             oddFair.innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
-
-            // Lógica de Valor
-            if(prob > 0.65) {
-                valStatus.innerText = "ALTO";
-                valStatus.className = "text-2xl font-black text-emerald-500";
-            } else if(prob > 0.40) {
-                valStatus.innerText = "MEDIO";
-                valStatus.className = "text-2xl font-black text-amber-500";
-            } else {
-                valStatus.innerText = "BAJO";
-                valStatus.className = "text-2xl font-black text-slate-600";
+            
+            // Actualizar Gráfico de Presión
+            if(pressureChart) {
+                const chartData = Array(96).fill(null);
+                for(let i = min; i <= 95; i++) {
+                    const tRem = 95 - i;
+                    const lRem = lPre * (tRem/90) * (i > 45 ? 1.15 : 1.0);
+                    // P(Al menos 1 gol más)
+                    chartData[i] = 1 - Math.exp(-lRem);
+                }
+                pressureChart.data.datasets[0].data = chartData;
+                pressureChart.update('none');
             }
 
             generateSmartInsights(lRest, min, total, gH, gA);
@@ -233,39 +348,19 @@
         function generateSmartInsights(lRest, min, total, gH, gA) {
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
-            sugList.innerHTML = '';
-            alertList.innerHTML = '';
-
-            // --- SUGERENCIAS INTELIGENTES ---
-            
-            // 1. Over 0.5 Goles más (Late Goal)
+            sugList.innerHTML = ''; alertList.innerHTML = '';
             const pNextGoal = 1 - Math.exp(-lRest);
-            if(pNextGoal > 0.5) {
-                addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Alta Prob");
-            }
-
-            // 2. Over 1.5 si el partido está 0-0 o 1-0 en min 40-60
+            if(pNextGoal > 0.5) addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Alta Prob");
             if(total <= 1 && min > 40 && min < 65 && lRest > 1.2) {
                 const pO15 = 1 - (poisson(0, lRest) + (total === 0 ? poisson(1, lRest) : 0));
                 addSuggestion("Over 1.5 FT", (1/pO15).toFixed(2), "Value Live");
             }
-
-            // 3. BTTS (Sí) si alguien ya anotó
             if((gH > 0 || gA > 0) && (gH === 0 || gA === 0) && lRest > 0.8) {
                 const pBoth = 1 - Math.exp(-lRest/2);
                 addSuggestion("BTTS (SÍ)", (1/pBoth).toFixed(2), "Presión Vis.");
             }
-
-            // --- ALERTAS DE RIESGO ---
-            if(min > 70 && total < 2 && lRest < 0.9) {
-                addAlert("Riesgo de Time-Out: La erosión del tiempo es más rápida que la generación de xG.");
-            }
-            if(min > 80 && lRest < 0.5) {
-                addAlert("Liquidez Peligrosa: Probabilidad de gol menor al 15%. No entrar.");
-            }
-            if(total >= 3 && currentMatch.market.includes("OVER 2.5")) {
-                addAlert("OBJETIVO CUMPLIDO: Mercado ya resuelto en Green.");
-            }
+            if(min > 70 && total < 2 && lRest < 0.9) addAlert("Riesgo de Time-Out: El tiempo vuela.");
+            if(min > 80 && lRest < 0.5) addAlert("Liquidez Peligrosa: < 15% prob.");
         }
 
         function addSuggestion(market, odd, badge) {
@@ -276,7 +371,7 @@
                     <span class="text-xs font-bold text-white">${market}</span>
                     <span class="value-badge bg-emerald-500/20 text-emerald-400">${badge}</span>
                 </div>
-                <div class="text-[10px] text-slate-500 mt-1">Cuota Justa Sugerida: <span class="text-white font-mono">${odd}</span></div>
+                <div class="text-[10px] text-slate-500 mt-1">Cuota Justa: <span class="text-white font-mono">${odd}</span></div>
             `;
             document.getElementById('suggestions-list').appendChild(div);
         }
