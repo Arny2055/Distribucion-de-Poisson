@@ -351,7 +351,6 @@
         function calculateLive() {
             if(!currentMatch) return;
             
-            // --- NUEVO VALIDADOR EXTRA ---
             const inputs = {
                 min: document.getElementById('live-min'),
                 start: document.getElementById('live-min-start'),
@@ -366,10 +365,8 @@
             const gH = parseInt(inputs.gh.value) || 0;
             const gA = parseInt(inputs.ga.value) || 0;
 
-            // Limpieza de estados visuales de error
             Object.values(inputs).forEach(input => input.classList.remove('input-error'));
 
-            // Validaciones lógicas
             let hasError = false;
             if (startMin > endMin) { inputs.start.classList.add('input-error'); inputs.end.classList.add('input-error'); hasError = true; }
             if (currentMin < 0 || currentMin > 120) { inputs.min.classList.add('input-error'); hasError = true; }
@@ -379,9 +376,8 @@
             if (hasError) {
                 document.getElementById('live-prob-display').innerText = "ERROR";
                 document.getElementById('live-odd-fair').innerText = "--";
-                return; // Detiene el cálculo si hay datos absurdos
+                return;
             }
-            // --- FIN DEL VALIDADOR ---
 
             const currentTotal = gH + gA;
             const selectedMarket = document.getElementById('live-market-selector').value;
@@ -405,6 +401,7 @@
             rangeHighlight.style.left = startPct + "%";
             rangeHighlight.style.width = (endPct - startPct) + "%";
 
+            // Se pasa el lambdaPre original para cálculos HT específicos
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
@@ -412,19 +409,29 @@
         }
 
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
+            // CORRECCIÓN: Si el mercado es HT, recalculamos el lambda efectivo para que no exceda el minuto 45
+            let effectiveLambda = lRem;
+            if (market.includes("HT")) {
+                const limitHT = 45;
+                const windowHT = Math.max(0, limitHT - startMin);
+                // Si la ventana de tiempo empieza después del 45, la prob es 0
+                if (startMin >= limitHT) return 0;
+                effectiveLambda = lPre * (windowHT / 90);
+            }
+
             if(market.includes("OVER")) {
                 let limit = parseFloat(market.split(" ")[1]);
                 const needed = Math.max(0, Math.ceil(limit) - total);
                 if(needed === 0) return 1.0;
                 let p_under = 0;
-                for(let i=0; i < needed; i++) p_under += poisson(i, lRem);
+                for(let i=0; i < needed; i++) p_under += poisson(i, effectiveLambda);
                 return 1 - p_under;
             } else if(market.includes("UNDER")) {
                 let limit = parseFloat(market.split(" ")[1]);
                 const neededLimit = Math.ceil(limit) - total;
                 if(neededLimit <= 0) return 0;
                 let p_under = 0;
-                for(let i=0; i < neededLimit; i++) p_under += poisson(i, lRem);
+                for(let i=0; i < neededLimit; i++) p_under += poisson(i, effectiveLambda);
                 return p_under;
             } else if(market.includes("BTTS (SÍ)")) {
                 const windowFactor = (endMin - startMin) / 90;
@@ -460,21 +467,19 @@
             sugList.innerHTML = '';
             
             const dynamicMarkets = [`OVER ${total + 0.5}`, `OVER ${total + 1.5}`, `UNDER ${total + 1.5}`, `UNDER ${total + 2.5}`, `BTTS (SÍ)`];
-            if (min < 45) dynamicMarkets.push(`OVER ${total + 0.5} HT`);
+            // Solo sugerir HT si el partido está en el primer tiempo
+            if (min < 40) {
+                dynamicMarkets.push(`OVER ${total + 0.5} HT`);
+            }
 
             dynamicMarkets.forEach((m) => {
-                let effectiveLRem = lRest;
-                let marketLabel = m;
-                if (m.includes("HT")) {
-                    const minsLeftHT = Math.max(0, 45 - min);
-                    effectiveLRem = lPre * (minsLeftHT / 90);
-                }
-                const prob = calculateSpecificProb(m, effectiveLRem, total, gH, gA, lPre, min, startMin, endMin);
+                // calculateSpecificProb ahora maneja internamente si es HT o FT
+                const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
                 if(prob > 0.15 && prob < 0.95) {
                     const fairOdd = (1/prob).toFixed(2);
                     const div = document.createElement('div');
                     div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500 border-l-2 mb-2";
-                    div.innerHTML = `<div class="flex justify-between items-center"><span class="text-[11px] font-bold text-white uppercase">${marketLabel}</span><div class="text-right"><span class="text-[9px] text-slate-500 block">CUOTA JUSTA</span><span class="text-xs font-black text-emerald-400">${fairOdd}</span></div></div>`;
+                    div.innerHTML = `<div class="flex justify-between items-center"><span class="text-[11px] font-bold text-white uppercase">${m}</span><div class="text-right"><span class="text-[9px] text-slate-500 block">CUOTA JUSTA</span><span class="text-xs font-black text-emerald-400">${fairOdd}</span></div></div>`;
                     sugList.appendChild(div);
                 }
             });
