@@ -90,6 +90,7 @@
                 <div class="glass-card p-5 rounded-2xl border-dashed border-amber-500/30 bg-amber-500/5">
                     <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest"><i class="fa-solid fa-keyboard mr-2"></i>Poisson Manual (xG)</p>
                     <div class="space-y-3">
+                        <input type="text" id="manual-league" placeholder="Nombre de la Liga (Ej: Premier League)" class="input-manual border-amber-500/20">
                         <input type="text" id="manual-teams" placeholder="Equipo A vs Equipo B" class="input-manual">
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -253,6 +254,7 @@
         let pressureChart = null;
 
         function loadManualMatch() {
+            const league = document.getElementById('manual-league').value || "General";
             const teams = document.getElementById('manual-teams').value || "Partido Manual";
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
@@ -265,6 +267,7 @@
 
             currentMatch = {
                 teams: teams,
+                league: league,
                 manual: true,
                 lambdaPre: lambdaTotal,
                 xgH: xgH,
@@ -274,6 +277,7 @@
             };
 
             document.getElementById('live-match-name').innerText = currentMatch.teams;
+            document.getElementById('live-match-market').innerText = `LIGA: ${currentMatch.league} | POISSON LIVE`;
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
             document.getElementById('live-min').value = 0;
@@ -521,7 +525,6 @@
             }
         }
 
-        // --- FUNCIÓN DE GUARDADO MEJORADA CON ESTRUCTURA ROI HISTORY ---
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
@@ -548,11 +551,10 @@
             const now = new Date();
             const dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-            // ESTRUCTURA EXACTA PARA ROI HISTORY
             const betData = {
                 id: Date.now(),
                 timestamp: dateStr,
-                match: document.getElementById('live-match-name').innerText,
+                match: (currentMatch?.league ? `[${currentMatch.league}] ` : '') + document.getElementById('live-match-name').innerText,
                 market: finalMarket,
                 prob: (finalProb * 100).toFixed(1) + "%",
                 fairOdd: finalFair.toFixed(2),
