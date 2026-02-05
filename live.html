@@ -540,9 +540,9 @@
                 finalProb = globalLiveProb;
             } else {
                 finalMarket = market;
-                finalFair = fair;
+                finalFair = parseFloat(fair);
                 finalBookie = parseFloat(bookie);
-                finalProb = 1 / fair;
+                finalProb = 1 / finalFair;
             }
 
             if (!finalBookie || finalBookie <= 1) {
