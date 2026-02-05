@@ -86,6 +86,12 @@
                     </div>
                 </div>
 
+                <div class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
+                    <p class="text-[10px] text-amber-500 font-black uppercase mb-4 tracking-widest"><i class="fa-solid fa-stopwatch mr-2"></i>Cronómetro de Presión</p>
+                    <div id="next-goal-timer-container" class="space-y-4">
+                        </div>
+                </div>
+
                 <div class="glass-card p-5 rounded-2xl">
                     <p class="text-[10px] text-slate-500 font-bold uppercase mb-4 text-center tracking-widest">Ventana de Oportunidad</p>
                     <div class="chart-container">
@@ -320,6 +326,32 @@
             }
         }
 
+        // NUEVA FUNCIÓN: Actualiza el cronómetro de ventanas de gol
+        function updateNextGoalTimer(lPre, min) {
+            const container = document.getElementById('next-goal-timer-container');
+            container.innerHTML = '';
+            
+            const intervals = [5, 10, 15];
+            intervals.forEach(t => {
+                // Cálculo de lambda para el intervalo específico ajustado por tiempo
+                const lInterval = lPre * (t / 90) * (min > 45 ? 1.15 : 1.0);
+                const prob = 1 - Math.exp(-lInterval);
+                
+                const div = document.createElement('div');
+                div.className = "mb-2";
+                div.innerHTML = `
+                    <div class="flex justify-between text-[9px] uppercase font-black mb-1">
+                        <span class="text-slate-400">Próximos ${t} min</span>
+                        <span class="text-amber-500">${(prob * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-white/5">
+                        <div class="bg-gradient-to-right from-amber-600 to-amber-400 h-full transition-all duration-500" style="width: ${prob * 100}%"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
         function calculateLive() {
             if(!currentMatch) return;
             const min = parseInt(document.getElementById('live-min').value);
@@ -393,6 +425,8 @@
                 pressureChart.data.datasets[0].data = chartData;
                 pressureChart.update('none');
             }
+
+            updateNextGoalTimer(lPre, min); // Actualizar cronómetro
             generateSmartInsights(lRest, min, total, gH, gA, lPre);
         }
 
@@ -416,7 +450,6 @@
 
             const allMarkets = [];
 
-            // Mercados FT (0.5 - 3.5)
             [0.5, 1.5, 2.5, 3.5].forEach(line => {
                 const pUnder = getUnderProb(Math.ceil(line), total, lRest);
                 const pOver = 1 - pUnder;
@@ -424,11 +457,9 @@
                 allMarkets.push({ name: `Over ${line} FT`, prob: pOver, badge: "ATK" });
             });
 
-            // NUEVO: Mercados HT (Solo si min < 45)
             if (min < 45) {
                 const timeToHT = 45 - min;
-                const lambdaHT = lPre * (timeToHT / 90); // Intensidad proporcional al tiempo restante de la 1H
-                
+                const lambdaHT = lPre * (timeToHT / 90);
                 [0.5, 1.5].forEach(line => {
                     const pUnderHT = getUnderProb(Math.ceil(line), total, lambdaHT);
                     const pOverHT = 1 - pUnderHT;
