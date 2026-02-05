@@ -64,7 +64,7 @@
             100% { transform: translateX(0); }
         }
 
-        /* MEJORA: Ocultar secciones solicitadas sin borrar código */
+        /* Ocultar secciones sin borrar código */
         #pressure-timer-card, 
         #opportunity-window-card {
             display: none !important;
@@ -521,9 +521,10 @@
             }
         }
 
-        // --- FUNCIÓN DE GUARDADO MEJORADA Y SINCRONIZADA ---
+        // --- FUNCIÓN DE GUARDADO MEJORADA CON ESTRUCTURA ROI HISTORY ---
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
+            const stake = document.getElementById('live-stake').value || 1;
 
             if (source === 'DIRECT') {
                 finalMarket = document.getElementById('live-market-selector').value;
@@ -539,28 +540,34 @@
             }
 
             if (!finalBookie || finalBookie <= 1) {
-                alert("Ingresa una cuota válida antes de guardar.");
+                alert("Ingresa una cuota válida.");
                 return;
             }
 
+            const edge = (((finalBookie / finalFair) - 1) * 100).toFixed(2);
+            const now = new Date();
+            const dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            // ESTRUCTURA EXACTA PARA ROI HISTORY
             const betData = {
                 id: Date.now(),
-                timestamp: new Date().toLocaleString(),
+                timestamp: dateStr,
                 match: document.getElementById('live-match-name').innerText,
                 market: finalMarket,
-                fairOdd: finalFair,
-                bookieOdd: finalBookie,
-                prob: (finalProb * 100).toFixed(2) + "%",
-                roi: (((finalBookie / finalFair) - 1) * 100).toFixed(2) + "%",
-                type: 'LIVE'
+                prob: (finalProb * 100).toFixed(1) + "%",
+                fairOdd: finalFair.toFixed(2),
+                bookieOdd: finalBookie.toFixed(2),
+                edge: edge + "%",
+                stake: stake,
+                isLive: "SÍ",
+                status: "PENDIENTE"
             };
 
-            // Sincronización con el STORAGE_KEY global
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 100)));
             
-            alert(`✅ Entrada Guardada en ROI History:\n${finalMarket} @${finalBookie}\nROI: ${betData.roi}`);
+            alert(`✅ ENVIADO A ROI HISTORY:\n${betData.match}\n${finalMarket} @${finalBookie}`);
         }
 
         function calculateROI() {
@@ -575,7 +582,6 @@
             roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
             roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
             
-            // Mostrar botón solo si hay valor positivo (Edge)
             if(ev > 0) saveBtn.classList.remove('hidden');
             else saveBtn.classList.add('hidden');
         }
