@@ -60,8 +60,8 @@
                         <div>
                             <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (min)</label>
                             <div class="flex items-center gap-4">
-                                <input type="range" id="live-min-range" min="0" max="95" value="45" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
-                                <input type="number" id="live-min" value="45" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
+                                <input type="range" id="live-min-range" min="0" max="95" value="0" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
+                                <input type="number" id="live-min" value="0" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -202,13 +202,13 @@
             calculateLive();
         }
 
-        // FUNCIÓN RESET AÑADIDA
+        // FUNCIÓN RESET
         function resetMatch() {
             document.getElementById('live-min-range').value = 0;
             document.getElementById('live-min').value = 0;
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
-            calculateLive(); // Recalcular todo con los nuevos valores
+            calculateLive();
         }
 
         function loadMatch() {
@@ -216,7 +216,6 @@
             if(data) {
                 currentMatch = JSON.parse(data);
                 document.getElementById('live-match-name').innerText = currentMatch.teams;
-                // Inicializamos el marcador en 0-0 por defecto
                 document.getElementById('live-gh').value = 0;
                 document.getElementById('live-ga').value = 0;
                 initChart();
@@ -396,7 +395,6 @@
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
             document.getElementById('time-bar').style.width = (min/95*100) + "%";
 
-            // LÓGICA DINÁMICA DE PROBABILIDAD SEGÚN SELECCIÓN
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, min);
 
             globalLiveProb = liveProb;
