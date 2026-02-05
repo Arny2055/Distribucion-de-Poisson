@@ -136,7 +136,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="glass-card p-5 rounded-2xl">
                         <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-brain"></i> Alternativas de Cobertura
+                            <i class="fa-solid fa-brain"></i> Alternativas Sugeridas
                         </h3>
                         <div id="suggestions-list" class="space-y-3"></div>
                     </div>
@@ -218,9 +218,8 @@
 
         function getLambdaFromProb(prob, market) {
             let p = parseFloat(prob);
-            // Si el mercado es UNDER, invertimos la prob para hallar el lambda de intensidad
             if(market.includes("UNDER")) p = 1 - p;
-            if(market.includes("BTTS (NO)")) p = 0.4; // Ajuste empírico
+            if(market.includes("BTTS (NO)")) p = 0.4; 
 
             if(p > 0.8) return 4.0;
             if(p > 0.7) return 3.5;
@@ -301,7 +300,6 @@
 
             let liveProb = 0;
 
-            // LÓGICA DE OVER 2.5
             if(market.includes("OVER 2.5")) {
                 const needed = Math.max(0, 3 - currentTotal);
                 if(needed === 0) liveProb = 1.0;
@@ -311,7 +309,6 @@
                     liveProb = 1 - p_under;
                 }
             } 
-            // NUEVA: LÓGICA DE UNDER 2.5
             else if(market.includes("UNDER 2.5")) {
                 const limit = 3 - currentTotal;
                 if(limit <= 0) liveProb = 0;
@@ -321,14 +318,12 @@
                     liveProb = p_under;
                 }
             }
-            // LÓGICA DE BTTS (SÍ)
             else if(market.includes("BTTS (SÍ)")) {
                 const lTeam = lambdaRemaining / 2;
                 const pLocal = gH > 0 ? 1 : (1 - Math.exp(-lTeam));
                 const pVisita = gA > 0 ? 1 : (1 - Math.exp(-lTeam));
                 liveProb = pLocal * pVisita;
             }
-            // NUEVA: LÓGICA DE BTTS (NO)
             else if(market.includes("BTTS (NO)")) {
                 const lTeam = lambdaRemaining / 2;
                 const pLocal = gH > 0 ? 1 : (1 - Math.exp(-lTeam));
@@ -360,23 +355,53 @@
             generateSmartInsights(lRest, min, total, gH, gA);
         }
 
+        // MEJORA: Alternativas Under y BTTS No en sugerencias
         function generateSmartInsights(lRest, min, total, gH, gA) {
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
             sugList.innerHTML = ''; alertList.innerHTML = '';
             
             const pNextGoal = 1 - Math.exp(-lRest);
-            
-            // Sugerencias Dinámicas
-            if(pNextGoal < 0.3 && min > 60) addSuggestion("Under 0.5 Goles Rest.", (1/(1-pNextGoal)).toFixed(2), "Defensivo");
-            if(total < 2.5 && lRest < 0.7) addSuggestion("Under 2.5 FT", (1/(poisson(0,lRest))).toFixed(2), "Seguro");
-            if(pNextGoal > 0.5) addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Alta Prob");
+            const lHalf = lRest / 2;
+            const pL = gH > 0 ? 1 : (1 - Math.exp(-lHalf));
+            const pV = gA > 0 ? 1 : (1 - Math.exp(-lHalf));
+            const pBTTSYes = pL * pV;
 
-            if(min > 75 && total >= 2 && lRest > 0.5) addAlert("Peligro de Over Tardío: Intensidad de ataque detectada.");
-            if(min > 80 && lRest < 0.4) addAlert("Tendencia Under: Ritmo de juego bajo.");
+            // --- MERCADOS ALTERNATIVOS ---
+            
+            // 1. Alternativas de Goles (Over/Under)
+            if(pNextGoal > 0.4) addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Ataque");
+            
+            const pUnder05Rem = 1 - pNextGoal;
+            if(pUnder05Rem > 0.4) addSuggestion("Under 0.5 Goles Rest.", (1/pUnder05Rem).toFixed(2), "Defensa");
+
+            const limit25 = 3 - total;
+            if(limit25 > 0) {
+                let pU25 = 0;
+                for(let i=0; i<limit25; i++) pU25 += poisson(i, lRest);
+                if(pU25 > 0.2 && pU25 < 0.95) addSuggestion("Under 2.5 FT", (1/pU25).toFixed(2), "Under");
+            }
+
+            const limit35 = 4 - total;
+            if(limit35 > 0) {
+                let pU35 = 0;
+                for(let i=0; i<limit35; i++) pU35 += poisson(i, lRest);
+                if(pU35 > 0.3 && pU35 < 0.98) addSuggestion("Under 3.5 FT", (1/pU35).toFixed(2), "Seguro");
+            }
+
+            // 2. Alternativas de Ambos Anotan
+            if(pBTTSYes > 0.2 && pBTTSYes < 0.95) addSuggestion("BTTS (SÍ)", (1/pBTTSYes).toFixed(2), "Ambos");
+            
+            const pBTTSNo = 1 - pBTTSYes;
+            if(pBTTSNo > 0.2 && pBTTSNo < 0.95) addSuggestion("BTTS (NO)", (1/pBTTSNo).toFixed(2), "Sin Goles");
+
+            // --- ALERTAS ---
+            if(min > 75 && total >= 2 && lRest > 0.5) addAlert("Peligro de Over Tardío detectado.");
+            if(min > 80 && lRest < 0.3) addAlert("Ritmo muy bajo: Tendencia Under clara.");
         }
 
         function addSuggestion(market, odd, badge) {
+            const sugList = document.getElementById('suggestions-list');
             const div = document.createElement('div');
             div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500";
             div.innerHTML = `
@@ -386,7 +411,6 @@
                 </div>
                 <div class="text-[10px] text-slate-500 mt-1">Cuota Justa: <span class="text-white font-mono">${odd}</span></div>
             `;
-            sugList = document.getElementById('suggestions-list');
             sugList.appendChild(div);
         }
 
