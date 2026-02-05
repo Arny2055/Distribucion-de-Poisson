@@ -203,7 +203,8 @@
     <script>
         let pChart;
         let currentAnalysisMode = 'GOLES';
-        const STORAGE_KEY = 'betags_v3_miner';
+        // Mejora aplicada: STORAGE_KEY exclusivo para Pre-Match
+        const STORAGE_KEY = 'betags_pre_match'; 
         const MODE_KEY = 'betags_preferred_mode'; 
         
         // Parámetro Rho para Dixon-Coles
@@ -407,6 +408,7 @@
             }
         }
 
+        // Mejora aplicada: Función sendToROI optimizada
         function sendToROI(id, market, prob) {
             const league = document.getElementById('league_name').value.trim() || 'Desconocida';
             const event = document.getElementById('event_name').value.trim() || 'Evento';
