@@ -77,8 +77,19 @@
                     <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Carga un evento desde ROI o Manual</p>
 
                     <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-2 mb-2 border-b border-white/5 pb-4">
+                            <div>
+                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block text-center">Tiempo Mín</label>
+                                <input type="number" id="live-min-start" value="0" min="0" max="90" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block text-center">Tiempo Máx</label>
+                                <input type="number" id="live-min-end" value="90" min="1" max="100" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="calculateLive()">
+                            </div>
+                        </div>
+
                         <div>
-                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (min)</label>
+                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (Control Visual)</label>
                             <div class="flex items-center gap-4">
                                 <input type="range" id="live-min-range" min="0" max="95" value="0" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
                                 <input type="number" id="live-min" value="0" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
@@ -108,7 +119,7 @@
                             <span id="metric-lambda-pre" class="font-mono text-white text-xs">--</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-xs text-slate-300">λ Restante</span>
+                            <span class="text-xs text-slate-300">λ Restante (Ventana)</span>
                             <span id="live-lambda" class="font-mono text-amber-500 font-bold text-xs">--</span>
                         </div>
                         <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -215,14 +226,13 @@
                 return;
             }
 
-            // Guardamos el partido con xG individuales para BTTS preciso
             currentMatch = {
                 teams: teams,
                 manual: true,
                 lambdaPre: lambdaTotal,
                 xgH: xgH,
                 xgA: xgA,
-                prob: (1 - Math.exp(-lambdaTotal)).toFixed(4), // Prob de Over 0.5 como base
+                prob: (1 - Math.exp(-lambdaTotal)).toFixed(4),
                 market: "OVER 0.5"
             };
 
@@ -231,6 +241,8 @@
             document.getElementById('live-ga').value = 0;
             document.getElementById('live-min').value = 0;
             document.getElementById('live-min-range').value = 0;
+            document.getElementById('live-min-start').value = 0;
+            document.getElementById('live-min-end').value = 90;
 
             if(!pressureChart) initChart();
             calculateLive();
@@ -239,8 +251,12 @@
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
             const num = document.getElementById('live-min');
+            const start = document.getElementById('live-min-start');
             if(type === 'range') num.value = range.value;
             else range.value = num.value;
+            
+            // Sincronizamos el tiempo mínimo de análisis con el minuto actual para agilizar
+            start.value = num.value;
             calculateLive();
         }
 
@@ -249,6 +265,8 @@
             document.getElementById('live-min').value = 0;
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
+            document.getElementById('live-min-start').value = 0;
+            document.getElementById('live-min-end').value = 90;
             calculateLive();
         }
 
@@ -312,7 +330,9 @@
 
         function calculateLive() {
             if(!currentMatch) return;
-            const min = parseInt(document.getElementById('live-min').value);
+            const currentMin = parseInt(document.getElementById('live-min').value);
+            const startMin = parseInt(document.getElementById('live-min-start').value);
+            const endMin = parseInt(document.getElementById('live-min-end').value);
             const gH = parseInt(document.getElementById('live-gh').value);
             const gA = parseInt(document.getElementById('live-ga').value);
             const currentTotal = gH + gA;
@@ -321,20 +341,21 @@
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
 
-            const timeRemaining = Math.max(0, 95 - min);
-            const intensityBoost = min > 45 ? 1.15 : 1.0; 
-            const lambdaRemaining = lambdaPre * (timeRemaining / 90) * intensityBoost;
+            // MEJORA: Cálculo basado en ventana personalizada
+            const timeWindow = Math.max(0, endMin - startMin);
+            const intensityBoost = currentMin > 45 ? 1.15 : 1.0; 
+            const lambdaRemaining = lambdaPre * (timeWindow / 90) * intensityBoost;
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
-            document.getElementById('time-bar').style.width = (min/95*100) + "%";
+            document.getElementById('time-bar').style.width = (currentMin/95*100) + "%";
 
-            let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, min);
+            let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
-            updateUI(liveProb, lambdaRemaining, min, currentTotal, gH, gA, lambdaPre);
+            updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
             calculateROI();
         }
 
-        function calculateSpecificProb(market, lRem, total, gh, ga, lPre, min) {
+        function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
             if(market.includes("OVER")) {
                 let limit = parseFloat(market.split(" ")[1]);
                 const needed = Math.max(0, Math.ceil(limit) - total);
@@ -350,9 +371,9 @@
                 for(let i=0; i < neededLimit; i++) p_under += poisson(i, lRem);
                 return p_under;
             } else if(market.includes("BTTS (SÍ)")) {
-                // Si es manual usamos los xG cargados, si no, dividimos lambdaPre / 2
-                const lH = currentMatch.manual ? (currentMatch.xgH * (95-min)/90) : (lRem / 2);
-                const lA = currentMatch.manual ? (currentMatch.xgA * (95-min)/90) : (lRem / 2);
+                const windowFactor = (endMin - startMin) / 90;
+                const lH = currentMatch.manual ? (currentMatch.xgH * windowFactor) : (lRem / 2);
+                const lA = currentMatch.manual ? (currentMatch.xgA * windowFactor) : (lRem / 2);
                 const pL = gh > 0 ? 1 : (1 - Math.exp(-lH));
                 const pA = ga > 0 ? 1 : (1 - Math.exp(-lA));
                 return pL * pA;
@@ -360,7 +381,7 @@
             return 0;
         }
 
-        function updateUI(prob, lRest, min, total, gH, gA, lPre) {
+        function updateUI(prob, lRest, min, total, gH, gA, lPre, startMin, endMin) {
             document.getElementById('live-prob-display').innerText = (prob * 100).toFixed(1) + "%";
             document.getElementById('live-odd-fair').innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
             
@@ -374,17 +395,17 @@
                 pressureChart.data.datasets[0].data = chartData;
                 pressureChart.update('none');
             }
-            generateSmartInsights(lRest, min, total, gH, gA, lPre);
+            generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
         }
 
-        function generateSmartInsights(lRest, min, total, gH, gA, lPre) {
+        function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
             const sugList = document.getElementById('suggestions-list');
             if(!sugList) return;
             sugList.innerHTML = '';
             
             const markets = [`Over ${total+0.5} FT`, `Under ${total+1.5} FT`, "BTTS (SÍ)"];
-            markets.forEach((m, idx) => {
-                const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min);
+            markets.forEach((m) => {
+                const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
                 if(prob > 0.1 && prob < 0.95) {
                     const fairOdd = (1/prob).toFixed(2);
                     const div = document.createElement('div');
