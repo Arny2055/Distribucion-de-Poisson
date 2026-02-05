@@ -34,6 +34,17 @@
 
         .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
         .input-manual:focus { border-color: #fbbf24; }
+
+        /* Mejora: Marcador de Rango Verde Neón */
+        #time-bar-container { position: relative; background: #1e293b; }
+        #range-highlight {
+            position: absolute;
+            height: 100%;
+            background: #39ff14; /* Verde Neón */
+            box-shadow: 0 0 10px #39ff14;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -122,8 +133,9 @@
                             <span class="text-xs text-slate-300">λ Restante (Ventana)</span>
                             <span id="live-lambda" class="font-mono text-amber-500 font-bold text-xs">--</span>
                         </div>
-                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div id="time-bar" class="bg-emerald-500 h-full transition-all" style="width: 50%"></div>
+                        <div id="time-bar-container" class="w-full h-1.5 rounded-full overflow-hidden">
+                            <div id="range-highlight" style="left: 0%; width: 100%;"></div>
+                            <div id="time-bar" class="bg-white/20 h-full transition-all relative z-10" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
@@ -255,7 +267,6 @@
             if(type === 'range') num.value = range.value;
             else range.value = num.value;
             
-            // Sincronizamos el tiempo mínimo de análisis con el minuto actual para agilizar
             start.value = num.value;
             calculateLive();
         }
@@ -341,13 +352,23 @@
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
 
-            // MEJORA: Cálculo basado en ventana personalizada
             const timeWindow = Math.max(0, endMin - startMin);
             const intensityBoost = currentMin > 45 ? 1.15 : 1.0; 
             const lambdaRemaining = lambdaPre * (timeWindow / 90) * intensityBoost;
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
-            document.getElementById('time-bar').style.width = (currentMin/95*100) + "%";
+            
+            // Actualización de barras de tiempo
+            const timeBar = document.getElementById('time-bar');
+            const rangeHighlight = document.getElementById('range-highlight');
+            
+            timeBar.style.width = (currentMin/95*100) + "%";
+            
+            // Mejora: Posicionamiento del resaltado neón
+            const startPct = (startMin / 95) * 100;
+            const endPct = (endMin / 95) * 100;
+            rangeHighlight.style.left = startPct + "%";
+            rangeHighlight.style.width = (endPct - startPct) + "%";
 
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
