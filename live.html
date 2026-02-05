@@ -66,7 +66,9 @@
 
         /* Ocultar secciones sin borrar código */
         #pressure-timer-card, 
-        #opportunity-window-card {
+        #opportunity-window-card,
+        #suggestions-card,
+        #risk-alerts-card {
             display: none !important;
         }
     </style>
@@ -234,11 +236,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="glass-card p-5 rounded-2xl">
+                    <div id="suggestions-card" class="glass-card p-5 rounded-2xl">
                         <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2"><i class="fa-solid fa-brain"></i> Alternativas Sugeridas</h3>
                         <div id="suggestions-list" class="space-y-3"></div>
                     </div>
-                    <div class="glass-card p-5 rounded-2xl border-amber-500/20">
+                    <div id="risk-alerts-card" class="glass-card p-5 rounded-2xl border-amber-500/20">
                         <h3 class="text-[10px] font-black text-amber-500 uppercase mb-4 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Alertas de Riesgo</h3>
                         <div id="alerts-list" class="space-y-3 text-[11px]"></div>
                     </div>
