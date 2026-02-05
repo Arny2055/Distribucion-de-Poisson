@@ -285,7 +285,6 @@
             alert("¡Apuesta Live guardada!");
         }
 
-        // NUEVA FUNCIÓN: Guarda una alternativa sugerida
         function saveAltBet(market, prob, inputId) {
             const bookieOdd = parseFloat(document.getElementById(inputId).value);
             if(!bookieOdd || !currentMatch) return;
@@ -297,7 +296,7 @@
                 market: market,
                 prob: prob,
                 odd: bookieOdd,
-                stake: 1.0, // Stake por defecto para alts
+                stake: 1.0, 
                 status: 'pending',
                 profit: 0,
                 date: new Date().toISOString().split('T')[0],
@@ -311,7 +310,6 @@
             alert(`¡${market} guardado en el historial!`);
         }
 
-        // NUEVA FUNCIÓN: Chequea valor en inputs de alternativas
         function checkAltValue(prob, inputId, btnId) {
             const val = parseFloat(document.getElementById(inputId).value);
             const btn = document.getElementById(btnId);
@@ -348,7 +346,7 @@
                 if(needed === 0) liveProb = 1.0;
                 else {
                     let p_under = 0;
-                    for(let i=0; i < needed; i++) p_under += poisson(i, lambdaRemaining);
+                    for(let i = 0; i < needed; i++) p_under += poisson(i, lambdaRemaining);
                     liveProb = 1 - p_under;
                 }
             } 
@@ -357,7 +355,7 @@
                 if(limit <= 0) liveProb = 0;
                 else {
                     let p_under = 0;
-                    for(let i=0; i < limit; i++) p_under += poisson(i, lambdaRemaining);
+                    for(let i = 0; i < limit; i++) p_under += poisson(i, lambdaRemaining);
                     liveProb = p_under;
                 }
             }
@@ -395,10 +393,10 @@
                 pressureChart.data.datasets[0].data = chartData;
                 pressureChart.update('none');
             }
-            generateSmartInsights(lRest, min, total, gH, gA);
+            generateSmartInsights(lRest, min, total, gH, gA, lPre);
         }
 
-        function generateSmartInsights(lRest, min, total, gH, gA) {
+        function generateSmartInsights(lRest, min, total, gH, gA, lPre) {
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
             sugList.innerHTML = ''; alertList.innerHTML = '';
@@ -417,12 +415,28 @@
             const pBTTSYes = pHome * pAway;
 
             const allMarkets = [];
+
+            // Mercados FT (0.5 - 3.5)
             [0.5, 1.5, 2.5, 3.5].forEach(line => {
                 const pUnder = getUnderProb(Math.ceil(line), total, lRest);
                 const pOver = 1 - pUnder;
                 allMarkets.push({ name: `Under ${line} FT`, prob: pUnder, badge: "DEF" });
                 allMarkets.push({ name: `Over ${line} FT`, prob: pOver, badge: "ATK" });
             });
+
+            // NUEVO: Mercados HT (Solo si min < 45)
+            if (min < 45) {
+                const timeToHT = 45 - min;
+                const lambdaHT = lPre * (timeToHT / 90); // Intensidad proporcional al tiempo restante de la 1H
+                
+                [0.5, 1.5].forEach(line => {
+                    const pUnderHT = getUnderProb(Math.ceil(line), total, lambdaHT);
+                    const pOverHT = 1 - pUnderHT;
+                    allMarkets.push({ name: `Under ${line} HT`, prob: pUnderHT, badge: "HT-D" });
+                    allMarkets.push({ name: `Over ${line} HT`, prob: pOverHT, badge: "HT-A" });
+                });
+            }
+
             allMarkets.push({ name: "BTTS (SÍ)", prob: pBTTSYes, badge: "GOL" });
             allMarkets.push({ name: "BTTS (NO)", prob: 1 - pBTTSYes, badge: "CERO" });
 
@@ -437,7 +451,6 @@
             if(min > 80 && lRest < 0.3) addAlert("Ritmo muy bajo: Tendencia Under clara.");
         }
 
-        // MODIFICADO: addSuggestion ahora incluye input de cuota y botón de guardado
         function addSuggestion(market, odd, badge, prob, index) {
             const sugList = document.getElementById('suggestions-list');
             const inputId = `alt-odd-${index}`;
