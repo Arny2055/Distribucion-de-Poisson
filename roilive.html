@@ -93,7 +93,8 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'betags_v3_miner';
+        // MEJORA: Solo lee lo que guarda el Código 3
+        const STORAGE_KEY = 'betags_live_exclusive';
 
         function loadHistory() {
             return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -110,9 +111,11 @@
             let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
 
             history.forEach(bet => {
+                // Aplicación de filtros
                 if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
                 if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
 
+                // Cálculo de estadísticas base
                 stats.total++;
                 const stake = parseFloat(bet.stake) || 0;
                 if(bet.status === 'GANADA') {
