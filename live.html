@@ -20,6 +20,12 @@
         .btn-save-live:hover { background: #059669; transform: translateY(-1px); }
         
         .chart-container { position: relative; height: 200px; width: 100%; }
+
+        /* Estilos específicos para inputs de alternativas */
+        .alt-input { background: #000; border: 1px solid #334155; border-radius: 4px; padding: 2px 4px; width: 60px; text-align: center; color: #10b981; font-weight: 900; font-size: 12px; outline: none; }
+        .alt-input:focus { border-color: #10b981; }
+        .btn-mini-save { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; display: none; transition: scale 0.2s; }
+        .btn-mini-save:active { scale: 0.9; }
     </style>
 </head>
 <body>
@@ -136,7 +142,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="glass-card p-5 rounded-2xl">
                         <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-brain"></i> Alternativas Sugeridas
+                            <i class="fa-solid fa-brain"></i> Alternativas Sugeridas (C. Justa ≤ 2)
                         </h3>
                         <div id="suggestions-list" class="space-y-3"></div>
                     </div>
@@ -279,6 +285,43 @@
             alert("¡Apuesta Live guardada!");
         }
 
+        // NUEVA FUNCIÓN: Guarda una alternativa sugerida
+        function saveAltBet(market, prob, inputId) {
+            const bookieOdd = parseFloat(document.getElementById(inputId).value);
+            if(!bookieOdd || !currentMatch) return;
+            
+            const ev = (prob * bookieOdd) - 1;
+            const newBet = {
+                id: Date.now(),
+                teams: `${currentMatch.teams} (ALT-LIVE)`,
+                market: market,
+                prob: prob,
+                odd: bookieOdd,
+                stake: 1.0, // Stake por defecto para alts
+                status: 'pending',
+                profit: 0,
+                date: new Date().toISOString().split('T')[0],
+                edge: (ev * 100).toFixed(1) + "%",
+                fair_odd: (1/prob).toFixed(2)
+            };
+
+            let history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            history.push(newBet);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            alert(`¡${market} guardado en el historial!`);
+        }
+
+        // NUEVA FUNCIÓN: Chequea valor en inputs de alternativas
+        function checkAltValue(prob, inputId, btnId) {
+            const val = parseFloat(document.getElementById(inputId).value);
+            const btn = document.getElementById(btnId);
+            if(val && (prob * val) - 1 > 0) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
         function calculateLive() {
             if(!currentMatch) return;
             const min = parseInt(document.getElementById('live-min').value);
@@ -355,61 +398,69 @@
             generateSmartInsights(lRest, min, total, gH, gA);
         }
 
-        // MEJORA: Alternativas Under y BTTS No en sugerencias
         function generateSmartInsights(lRest, min, total, gH, gA) {
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
             sugList.innerHTML = ''; alertList.innerHTML = '';
             
-            const pNextGoal = 1 - Math.exp(-lRest);
+            const getUnderProb = (limit, current, lambda) => {
+                const needed = limit - current;
+                if (needed <= 0) return 0;
+                let p = 0;
+                for (let i = 0; i < needed; i++) p += poisson(i, lambda);
+                return p;
+            };
+
             const lHalf = lRest / 2;
-            const pL = gH > 0 ? 1 : (1 - Math.exp(-lHalf));
-            const pV = gA > 0 ? 1 : (1 - Math.exp(-lHalf));
-            const pBTTSYes = pL * pV;
+            const pHome = gH > 0 ? 1 : (1 - Math.exp(-lHalf));
+            const pAway = gA > 0 ? 1 : (1 - Math.exp(-lHalf));
+            const pBTTSYes = pHome * pAway;
 
-            // --- MERCADOS ALTERNATIVOS ---
-            
-            // 1. Alternativas de Goles (Over/Under)
-            if(pNextGoal > 0.4) addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Ataque");
-            
-            const pUnder05Rem = 1 - pNextGoal;
-            if(pUnder05Rem > 0.4) addSuggestion("Under 0.5 Goles Rest.", (1/pUnder05Rem).toFixed(2), "Defensa");
+            const allMarkets = [];
+            [0.5, 1.5, 2.5, 3.5].forEach(line => {
+                const pUnder = getUnderProb(Math.ceil(line), total, lRest);
+                const pOver = 1 - pUnder;
+                allMarkets.push({ name: `Under ${line} FT`, prob: pUnder, badge: "DEF" });
+                allMarkets.push({ name: `Over ${line} FT`, prob: pOver, badge: "ATK" });
+            });
+            allMarkets.push({ name: "BTTS (SÍ)", prob: pBTTSYes, badge: "GOL" });
+            allMarkets.push({ name: "BTTS (NO)", prob: 1 - pBTTSYes, badge: "CERO" });
 
-            const limit25 = 3 - total;
-            if(limit25 > 0) {
-                let pU25 = 0;
-                for(let i=0; i<limit25; i++) pU25 += poisson(i, lRest);
-                if(pU25 > 0.2 && pU25 < 0.95) addSuggestion("Under 2.5 FT", (1/pU25).toFixed(2), "Under");
-            }
+            allMarkets.forEach((m, index) => {
+                const fairOdd = m.prob > 0 ? (1 / m.prob) : 100;
+                if (fairOdd <= 2.0 && m.prob < 0.99) {
+                    addSuggestion(m.name, fairOdd.toFixed(2), m.badge, m.prob, index);
+                }
+            });
 
-            const limit35 = 4 - total;
-            if(limit35 > 0) {
-                let pU35 = 0;
-                for(let i=0; i<limit35; i++) pU35 += poisson(i, lRest);
-                if(pU35 > 0.3 && pU35 < 0.98) addSuggestion("Under 3.5 FT", (1/pU35).toFixed(2), "Seguro");
-            }
-
-            // 2. Alternativas de Ambos Anotan
-            if(pBTTSYes > 0.2 && pBTTSYes < 0.95) addSuggestion("BTTS (SÍ)", (1/pBTTSYes).toFixed(2), "Ambos");
-            
-            const pBTTSNo = 1 - pBTTSYes;
-            if(pBTTSNo > 0.2 && pBTTSNo < 0.95) addSuggestion("BTTS (NO)", (1/pBTTSNo).toFixed(2), "Sin Goles");
-
-            // --- ALERTAS ---
             if(min > 75 && total >= 2 && lRest > 0.5) addAlert("Peligro de Over Tardío detectado.");
             if(min > 80 && lRest < 0.3) addAlert("Ritmo muy bajo: Tendencia Under clara.");
         }
 
-        function addSuggestion(market, odd, badge) {
+        // MODIFICADO: addSuggestion ahora incluye input de cuota y botón de guardado
+        function addSuggestion(market, odd, badge, prob, index) {
             const sugList = document.getElementById('suggestions-list');
+            const inputId = `alt-odd-${index}`;
+            const btnId = `alt-btn-${index}`;
+            
             const div = document.createElement('div');
             div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500";
             div.innerHTML = `
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-bold text-white">${market}</span>
                     <span class="value-badge bg-emerald-500/20 text-emerald-400">${badge}</span>
                 </div>
-                <div class="text-[10px] text-slate-500 mt-1">Cuota Justa: <span class="text-white font-mono">${odd}</span></div>
+                <div class="flex justify-between items-center">
+                    <div class="text-[10px] text-slate-500">C. Justa: <span class="text-white font-mono">${odd}</span></div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="${inputId}" placeholder="Cuota" 
+                            class="alt-input" oninput="checkAltValue(${prob}, '${inputId}', '${btnId}')">
+                        <button id="${btnId}" onclick="saveAltBet('${market}', ${prob}, '${inputId}')" 
+                            class="btn-mini-save">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
             `;
             sugList.appendChild(div);
         }
