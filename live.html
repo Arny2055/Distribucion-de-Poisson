@@ -41,9 +41,15 @@
             position: absolute;
             height: 100%;
             background: #39ff14; /* Verde Neón */
-            box-shadow: 0 0 10px #39ff14;
-            opacity: 0.6;
+            box-shadow: 0 0 15px #39ff14;
+            opacity: 0.8;
             transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        /* Ocultar visualmente la barra de reloj sin borrar su funcionalidad */
+        #time-bar {
+            opacity: 0; 
         }
     </style>
 </head>
@@ -358,13 +364,11 @@
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
             
-            // Actualización de barras de tiempo
             const timeBar = document.getElementById('time-bar');
             const rangeHighlight = document.getElementById('range-highlight');
             
             timeBar.style.width = (currentMin/95*100) + "%";
             
-            // Mejora: Posicionamiento del resaltado neón
             const startPct = (startMin / 95) * 100;
             const endPct = (endMin / 95) * 100;
             rangeHighlight.style.left = startPct + "%";
