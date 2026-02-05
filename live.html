@@ -34,6 +34,10 @@
         /* Estilo Botón Reset */
         .btn-reset { background: #1e293b; color: #94a3b8; transition: all 0.3s; border: 1px solid #334155; }
         .btn-reset:hover { background: #991b1b; color: white; border-color: #ef4444; }
+
+        /* Nuevo: Estilo Entrada Discreta */
+        .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
+        .input-manual:focus { border-color: #fbbf24; }
     </style>
 </head>
 <body>
@@ -52,9 +56,27 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <div class="lg:col-span-1 space-y-6">
+                <div class="glass-card p-5 rounded-2xl border-dashed border-amber-500/30 bg-amber-500/5">
+                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest"><i class="fa-solid fa-keyboard mr-2"></i>Carga Manual Discreta</p>
+                    <div class="space-y-3">
+                        <input type="text" id="manual-teams" placeholder="Equipo A vs Equipo B" class="input-manual">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[9px] text-slate-500 font-bold uppercase mb-1 block">λ Inicial (90')</label>
+                                <input type="number" id="manual-lambda" step="0.1" placeholder="2.5" class="input-manual text-center font-bold">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="loadManualMatch()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-[10px] uppercase py-2 rounded-lg transition-all">
+                                    Analizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-card p-6 rounded-2xl">
                     <h2 id="live-match-name" class="text-lg font-black text-white mb-1 italic uppercase">Sin Partido</h2>
-                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Carga un evento desde ROI</p>
+                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Carga un evento desde ROI o Manual</p>
 
                     <div class="space-y-4">
                         <div>
@@ -194,6 +216,38 @@
         let globalLiveProb = 0;
         let pressureChart = null;
 
+        // MEJORA: FUNCIÓN PARA CARGA MANUAL
+        function loadManualMatch() {
+            const teams = document.getElementById('manual-teams').value || "Partido Manual";
+            const lambda = parseFloat(document.getElementById('manual-lambda').value);
+            
+            if (isNaN(lambda) || lambda <= 0) {
+                alert("Por favor ingresa una λ válida (Ej: 2.5)");
+                return;
+            }
+
+            // Convertimos la lambda manual en una probabilidad ficticia para que el motor de cálculo la procese
+            // Usamos Over 0.5 como base: P(Over 0.5) = 1 - P(0 goles) = 1 - e^-lambda
+            const baseProb = (1 - Math.exp(-lambda)).toFixed(4);
+            
+            currentMatch = {
+                teams: teams,
+                prob: baseProb,
+                market: "OVER 0.5", // Usado como ancla para reconstruir lambdaPre
+                manual: true
+            };
+
+            document.getElementById('live-match-name').innerText = currentMatch.teams;
+            document.getElementById('live-gh').value = 0;
+            document.getElementById('live-ga').value = 0;
+            document.getElementById('live-min').value = 0;
+            document.getElementById('live-min-range').value = 0;
+
+            if(!pressureChart) initChart();
+            calculateLive();
+            alert(`Partido "${teams}" cargado con λ: ${lambda}`);
+        }
+
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
             const num = document.getElementById('live-min');
@@ -224,7 +278,9 @@
         }
 
         function initChart() {
-            const ctx = document.getElementById('pressureChart').getContext('2d');
+            const canvas = document.getElementById('pressureChart');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
             pressureChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -263,13 +319,13 @@
         }
 
         function getLambdaFromProb(prob, market) {
+            // Si es manual, extraemos lambda directamente de la entrada si es posible o usamos la inversa
             let p = parseFloat(prob);
             if(market.includes("UNDER")) p = 1 - p;
-            if(p > 0.8) return 4.0;
-            if(p > 0.7) return 3.5;
-            if(p > 0.6) return 3.0;
-            if(p > 0.5) return 2.6;
-            return 2.2;
+            
+            // Inversa aproximada de Poisson para λ (basado en P(0) = e^-λ)
+            // -ln(1-p) es la lambda si p es la prob de Over 0.5
+            return -Math.log(Math.max(0.0001, 1 - p));
         }
 
         function calculateROI() {
@@ -356,6 +412,7 @@
 
         function updateNextGoalTimer(lPre, min) {
             const container = document.getElementById('next-goal-timer-container');
+            if(!container) return;
             container.innerHTML = '';
             const intervals = [5, 10, 15];
             intervals.forEach(t => {
@@ -444,8 +501,8 @@
         function updateUI(prob, lRest, min, total, gH, gA, lPre) {
             const display = document.getElementById('live-prob-display');
             const oddFair = document.getElementById('live-odd-fair');
-            display.innerText = (prob * 100).toFixed(1) + "%";
-            oddFair.innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
+            if(display) display.innerText = (prob * 100).toFixed(1) + "%";
+            if(oddFair) oddFair.innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
             
             if(pressureChart) {
                 const chartData = Array(96).fill(null);
@@ -464,6 +521,7 @@
         function generateSmartInsights(lRest, min, total, gH, gA, lPre) {
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
+            if(!sugList || !alertList) return;
             sugList.innerHTML = ''; alertList.innerHTML = '';
             
             const allMarkets = [];
@@ -514,10 +572,11 @@
         }
 
         function addAlert(text) {
+            const alertList = document.getElementById('alerts-list');
             const p = document.createElement('p');
             p.className = "p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 mb-2";
             p.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${text}`;
-            document.getElementById('alerts-list').appendChild(p);
+            alertList.appendChild(p);
         }
 
         window.onload = loadMatch;
