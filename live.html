@@ -219,7 +219,7 @@
                                     <p class="text-[9px] text-slate-500 font-bold uppercase">ROI Esperado / Edge</p>
                                     <p id="roi-display" class="text-3xl font-black">--%</p>
                                     <p id="bet-signal" class="text-[10px] font-black uppercase mt-1 text-slate-600">Sin Datos</p>
-                                    <button id="btn-save-action" onclick="saveLiveBet()" class="hidden w-full mt-4 py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">Confirmar Entrada Live</button>
+                                    <button id="btn-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full mt-4 py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">Confirmar Entrada Live</button>
                                 </div>
                             </div>
                         </div>
@@ -401,7 +401,6 @@
             rangeHighlight.style.left = startPct + "%";
             rangeHighlight.style.width = (endPct - startPct) + "%";
 
-            // Se pasa el lambdaPre original para cálculos HT específicos
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
@@ -409,12 +408,10 @@
         }
 
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
-            // CORRECCIÓN: Si el mercado es HT, recalculamos el lambda efectivo para que no exceda el minuto 45
             let effectiveLambda = lRem;
             if (market.includes("HT")) {
                 const limitHT = 45;
                 const windowHT = Math.max(0, limitHT - startMin);
-                // Si la ventana de tiempo empieza después del 45, la prob es 0
                 if (startMin >= limitHT) return 0;
                 effectiveLambda = lPre * (windowHT / 90);
             }
@@ -461,28 +458,96 @@
             generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
         }
 
+        // --- MEJORA: GENERACIÓN DINÁMICA CON INPUTS DE CUOTA ---
         function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
             const sugList = document.getElementById('suggestions-list');
             if(!sugList) return;
             sugList.innerHTML = '';
             
-            const dynamicMarkets = [`OVER ${total + 0.5}`, `OVER ${total + 1.5}`, `UNDER ${total + 1.5}`, `UNDER ${total + 2.5}`, `BTTS (SÍ)`];
-            // Solo sugerir HT si el partido está en el primer tiempo
-            if (min < 40) {
-                dynamicMarkets.push(`OVER ${total + 0.5} HT`);
-            }
+            const markets = [
+                `OVER ${total + 0.5}`, `OVER ${total + 1.5}`, `OVER ${total + 2.5}`,
+                `UNDER ${total + 0.5}`, `UNDER ${total + 1.5}`, `UNDER ${total + 2.5}`,
+                `BTTS (SÍ)`, `OVER ${total + 0.5} HT`, `OVER ${total + 1.5} HT`
+            ];
 
-            dynamicMarkets.forEach((m) => {
-                // calculateSpecificProb ahora maneja internamente si es HT o FT
+            markets.forEach((m, idx) => {
                 const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
-                if(prob > 0.15 && prob < 0.95) {
+                if(prob > 0.02 && prob < 0.98) {
                     const fairOdd = (1/prob).toFixed(2);
                     const div = document.createElement('div');
-                    div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500 border-l-2 mb-2";
-                    div.innerHTML = `<div class="flex justify-between items-center"><span class="text-[11px] font-bold text-white uppercase">${m}</span><div class="text-right"><span class="text-[9px] text-slate-500 block">CUOTA JUSTA</span><span class="text-xs font-black text-emerald-400">${fairOdd}</span></div></div>`;
+                    div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-slate-700 border-l-2 mb-2";
+                    
+                    div.innerHTML = `
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-white uppercase">${m}</span>
+                                <div class="text-right">
+                                    <span class="text-[8px] text-slate-500 block">JUSTA</span>
+                                    <span class="text-xs font-black text-amber-500">${fairOdd}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="number" step="0.01" placeholder="Cuota" 
+                                    id="input-odd-${idx}" 
+                                    class="alt-input flex-1" 
+                                    oninput="checkAltValue('${m}', ${fairOdd}, this.value, 'btn-save-${idx}')">
+                                <button id="btn-save-${idx}" 
+                                    onclick="saveLiveBet('ALT', '${m}', ${fairOdd}, document.getElementById('input-odd-${idx}').value)"
+                                    class="btn-mini-save">
+                                    <i class="fa-solid fa-plus mr-1"></i> GUARDAR
+                                </button>
+                            </div>
+                        </div>
+                    `;
                     sugList.appendChild(div);
                 }
             });
+        }
+
+        function checkAltValue(market, fair, bookie, btnId) {
+            const btn = document.getElementById(btnId);
+            const val = parseFloat(bookie);
+            if (val > fair) {
+                btn.style.display = 'block';
+                btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#10b981';
+            } else {
+                btn.style.display = 'none';
+                btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#334155';
+            }
+        }
+
+        function saveLiveBet(source, market, fair, bookie) {
+            let finalMarket, finalFair, finalBookie, finalProb;
+
+            if (source === 'DIRECT') {
+                finalMarket = document.getElementById('live-market-selector').value;
+                finalFair = parseFloat(document.getElementById('live-odd-fair').innerText);
+                finalBookie = parseFloat(document.getElementById('bookie-odd').value);
+                finalProb = globalLiveProb;
+            } else {
+                finalMarket = market;
+                finalFair = fair;
+                finalBookie = parseFloat(bookie);
+                finalProb = 1 / fair;
+            }
+
+            const betData = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString(),
+                match: document.getElementById('live-match-name').innerText,
+                market: finalMarket,
+                fairOdd: finalFair,
+                bookieOdd: finalBookie,
+                prob: (finalProb * 100).toFixed(2) + "%",
+                roi: (((finalBookie / finalFair) - 1) * 100).toFixed(2) + "%",
+                type: 'LIVE'
+            };
+
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            history.unshift(betData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 100)));
+            
+            alert(`Entrada Guardada: ${finalMarket} @${finalBookie}`);
         }
 
         function calculateROI() {
