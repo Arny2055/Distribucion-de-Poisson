@@ -251,7 +251,8 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'betags_v3_miner';
+        // MEJORA: STORAGE_KEY cambiado para exclusividad con Código 4
+        const STORAGE_KEY = 'betags_live_exclusive'; 
         let currentMatch = null;
         let globalLiveProb = 0;
         let pressureChart = null;
@@ -528,6 +529,7 @@
             }
         }
 
+        // FUNCIÓN MEJORADA: Integración total solicitada
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
@@ -565,14 +567,14 @@
                 edge: edge + "%",
                 stake: stake,
                 isLive: "SÍ",
-                status: "PENDIENTE"
+                status: "PENDIENTE" // Mantenemos compatibilidad con el render del Código 4
             };
 
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 100)));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
             
-            alert(`✅ ENVIADO A ROI HISTORY:\n${betData.match}\n${finalMarket} @${finalBookie}`);
+            alert(`✅ ENVIADO A ROI LIVE HISTORY`);
         }
 
         function calculateROI() {
