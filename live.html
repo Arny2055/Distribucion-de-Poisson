@@ -521,19 +521,26 @@
             }
         }
 
+        // --- FUNCIÓN DE GUARDADO MEJORADA Y SINCRONIZADA ---
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
 
             if (source === 'DIRECT') {
                 finalMarket = document.getElementById('live-market-selector').value;
-                finalFair = parseFloat(document.getElementById('live-odd-fair').innerText);
-                finalBookie = parseFloat(document.getElementById('bookie-odd').value);
+                const fairText = document.getElementById('live-odd-fair').innerText;
+                finalFair = parseFloat(fairText) || 0;
+                finalBookie = parseFloat(document.getElementById('bookie-odd').value) || 0;
                 finalProb = globalLiveProb;
             } else {
                 finalMarket = market;
                 finalFair = fair;
                 finalBookie = parseFloat(bookie);
                 finalProb = 1 / fair;
+            }
+
+            if (!finalBookie || finalBookie <= 1) {
+                alert("Ingresa una cuota válida antes de guardar.");
+                return;
             }
 
             const betData = {
@@ -548,21 +555,27 @@
                 type: 'LIVE'
             };
 
+            // Sincronización con el STORAGE_KEY global
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 100)));
             
-            alert(`Entrada Guardada: ${finalMarket} @${finalBookie}`);
+            alert(`✅ Entrada Guardada en ROI History:\n${finalMarket} @${finalBookie}\nROI: ${betData.roi}`);
         }
 
         function calculateROI() {
             const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
             const roiDisplay = document.getElementById('roi-display');
             const saveBtn = document.getElementById('btn-save-action');
-            if (!bookieOdd || globalLiveProb <= 0) return;
+            if (!bookieOdd || globalLiveProb <= 0) {
+                saveBtn.classList.add('hidden');
+                return;
+            }
             const ev = (globalLiveProb * bookieOdd) - 1;
             roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
             roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
+            
+            // Mostrar botón solo si hay valor positivo (Edge)
             if(ev > 0) saveBtn.classList.remove('hidden');
             else saveBtn.classList.add('hidden');
         }
