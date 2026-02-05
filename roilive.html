@@ -86,7 +86,7 @@
                         </tr>
                     </thead>
                     <tbody id="roi-table-body" class="text-sm">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -110,11 +110,9 @@
             let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
 
             history.forEach(bet => {
-                // Filtros logicos
                 if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
                 if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
 
-                // Cálculo de Stats
                 stats.total++;
                 const stake = parseFloat(bet.stake) || 0;
                 if(bet.status === 'GANADA') {
@@ -197,7 +195,7 @@
         }
 
         function updateStatsUI(s) {
-            const wr = s.invested > 0 ? (s.wins / s.total * 100).toFixed(1) : 0;
+            const wr = s.total > 0 ? (s.wins / s.total * 100).toFixed(1) : 0;
             const roi = s.invested > 0 ? (s.profit / s.invested * 100).toFixed(1) : 0;
 
             document.getElementById('stat-total').innerText = s.total;
@@ -207,7 +205,6 @@
             document.getElementById('stat-roi').className = `text-2xl font-black ${roi >= 0 ? 'roi-positive' : 'roi-negative'}`;
         }
 
-        // Inicializar
         document.addEventListener('DOMContentLoaded', renderHistory);
     </script>
 </body>
