@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetAGS - Análisis Live</title>
+    <title>BetAGS - Análisis Live Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .suggestion-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .suggestion-card:hover { transform: translateX(5px); background: rgba(255,255,255,0.02); }
+        .value-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -23,67 +26,142 @@
         </div>
     </nav>
 
-    <div class="container mx-auto p-4 max-w-4xl">
-        <div class="glass-card p-6 rounded-2xl mb-8">
-            <h2 id="live-match-name" class="text-center text-2xl font-black text-white mb-2 italic uppercase">Análisis en Tiempo Real</h2>
-            <p id="live-match-market" class="text-center text-emerald-400 text-sm font-bold uppercase tracking-widest mb-6">Selecciona un partido del historial</p>
+    <div class="container mx-auto p-4 max-w-5xl">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-card p-6 rounded-2xl">
+                    <h2 id="live-match-name" class="text-lg font-black text-white mb-1 italic uppercase">Sin Partido</h2>
+                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Carga un evento desde ROI</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Minuto Actual</label>
-                        <input type="number" id="live-min" value="45" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center" oninput="calculateLive()">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-4">
                         <div>
-                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Goles Local</label>
-                            <input type="number" id="live-gh" value="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center" oninput="calculateLive()">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (min)</label>
+                            <div class="flex items-center gap-4">
+                                <input type="range" id="live-min-range" min="0" max="95" value="45" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
+                                <input type="number" id="live-min" value="45" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Goles Visita</label>
-                            <input type="number" id="live-ga" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center" oninput="calculateLive()">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Local</label>
+                                <input type="number" id="live-gh" value="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Visita</label>
+                                <input type="number" id="live-ga" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="md:col-span-2 flex flex-col justify-center items-center bg-slate-900/50 rounded-2xl p-6 border border-white/5">
-                    <p class="text-[11px] text-slate-500 font-black uppercase mb-2">Probabilidad Live Estimada</p>
-                    <div id="live-prob-display" class="text-6xl font-black text-amber-500">--%</div>
-                    <div class="mt-4 flex gap-4 text-center">
-                        <div>
-                            <p class="text-[9px] text-slate-500 uppercase font-bold">Cuota Justa Live</p>
-                            <p id="live-odd-fair" class="text-xl font-bold text-white">--</p>
+                <div class="glass-card p-5 rounded-2xl bg-slate-900/30">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-4">Métricas de Presión Residual</p>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-300">λ Original (90')</span>
+                            <span id="metric-lambda-pre" class="font-mono text-white text-xs">--</span>
                         </div>
-                        <div class="border-l border-slate-800 pl-4">
-                            <p class="text-[9px] text-slate-500 uppercase font-bold">λ Restante</p>
-                            <p id="live-lambda" class="text-xl font-bold text-white">--</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-300">λ Restante</span>
+                            <span id="live-lambda" class="font-mono text-amber-500 font-bold text-xs">--</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="time-bar" class="bg-emerald-500 h-full transition-all" style="width: 50%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div id="live-alert" class="hidden glass-card p-4 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-center">
-            <p class="text-emerald-400 font-bold text-sm"><i class="fa-solid fa-circle-check mr-2"></i>VALOR ENCONTRADO: La probabilidad live supera el ajuste temporal.</p>
+            <div class="lg:col-span-2 space-y-6">
+                <div class="glass-card p-6 rounded-3xl relative overflow-hidden bg-gradient-to-br from-slate-900 to-black">
+                    <div class="absolute top-4 right-6 text-right">
+                        <span class="text-[10px] text-slate-500 font-black uppercase block">Mercado Objetivo</span>
+                        <span id="target-market-label" class="text-emerald-500 font-bold text-xs">--</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-center justify-center py-4">
+                        <p class="text-[11px] text-slate-500 font-black uppercase mb-1">Probabilidad Actualizada</p>
+                        <div id="live-prob-display" class="text-7xl font-black text-white tracking-tighter">--%</div>
+                        <div class="flex gap-8 mt-4">
+                            <div class="text-center">
+                                <p class="text-[10px] text-slate-500 font-bold uppercase">Cuota Justa</p>
+                                <p id="live-odd-fair" class="text-2xl font-black text-amber-500">--</p>
+                            </div>
+                            <div class="text-center border-l border-white/10 pl-8">
+                                <p class="text-[10px] text-slate-500 font-bold uppercase">Estado de Valor</p>
+                                <p id="value-status" class="text-2xl font-black text-slate-600">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-card p-5 rounded-2xl">
+                        <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-brain"></i> Alternativas de Cobertura
+                        </h3>
+                        <div id="suggestions-list" class="space-y-3">
+                            </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl border-amber-500/20">
+                        <h3 class="text-[10px] font-black text-amber-500 uppercase mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Alertas de Riesgo
+                        </h3>
+                        <div id="alerts-list" class="space-y-3 text-[11px]">
+                            </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         let currentMatch = null;
 
+        function syncInputs(type) {
+            const range = document.getElementById('live-min-range');
+            const num = document.getElementById('live-min');
+            if(type === 'range') num.value = range.value;
+            else range.value = num.value;
+            calculateLive();
+        }
+
         function loadMatch() {
             const data = localStorage.getItem('betags_live_target');
             if(data) {
                 currentMatch = JSON.parse(data);
                 document.getElementById('live-match-name').innerText = currentMatch.teams;
-                document.getElementById('live-match-market').innerText = currentMatch.market;
+                document.getElementById('target-market-label').innerText = currentMatch.market;
                 calculateLive();
             }
         }
 
         function poisson(k, lambda) {
-            const factorial = (n) => n <= 1 ? 1 : n * factorial(n - 1);
+            if(lambda <= 0) return k === 0 ? 1 : 0;
+            const factorial = (n) => {
+                let res = 1;
+                for (let i = 2; i <= n; i++) res *= i;
+                return res;
+            };
             return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+        }
+
+        function getLambdaFromProb(prob, market) {
+            // Resolver λ aproximado para Over 2.5
+            if(market.includes("2.5")) {
+                if(prob > 0.8) return 4.0;
+                if(prob > 0.7) return 3.5;
+                if(prob > 0.6) return 3.0;
+                if(prob > 0.5) return 2.6;
+                return 2.2;
+            }
+            // Resolver λ aproximado para BTTS
+            if(market.includes("BTTS")) {
+                return prob > 0.6 ? 3.2 : 2.5;
+            }
+            return 2.8; // Default
         }
 
         function calculateLive() {
@@ -94,50 +172,120 @@
             const gA = parseInt(document.getElementById('live-ga').value);
             const currentTotal = gH + gA;
 
-            // 1. Estimar Lambda Pre-Match a partir de la Probabilidad original
-            // Simplificación: Suponemos que la prob es para Over 2.5
-            const probPre = parseFloat(currentMatch.prob); 
-            // Buscamos un lambda que produzca esa probabilidad para Over 2.5
-            let lambdaPre = -Math.log(1 - probPre); // Aproximación rápida para propósitos de live
-            if (currentMatch.market.includes("2.5")) lambdaPre = 2.8; // Valor base si no se puede inferir
+            // 1. Inferencia de Lambda Pre-match
+            const probPre = parseFloat(currentMatch.prob);
+            const lambdaPre = getLambdaFromProb(probPre, currentMatch.market);
+            document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
 
-            // 2. Ajustar Lambda por Tiempo (Time Decay)
-            const timeRemaining = 95 - min; // 90 min + 5 de descuento
-            const lambdaRemaining = lambdaPre * (timeRemaining / 90);
+            // 2. Ajuste Temporal (Time Decay)
+            const timeRemaining = Math.max(0, 95 - min);
+            const timeFactor = timeRemaining / 90;
+            // Factor de corrección: Los segundos tiempos suelen tener un 15% más de goles
+            const intensityBoost = min > 45 ? 1.15 : 1.0; 
+            const lambdaRemaining = lambdaPre * timeFactor * intensityBoost;
 
-            let liveProb = 0;
-
-            if(currentMatch.market.includes("OVER 2.5")) {
-                const goalsNeeded = Math.max(0, 3 - currentTotal);
-                if(goalsNeeded === 0) {
-                    liveProb = 1.0;
-                } else {
-                    // P(X >= goalsNeeded) = 1 - P(X < goalsNeeded)
-                    let p_less_than_needed = 0;
-                    for(let i=0; i < goalsNeeded; i++) {
-                        p_less_than_needed += poisson(i, lambdaRemaining);
-                    }
-                    liveProb = 1 - p_less_than_needed;
-                }
-            }
-
-            if(currentMatch.market.includes("BTTS (SÍ)")) {
-                // Simplificación: Lambda dividido entre 2 para cada equipo
-                const lH = lambdaRemaining / 2;
-                const lA = lH;
-                const p_H_scores = gH > 0 ? 1 : (1 - Math.exp(-lH));
-                const p_A_scores = gA > 0 ? 1 : (1 - Math.exp(-lA));
-                liveProb = p_H_scores * p_A_scores;
-            }
-
-            // UI Update
-            const finalProb = Math.max(0, Math.min(1, liveProb));
-            document.getElementById('live-prob-display').innerText = (finalProb * 100).toFixed(1) + "%";
-            document.getElementById('live-odd-fair').innerText = finalProb > 0 ? (1/finalProb).toFixed(2) : "∞";
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
+            document.getElementById('time-bar').style.width = (min/95*100) + "%";
+
+            // 3. Probabilidad Mercado Objetivo
+            let liveProb = 0;
+            if(currentMatch.market.includes("OVER 2.5")) {
+                const needed = Math.max(0, 3 - currentTotal);
+                if(needed === 0) liveProb = 1.0;
+                else {
+                    let p_under = 0;
+                    for(let i=0; i < needed; i++) p_under += poisson(i, lambdaRemaining);
+                    liveProb = 1 - p_under;
+                }
+            } else if(currentMatch.market.includes("BTTS (SÍ)")) {
+                const lTeam = lambdaRemaining / 2;
+                const pLocal = gH > 0 ? 1 : (1 - Math.exp(-lTeam));
+                const pVisita = gA > 0 ? 1 : (1 - Math.exp(-lTeam));
+                liveProb = pLocal * pVisita;
+            }
+
+            updateUI(liveProb, lambdaRemaining, min, currentTotal, gH, gA);
+        }
+
+        function updateUI(prob, lRest, min, total, gH, gA) {
+            const display = document.getElementById('live-prob-display');
+            const oddFair = document.getElementById('live-odd-fair');
+            const valStatus = document.getElementById('value-status');
+
+            display.innerText = (prob * 100).toFixed(1) + "%";
+            oddFair.innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
+
+            // Lógica de Valor
+            if(prob > 0.65) {
+                valStatus.innerText = "ALTO";
+                valStatus.className = "text-2xl font-black text-emerald-500";
+            } else if(prob > 0.40) {
+                valStatus.innerText = "MEDIO";
+                valStatus.className = "text-2xl font-black text-amber-500";
+            } else {
+                valStatus.innerText = "BAJO";
+                valStatus.className = "text-2xl font-black text-slate-600";
+            }
+
+            generateSmartInsights(lRest, min, total, gH, gA);
+        }
+
+        function generateSmartInsights(lRest, min, total, gH, gA) {
+            const sugList = document.getElementById('suggestions-list');
+            const alertList = document.getElementById('alerts-list');
+            sugList.innerHTML = '';
+            alertList.innerHTML = '';
+
+            // --- SUGERENCIAS INTELIGENTES ---
             
-            // Lógica de alerta (si la prob live es razonable)
-            document.getElementById('live-alert').style.display = finalProb > 0.4 ? 'block' : 'none';
+            // 1. Over 0.5 Goles más (Late Goal)
+            const pNextGoal = 1 - Math.exp(-lRest);
+            if(pNextGoal > 0.5) {
+                addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Alta Prob");
+            }
+
+            // 2. Over 1.5 si el partido está 0-0 o 1-0 en min 40-60
+            if(total <= 1 && min > 40 && min < 65 && lRest > 1.2) {
+                const pO15 = 1 - (poisson(0, lRest) + (total === 0 ? poisson(1, lRest) : 0));
+                addSuggestion("Over 1.5 FT", (1/pO15).toFixed(2), "Value Live");
+            }
+
+            // 3. BTTS (Sí) si alguien ya anotó
+            if((gH > 0 || gA > 0) && (gH === 0 || gA === 0) && lRest > 0.8) {
+                const pBoth = 1 - Math.exp(-lRest/2);
+                addSuggestion("BTTS (SÍ)", (1/pBoth).toFixed(2), "Presión Vis.");
+            }
+
+            // --- ALERTAS DE RIESGO ---
+            if(min > 70 && total < 2 && lRest < 0.9) {
+                addAlert("Riesgo de Time-Out: La erosión del tiempo es más rápida que la generación de xG.");
+            }
+            if(min > 80 && lRest < 0.5) {
+                addAlert("Liquidez Peligrosa: Probabilidad de gol menor al 15%. No entrar.");
+            }
+            if(total >= 3 && currentMatch.market.includes("OVER 2.5")) {
+                addAlert("OBJETIVO CUMPLIDO: Mercado ya resuelto en Green.");
+            }
+        }
+
+        function addSuggestion(market, odd, badge) {
+            const div = document.createElement('div');
+            div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500";
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white">${market}</span>
+                    <span class="value-badge bg-emerald-500/20 text-emerald-400">${badge}</span>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1">Cuota Justa Sugerida: <span class="text-white font-mono">${odd}</span></div>
+            `;
+            document.getElementById('suggestions-list').appendChild(div);
+        }
+
+        function addAlert(text) {
+            const p = document.createElement('p');
+            p.className = "p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 mb-2";
+            p.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${text}`;
+            document.getElementById('alerts-list').appendChild(p);
         }
 
         window.onload = loadMatch;
