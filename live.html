@@ -63,6 +63,11 @@
             75% { transform: translateX(3px); }
             100% { transform: translateX(0); }
         }
+
+        /* MEJORA: Ocultar el contenedor del cronómetro de presión solicitado */
+        #pressure-timer-card {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -159,7 +164,7 @@
                     </div>
                 </div>
 
-                <div class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
+                <div id="pressure-timer-card" class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
                     <p class="text-[10px] text-amber-500 font-black uppercase mb-4 tracking-widest"><i class="fa-solid fa-stopwatch mr-2"></i>Cronómetro de Presión</p>
                     <div id="next-goal-timer-container" class="space-y-4"></div>
                 </div>
@@ -458,7 +463,6 @@
             generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
         }
 
-        // --- MEJORA: GENERACIÓN DINÁMICA CON INPUTS DE CUOTA ---
         function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
             const sugList = document.getElementById('suggestions-list');
             if(!sugList) return;
