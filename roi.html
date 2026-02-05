@@ -237,7 +237,8 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'betags_v3_miner';
+        // Mejora aplicada: STORAGE_KEY ajustado para sincronizar con Código 1
+        const STORAGE_KEY = 'betags_pre_match'; 
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
