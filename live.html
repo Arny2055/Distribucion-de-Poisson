@@ -403,8 +403,8 @@
                 return p_under;
             } else if(market.includes("BTTS (SÍ)")) {
                 const windowFactor = (endMin - startMin) / 90;
-                const lH = currentMatch.manual ? (currentMatch.xgH * windowFactor) : (lRem / 2);
-                const lA = currentMatch.manual ? (currentMatch.xgA * windowFactor) : (lRem / 2);
+                const lH = currentMatch.manual ? (currentMatch.xgH * windowFactor) : (lPre / 2 * windowFactor);
+                const lA = currentMatch.manual ? (currentMatch.xgA * windowFactor) : (lPre / 2 * windowFactor);
                 const pL = gh > 0 ? 1 : (1 - Math.exp(-lH));
                 const pA = ga > 0 ? 1 : (1 - Math.exp(-lA));
                 return pL * pA;
@@ -434,17 +434,45 @@
             if(!sugList) return;
             sugList.innerHTML = '';
             
-            const markets = [`Over ${total+0.5} FT`, `Under ${total+1.5} FT`, "BTTS (SÍ)"];
-            markets.forEach((m) => {
-                const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
-                if(prob > 0.1 && prob < 0.95) {
+            // Lista de mercados expandida y dinámica
+            const dynamicMarkets = [
+                `OVER ${total + 0.5}`,
+                `OVER ${total + 1.5}`,
+                `UNDER ${total + 1.5}`,
+                `UNDER ${total + 2.5}`,
+                `BTTS (SÍ)`
+            ];
+
+            // Si estamos en la primera mitad, añadir mercado HT
+            if (min < 45) {
+                dynamicMarkets.push(`OVER ${total + 0.5} HT`);
+            }
+
+            dynamicMarkets.forEach((m) => {
+                // Ajustamos el cálculo para mercados HT si es necesario
+                let effectiveLRem = lRest;
+                let marketLabel = m;
+                
+                if (m.includes("HT")) {
+                    const minsLeftHT = Math.max(0, 45 - min);
+                    const windowSize = endMin - startMin;
+                    effectiveLRem = lPre * (minsLeftHT / 90);
+                }
+
+                const prob = calculateSpecificProb(m, effectiveLRem, total, gH, gA, lPre, min, startMin, endMin);
+                
+                // Solo mostrar si la probabilidad es útil (entre 15% y 85%) para encontrar valor
+                if(prob > 0.15 && prob < 0.95) {
                     const fairOdd = (1/prob).toFixed(2);
                     const div = document.createElement('div');
-                    div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500";
+                    div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-emerald-500 border-l-2 mb-2";
                     div.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold text-white">${m}</span>
-                            <span class="text-[10px] text-slate-400">C. Justa: <b class="text-emerald-400">${fairOdd}</b></span>
+                            <span class="text-[11px] font-bold text-white uppercase">${marketLabel}</span>
+                            <div class="text-right">
+                                <span class="text-[9px] text-slate-500 block">CUOTA JUSTA</span>
+                                <span class="text-xs font-black text-emerald-400">${fairOdd}</span>
+                            </div>
                         </div>
                     `;
                     sugList.appendChild(div);
