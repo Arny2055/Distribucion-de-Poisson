@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BetAGS - Análisis Live Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
@@ -18,7 +19,6 @@
         .btn-save-live { background: #10b981; color: white; transition: all 0.3s; }
         .btn-save-live:hover { background: #059669; transform: translateY(-1px); }
         
-        /* Estilo para el contenedor del gráfico */
         .chart-container { position: relative; height: 200px; width: 100%; }
     </style>
 </head>
@@ -85,7 +85,7 @@
                     <div class="chart-container">
                         <canvas id="pressureChart"></canvas>
                     </div>
-                    <p class="text-[9px] text-slate-600 mt-2 italic text-center">Muestra la probabilidad acumulada de gol hasta el final.</p>
+                    <p class="text-[9px] text-slate-600 mt-2 italic text-center">Probabilidad acumulada de ver goles adicionales.</p>
                 </div>
             </div>
 
@@ -156,7 +156,7 @@
         const STORAGE_KEY = 'betags_v3_miner';
         let currentMatch = null;
         let globalLiveProb = 0;
-        let pressureChart = null; // Instancia del gráfico
+        let pressureChart = null;
 
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
@@ -172,12 +172,11 @@
                 currentMatch = JSON.parse(data);
                 document.getElementById('live-match-name').innerText = currentMatch.teams;
                 document.getElementById('target-market-label').innerText = currentMatch.market;
-                initChart(); // Iniciar gráfico
+                initChart();
                 calculateLive();
             }
         }
 
-        // AÑADIDO: Inicialización de Chart.js
         function initChart() {
             const ctx = document.getElementById('pressureChart').getContext('2d');
             pressureChart = new Chart(ctx, {
@@ -185,7 +184,7 @@
                 data: {
                     labels: Array.from({length: 96}, (_, i) => i),
                     datasets: [{
-                        label: 'Probabilidad Acumulada',
+                        label: 'Probabilidad Gol Adicional',
                         data: [],
                         borderColor: '#fbbf24',
                         borderWidth: 2,
@@ -218,15 +217,16 @@
         }
 
         function getLambdaFromProb(prob, market) {
-            if(market.includes("2.5")) {
-                if(prob > 0.8) return 4.0;
-                if(prob > 0.7) return 3.5;
-                if(prob > 0.6) return 3.0;
-                if(prob > 0.5) return 2.6;
-                return 2.2;
-            }
-            if(market.includes("BTTS")) return prob > 0.6 ? 3.2 : 2.5;
-            return 2.8;
+            let p = parseFloat(prob);
+            // Si el mercado es UNDER, invertimos la prob para hallar el lambda de intensidad
+            if(market.includes("UNDER")) p = 1 - p;
+            if(market.includes("BTTS (NO)")) p = 0.4; // Ajuste empírico
+
+            if(p > 0.8) return 4.0;
+            if(p > 0.7) return 3.5;
+            if(p > 0.6) return 3.0;
+            if(p > 0.5) return 2.6;
+            return 2.2;
         }
 
         function calculateROI() {
@@ -248,12 +248,10 @@
             if (ev > 0) {
                 roiDisplay.className = "text-3xl font-black roi-positive";
                 betSignal.innerText = "¡VALOR DETECTADO!";
-                betSignal.className = "text-[10px] font-black uppercase mt-1 text-emerald-400";
                 saveBtn.classList.remove('hidden');
             } else {
                 roiDisplay.className = "text-3xl font-black roi-negative";
                 betSignal.innerText = "SIN VALOR";
-                betSignal.className = "text-[10px] font-black uppercase mt-1 text-red-500";
                 saveBtn.classList.add('hidden');
             }
         }
@@ -288,21 +286,23 @@
             const gH = parseInt(document.getElementById('live-gh').value);
             const gA = parseInt(document.getElementById('live-ga').value);
             const currentTotal = gH + gA;
+            const market = currentMatch.market.toUpperCase();
 
             const probPre = parseFloat(currentMatch.prob);
-            const lambdaPre = getLambdaFromProb(probPre, currentMatch.market);
+            const lambdaPre = getLambdaFromProb(probPre, market);
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
 
             const timeRemaining = Math.max(0, 95 - min);
-            const timeFactor = timeRemaining / 90;
             const intensityBoost = min > 45 ? 1.15 : 1.0; 
-            const lambdaRemaining = lambdaPre * timeFactor * intensityBoost;
+            const lambdaRemaining = lambdaPre * (timeRemaining / 90) * intensityBoost;
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
             document.getElementById('time-bar').style.width = (min/95*100) + "%";
 
             let liveProb = 0;
-            if(currentMatch.market.includes("OVER 2.5")) {
+
+            // LÓGICA DE OVER 2.5
+            if(market.includes("OVER 2.5")) {
                 const needed = Math.max(0, 3 - currentTotal);
                 if(needed === 0) liveProb = 1.0;
                 else {
@@ -310,11 +310,30 @@
                     for(let i=0; i < needed; i++) p_under += poisson(i, lambdaRemaining);
                     liveProb = 1 - p_under;
                 }
-            } else if(currentMatch.market.includes("BTTS (SÍ)")) {
+            } 
+            // NUEVA: LÓGICA DE UNDER 2.5
+            else if(market.includes("UNDER 2.5")) {
+                const limit = 3 - currentTotal;
+                if(limit <= 0) liveProb = 0;
+                else {
+                    let p_under = 0;
+                    for(let i=0; i < limit; i++) p_under += poisson(i, lambdaRemaining);
+                    liveProb = p_under;
+                }
+            }
+            // LÓGICA DE BTTS (SÍ)
+            else if(market.includes("BTTS (SÍ)")) {
                 const lTeam = lambdaRemaining / 2;
                 const pLocal = gH > 0 ? 1 : (1 - Math.exp(-lTeam));
                 const pVisita = gA > 0 ? 1 : (1 - Math.exp(-lTeam));
                 liveProb = pLocal * pVisita;
+            }
+            // NUEVA: LÓGICA DE BTTS (NO)
+            else if(market.includes("BTTS (NO)")) {
+                const lTeam = lambdaRemaining / 2;
+                const pLocal = gH > 0 ? 1 : (1 - Math.exp(-lTeam));
+                const pVisita = gA > 0 ? 1 : (1 - Math.exp(-lTeam));
+                liveProb = 1 - (pLocal * pVisita);
             }
 
             globalLiveProb = liveProb;
@@ -322,26 +341,22 @@
             calculateROI();
         }
 
-        // MODIFICADO: Añadida actualización del gráfico
         function updateUI(prob, lRest, min, total, gH, gA, lPre) {
             const display = document.getElementById('live-prob-display');
             const oddFair = document.getElementById('live-odd-fair');
             display.innerText = (prob * 100).toFixed(1) + "%";
             oddFair.innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
             
-            // Actualizar Gráfico de Presión
             if(pressureChart) {
                 const chartData = Array(96).fill(null);
                 for(let i = min; i <= 95; i++) {
                     const tRem = 95 - i;
                     const lRem = lPre * (tRem/90) * (i > 45 ? 1.15 : 1.0);
-                    // P(Al menos 1 gol más)
                     chartData[i] = 1 - Math.exp(-lRem);
                 }
                 pressureChart.data.datasets[0].data = chartData;
                 pressureChart.update('none');
             }
-
             generateSmartInsights(lRest, min, total, gH, gA);
         }
 
@@ -349,18 +364,16 @@
             const sugList = document.getElementById('suggestions-list');
             const alertList = document.getElementById('alerts-list');
             sugList.innerHTML = ''; alertList.innerHTML = '';
+            
             const pNextGoal = 1 - Math.exp(-lRest);
+            
+            // Sugerencias Dinámicas
+            if(pNextGoal < 0.3 && min > 60) addSuggestion("Under 0.5 Goles Rest.", (1/(1-pNextGoal)).toFixed(2), "Defensivo");
+            if(total < 2.5 && lRest < 0.7) addSuggestion("Under 2.5 FT", (1/(poisson(0,lRest))).toFixed(2), "Seguro");
             if(pNextGoal > 0.5) addSuggestion("Over 0.5 Goles Rest.", (1/pNextGoal).toFixed(2), "Alta Prob");
-            if(total <= 1 && min > 40 && min < 65 && lRest > 1.2) {
-                const pO15 = 1 - (poisson(0, lRest) + (total === 0 ? poisson(1, lRest) : 0));
-                addSuggestion("Over 1.5 FT", (1/pO15).toFixed(2), "Value Live");
-            }
-            if((gH > 0 || gA > 0) && (gH === 0 || gA === 0) && lRest > 0.8) {
-                const pBoth = 1 - Math.exp(-lRest/2);
-                addSuggestion("BTTS (SÍ)", (1/pBoth).toFixed(2), "Presión Vis.");
-            }
-            if(min > 70 && total < 2 && lRest < 0.9) addAlert("Riesgo de Time-Out: El tiempo vuela.");
-            if(min > 80 && lRest < 0.5) addAlert("Liquidez Peligrosa: < 15% prob.");
+
+            if(min > 75 && total >= 2 && lRest > 0.5) addAlert("Peligro de Over Tardío: Intensidad de ataque detectada.");
+            if(min > 80 && lRest < 0.4) addAlert("Tendencia Under: Ritmo de juego bajo.");
         }
 
         function addSuggestion(market, odd, badge) {
@@ -373,7 +386,8 @@
                 </div>
                 <div class="text-[10px] text-slate-500 mt-1">Cuota Justa: <span class="text-white font-mono">${odd}</span></div>
             `;
-            document.getElementById('suggestions-list').appendChild(div);
+            sugList = document.getElementById('suggestions-list');
+            sugList.appendChild(div);
         }
 
         function addAlert(text) {
