@@ -26,18 +26,7 @@
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-amber-500">ROI LIVE</span></h1>
             <div class="flex gap-2">
-                <a href="poisson.html" class="px-4 py-1.5 text-xs font-semibold bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20 hover:bg-amber-500 hover:text-black transition-all">
-                    <i class="fa-solid fa-chart-line mr-1"></i> Poisson
-                </a>
-                <a href="analysis.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all">
-                    <i class="fa-solid fa-satellite-dish mr-1"></i> Live Analysis
-                </a>
-                <a href="pre.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all">
-                    <i class="fa-solid fa-clock mr-1"></i> ROI Pre
-                </a>
-                <a href="roi-live.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition-all">
-                    <i class="fa-solid fa-circle-dot animate-pulse mr-1"></i> ROI Live
-                </a>
+                <a href="live.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800">Volver al Panel</a>
             </div>
         </div>
     </nav>
@@ -104,6 +93,7 @@
     </div>
 
     <script>
+        // MEJORA: Solo lee lo que guarda el Código 3
         const STORAGE_KEY = 'betags_live_exclusive';
 
         function loadHistory() {
@@ -121,9 +111,11 @@
             let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
 
             history.forEach(bet => {
+                // Aplicación de filtros
                 if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
                 if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
 
+                // Cálculo de estadísticas base
                 stats.total++;
                 const stake = parseFloat(bet.stake) || 0;
                 if(bet.status === 'GANADA') {
