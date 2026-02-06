@@ -68,7 +68,8 @@
         #pressure-timer-card, 
         #opportunity-window-card,
         #suggestions-card,
-        #risk-alerts-card {
+        #risk-alerts-card,
+        #live-score-wrapper {
             display: none !important;
         }
     </style>
@@ -135,7 +136,7 @@
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-2">
+                        <div id="live-score-wrapper" class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Local</label>
                                 <input type="number" id="live-gh" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
@@ -397,10 +398,9 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // --- MEJORA: ESCANEO MINUTO A MINUTO (Hacia adelante) ---
+            // ESCANEO MINUTO A MINUTO (Hacia adelante)
             if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
                 let foundScan = false;
-                // Escaneamos desde el minuto actual hasta el final del primer tiempo (44)
                 for (let testMin = currentMin; testMin < 45; testMin++) {
                     const timeLeft = 45 - testMin;
                     const lambdaTest = lambdaPre * (timeLeft / 90);
@@ -414,9 +414,7 @@
                         break; 
                     }
                 }
-                // Si el bucle termina sin encontrar el rango, los inputs conservan sus valores manuales/previos
             }
-            // -------------------------------------------------------
 
             let startMin = parseInt(inputs.start.value) || 0;
             let endMin = parseInt(inputs.end.value) || 90;
