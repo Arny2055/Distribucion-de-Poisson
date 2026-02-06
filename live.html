@@ -186,7 +186,7 @@
                 <div class="glass-card p-6 rounded-3xl relative overflow-hidden bg-gradient-to-br from-slate-900 to-black border-white/10">
                     <div class="absolute top-4 right-6 text-right flex flex-col items-end gap-1">
                         <span class="text-[10px] text-slate-500 font-black uppercase block tracking-tighter">Midiendo Mercado</span>
-                        <select id="live-market-selector" class="market-select" onchange="calculateLive()">
+                        <select id="live-market-selector" class="market-select" onchange="updateTimeRange(); calculateLive();">
                             <option value="OVER 1.5">Over 1.5 FT</option>
                             <option value="OVER 0.5 HT" selected>Over 0.5 HT</option>
                             <option value="OVER 1.5 HT">Over 1.5 HT</option>
@@ -249,6 +249,33 @@
         let globalLiveProb = 0;
         let pressureChart = null;
 
+        // --- Mejora: Automatización de rangos de tiempo ---
+        function updateTimeRange() {
+            const market = document.getElementById('live-market-selector').value;
+            const minInput = document.getElementById('live-min-start');
+            const maxInput = document.getElementById('live-min-end');
+
+            switch(market) {
+                case "OVER 0.5 HT":
+                case "OVER 1.5 HT":
+                    minInput.value = 0;
+                    maxInput.value = 45;
+                    break;
+                case "OVER 1.5":
+                    minInput.value = 45;
+                    maxInput.value = 90;
+                    break;
+                case "GOL ANTES 30":
+                    minInput.value = 0;
+                    maxInput.value = 29;
+                    break;
+                case "GOL ANTES 70":
+                    minInput.value = 45;
+                    maxInput.value = 69;
+                    break;
+            }
+        }
+
         function loadManualMatch() {
             const league = document.getElementById('manual-league').value || "General";
             const teams = document.getElementById('manual-teams').value || "Partido Manual";
@@ -278,8 +305,9 @@
             document.getElementById('live-ga').value = 0;
             document.getElementById('live-min').value = 0;
             document.getElementById('live-min-range').value = 0;
-            document.getElementById('live-min-start').value = 0;
-            document.getElementById('live-min-end').value = 90;
+            
+            // Asegurar que use el rango del mercado seleccionado por defecto (0.5 HT)
+            updateTimeRange();
 
             if(!pressureChart) initChart();
             calculateLive();
@@ -301,8 +329,9 @@
             document.getElementById('live-min').value = 0;
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
-            document.getElementById('live-min-start').value = 0;
-            document.getElementById('live-min-end').value = 90;
+            
+            // Resetear a valores iniciales según el mercado seleccionado
+            updateTimeRange();
             calculateLive();
         }
 
