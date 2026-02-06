@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BetAGS - ROI Live History</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -48,6 +49,13 @@
             <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-blue-500/50">
                 <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">ROI %</p>
                 <p id="stat-roi" class="text-2xl font-black">0%</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl mb-8">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Equity Curve (Unidades)</h3>
+            <div class="h-64 w-full">
+                <canvas id="equityChart"></canvas>
             </div>
         </div>
 
@@ -95,6 +103,7 @@
     <script>
         // MEJORA: Solo lee lo que guarda el Código 3
         const STORAGE_KEY = 'betags_live_exclusive';
+        let equityChart = null;
 
         function loadHistory() {
             return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -109,6 +118,8 @@
             tableBody.innerHTML = '';
             
             let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
+            let equityData = [0]; // Empezamos en 0 unidades
+            let currentEquity = 0;
 
             history.forEach(bet => {
                 // Aplicación de filtros
@@ -118,13 +129,22 @@
                 // Cálculo de estadísticas base
                 stats.total++;
                 const stake = parseFloat(bet.stake) || 0;
+                
                 if(bet.status === 'GANADA') {
                     stats.wins++;
-                    stats.profit += (stake * parseFloat(bet.bookieOdd)) - stake;
+                    const winAmount = (stake * parseFloat(bet.bookieOdd)) - stake;
+                    stats.profit += winAmount;
                     stats.invested += stake;
+                    currentEquity += winAmount;
                 } else if(bet.status === 'PERDIDA') {
                     stats.profit -= stake;
                     stats.invested += stake;
+                    currentEquity -= stake;
+                }
+                
+                // Guardamos el punto en la curva solo si no es pendiente
+                if(bet.status !== 'PENDIENTE') {
+                    equityData.push(currentEquity);
                 }
 
                 const edgeValue = parseFloat(bet.edge);
@@ -165,6 +185,54 @@
             });
 
             updateStatsUI(stats);
+            updateChart(equityData);
+        }
+
+        function updateChart(dataPoints) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            
+            if (equityChart) {
+                equityChart.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(251, 191, 36, 0.2)');
+            gradient.addColorStop(1, 'rgba(251, 191, 36, 0)');
+
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataPoints.map((_, i) => i),
+                    datasets: [{
+                        label: 'Profit (u)',
+                        data: dataPoints,
+                        borderColor: '#fbbf24',
+                        borderWidth: 3,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#fbbf24'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#64748b', font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
         }
 
         function getStatusClass(status) {
