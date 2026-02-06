@@ -71,9 +71,11 @@
             <div class="flex flex-wrap gap-3">
                 <select id="filter-market" class="filter-select" onchange="renderHistory()">
                     <option value="ALL">TODOS LOS MERCADOS</option>
-                    <option value="OVER">OVER FT</option>
-                    <option value="HT">HALFTIME (HT)</option>
-                    <option value="BTTS">BTTS</option>
+                    <option value="Over 0.5 HT">Over 0.5 HT</option>
+                    <option value="Over 1.5 HT">Over 1.5 HT</option>
+                    <option value="Over 1.5 FT">Over 1.5 FT</option>
+                    <option value="Gol antes del 30">Gol antes del 30</option>
+                    <option value="Gol antes del 70">Gol antes del 70</option>
                 </select>
                 <select id="filter-status" class="filter-select" onchange="renderHistory()">
                     <option value="ALL">TODOS LOS ESTADOS</option>
@@ -149,7 +151,8 @@
             let peak = 0;
 
             history.forEach(bet => {
-                if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
+                // Mejora en la lógica de filtrado por mercado (coincidencia exacta o parcial)
+                if(filterMarket !== 'ALL' && bet.market !== filterMarket) return;
                 if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
 
                 stats.total++;
