@@ -276,23 +276,6 @@
             }
         }
 
-        // NUEVA MEJORA: Adaptación automática por cuota justa
-        function adaptTimeWindowForOverHT(fairOdd) {
-            const market = document.getElementById('live-market-selector').value;
-            const minInput = document.getElementById('live-min-start');
-            const maxInput = document.getElementById('live-min-end');
-            const currentMin = parseInt(document.getElementById('live-min').value) || 0;
-
-            // Solo aplicar si el mercado es Over 0.5 HT
-            if (market === "OVER 0.5 HT") {
-                // Rango solicitado: 1.67 a 1.73
-                if (fairOdd >= 1.67 && fairOdd <= 1.73) {
-                    minInput.value = currentMin;
-                    maxInput.value = 45;
-                }
-            }
-        }
-
         function loadManualMatch() {
             const league = document.getElementById('manual-league').value || "General";
             const teams = document.getElementById('manual-teams').value || "Partido Manual";
@@ -323,7 +306,6 @@
             document.getElementById('live-min').value = 0;
             document.getElementById('live-min-range').value = 0;
             
-            // Asegurar que use el rango del mercado seleccionado por defecto (0.5 HT)
             updateTimeRange();
 
             if(!pressureChart) initChart();
@@ -347,7 +329,6 @@
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
             
-            // Resetear a valores iniciales según el mercado seleccionado
             updateTimeRange();
             calculateLive();
         }
@@ -412,18 +393,37 @@
             };
 
             const currentMin = parseInt(inputs.min.value) || 0;
-            const startMin = parseInt(inputs.start.value) || 0;
-            const endMin = parseInt(inputs.end.value) || 90;
+            let startMin = parseInt(inputs.start.value) || 0;
+            let endMin = parseInt(inputs.end.value) || 90;
             const gH = parseInt(inputs.gh.value) || 0;
             const gA = parseInt(inputs.ga.value) || 0;
+            const currentTotal = gH + gA;
+            const selectedMarket = document.getElementById('live-market-selector').value;
+            const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
+
+            // --- MEJORA SOLICITADA: ADAPTACIÓN AUTOMÁTICA ---
+            if (selectedMarket === "OVER 0.5 HT" && currentMin < 45 && currentTotal === 0) {
+                // Calculamos la cuota justa basada en el tiempo RESTANTE REAL (desde el minuto actual hasta el 45)
+                const realTimeLeft = 45 - currentMin;
+                const lambdaPotential = lambdaPre * (realTimeLeft / 90);
+                const probPotential = 1 - Math.exp(-lambdaPotential);
+                const oddPotential = probPotential > 0 ? (1 / probPotential) : 100;
+
+                // Si esa cuota justa potencial está en el rango, ajustamos los inputs
+                if (oddPotential >= 1.67 && oddPotential <= 1.73) {
+                    inputs.start.value = currentMin;
+                    inputs.end.value = 45;
+                    startMin = currentMin;
+                    endMin = 45;
+                }
+            }
+            // -----------------------------------------------
 
             Object.values(inputs).forEach(input => input.classList.remove('input-error'));
 
             let hasError = false;
             if (startMin > endMin) { inputs.start.classList.add('input-error'); inputs.end.classList.add('input-error'); hasError = true; }
             if (currentMin < 0 || currentMin > 120) { inputs.min.classList.add('input-error'); hasError = true; }
-            if (gH < 0) { inputs.gh.classList.add('input-error'); hasError = true; }
-            if (gA < 0) { inputs.ga.classList.add('input-error'); hasError = true; }
 
             if (hasError) {
                 document.getElementById('live-prob-display').innerText = "ERROR";
@@ -431,12 +431,7 @@
                 return;
             }
 
-            const currentTotal = gH + gA;
-            const selectedMarket = document.getElementById('live-market-selector').value;
-
-            const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
-
             const timeWindow = Math.max(0, endMin - startMin);
             const intensityBoost = currentMin > 45 ? 1.15 : 1.0; 
             const lambdaRemaining = lambdaPre * (timeWindow / 90) * intensityBoost;
@@ -445,7 +440,6 @@
             
             const timeBar = document.getElementById('time-bar');
             const rangeHighlight = document.getElementById('range-highlight');
-            
             timeBar.style.width = (currentMin/95*100) + "%";
             
             const startPct = (startMin / 95) * 100;
@@ -456,30 +450,20 @@
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
             
-            // --- NUEVA MEJORA APLICADA AQUÍ ---
-            const fairOddResult = liveProb > 0.05 ? (1 / liveProb) : 0;
-            adaptTimeWindowForOverHT(fairOddResult);
-            // ----------------------------------
-
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
             calculateROI();
         }
 
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
             let effectiveLambda = lRem;
-            
             if (market.includes("HT") || market.includes("ANTES")) {
                 let limit = 45; 
                 if(market.includes("30")) limit = 30;
                 if(market.includes("70")) limit = 70;
-
                 const windowLimit = Math.max(0, limit - startMin);
                 if (startMin >= limit) return 0;
                 effectiveLambda = lPre * (windowLimit / 90);
-                
-                if(market.includes("ANTES") || market.includes("OVER 0.5")) {
-                    return 1 - Math.exp(-effectiveLambda);
-                }
+                if(market.includes("ANTES") || market.includes("OVER 0.5")) return 1 - Math.exp(-effectiveLambda);
             }
 
             if(market.includes("OVER")) {
@@ -496,13 +480,6 @@
                 let p_under = 0;
                 for(let i=0; i < neededLimit; i++) p_under += poisson(i, effectiveLambda);
                 return p_under;
-            } else if(market.includes("BTTS (SÍ)")) {
-                const windowFactor = (endMin - startMin) / 90;
-                const lH = currentMatch.manual ? (currentMatch.xgH * windowFactor) : (lPre / 2 * windowFactor);
-                const lA = currentMatch.manual ? (currentMatch.xgA * windowFactor) : (lPre / 2 * windowFactor);
-                const pL = gh > 0 ? 1 : (1 - Math.exp(-lH));
-                const pA = ga > 0 ? 1 : (1 - Math.exp(-lA));
-                return pL * pA;
             }
             return 0;
         }
@@ -528,40 +505,14 @@
             const sugList = document.getElementById('suggestions-list');
             if(!sugList) return;
             sugList.innerHTML = '';
-            
-            const markets = [
-                `OVER 0.5 HT`, `GOL ANTES 30`, `GOL ANTES 70`, `OVER 1.5 HT`, `OVER 1.5`
-            ];
-
+            const markets = [`OVER 0.5 HT`, `GOL ANTES 30`, `GOL ANTES 70`, `OVER 1.5 HT`, `OVER 1.5` ];
             markets.forEach((m, idx) => {
                 const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
                 if(prob > 0.02 && prob < 0.98) {
                     const fairOdd = (1/prob).toFixed(2);
                     const div = document.createElement('div');
                     div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-slate-700 border-l-2 mb-2";
-                    
-                    div.innerHTML = `
-                        <div class="flex flex-col gap-2">
-                            <div class="flex justify-between items-center">
-                                <span class="text-[10px] font-bold text-white uppercase">${m}</span>
-                                <div class="text-right">
-                                    <span class="text-[8px] text-slate-500 block">JUSTA</span>
-                                    <span class="text-xs font-black text-amber-500">${fairOdd}</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" step="0.01" placeholder="Cuota" 
-                                    id="input-odd-${idx}" 
-                                    class="alt-input flex-1" 
-                                    oninput="checkAltValue('${m}', ${fairOdd}, this.value, 'btn-save-${idx}')">
-                                <button id="btn-save-${idx}" 
-                                    onclick="saveLiveBet('ALT', '${m}', ${fairOdd}, document.getElementById('input-odd-${idx}').value)"
-                                    class="btn-mini-save">
-                                    <i class="fa-solid fa-plus mr-1"></i> GUARDAR
-                                </button>
-                            </div>
-                        </div>
-                    `;
+                    div.innerHTML = `<div class="flex flex-col gap-2"><div class="flex justify-between items-center"><span class="text-[10px] font-bold text-white uppercase">${m}</span><div class="text-right"><span class="text-[8px] text-slate-500 block">JUSTA</span><span class="text-xs font-black text-amber-500">${fairOdd}</span></div></div><div class="flex items-center gap-2"><input type="number" step="0.01" placeholder="Cuota" id="input-odd-${idx}" class="alt-input flex-1" oninput="checkAltValue('${m}', ${fairOdd}, this.value, 'btn-save-${idx}')"><button id="btn-save-${idx}" onclick="saveLiveBet('ALT', '${m}', ${fairOdd}, document.getElementById('input-odd-${idx}').value)" class="btn-mini-save"><i class="fa-solid fa-plus mr-1"></i> GUARDAR</button></div></div>`;
                     sugList.appendChild(div);
                 }
             });
@@ -573,56 +524,28 @@
             if (val > fair) {
                 btn.style.display = 'block';
                 btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#10b981';
-            } else {
-                btn.style.display = 'none';
-                btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#334155';
-            }
+            } else { btn.style.display = 'none'; btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#334155'; }
         }
 
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
-
             if (source === 'DIRECT') {
                 finalMarket = document.getElementById('live-market-selector').value;
-                const fairText = document.getElementById('live-odd-fair').innerText;
-                finalFair = parseFloat(fairText) || 0;
+                finalFair = parseFloat(document.getElementById('live-odd-fair').innerText) || 0;
                 finalBookie = parseFloat(document.getElementById('bookie-odd').value) || 0;
                 finalProb = globalLiveProb;
             } else {
-                finalMarket = market;
-                finalFair = parseFloat(fair);
-                finalBookie = parseFloat(bookie);
-                finalProb = 1 / finalFair;
+                finalMarket = market; finalFair = parseFloat(fair); finalBookie = parseFloat(bookie); finalProb = 1 / finalFair;
             }
-
-            if (!finalBookie || finalBookie <= 1) {
-                alert("Ingresa una cuota válida.");
-                return;
-            }
-
+            if (!finalBookie || finalBookie <= 1) { alert("Ingresa una cuota válida."); return; }
             const edge = (((finalBookie / finalFair) - 1) * 100).toFixed(2);
             const now = new Date();
             const dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-            const betData = {
-                id: Date.now(),
-                timestamp: dateStr,
-                match: (currentMatch?.league ? `[${currentMatch.league}] ` : '') + document.getElementById('live-match-name').innerText,
-                market: finalMarket,
-                prob: (finalProb * 100).toFixed(1) + "%",
-                fairOdd: finalFair.toFixed(2),
-                bookieOdd: finalBookie.toFixed(2),
-                edge: edge + "%",
-                stake: stake,
-                isLive: "SÍ",
-                status: "PENDIENTE"
-            };
-
+            const betData = { id: Date.now(), timestamp: dateStr, match: document.getElementById('live-match-name').innerText, market: finalMarket, prob: (finalProb * 100).toFixed(1) + "%", fairOdd: finalFair.toFixed(2), bookieOdd: finalBookie.toFixed(2), edge: edge + "%", stake: stake, isLive: "SÍ", status: "PENDIENTE" };
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            
             alert(`✅ ENVIADO A ROI LIVE HISTORY`);
         }
 
@@ -630,16 +553,11 @@
             const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
             const roiDisplay = document.getElementById('roi-display');
             const saveBtn = document.getElementById('btn-save-action');
-            if (!bookieOdd || globalLiveProb <= 0) {
-                saveBtn.classList.add('hidden');
-                return;
-            }
+            if (!bookieOdd || globalLiveProb <= 0) { saveBtn.classList.add('hidden'); return; }
             const ev = (globalLiveProb * bookieOdd) - 1;
             roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
             roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
-            
-            if(ev > 0) saveBtn.classList.remove('hidden');
-            else saveBtn.classList.add('hidden');
+            if(ev > 0) saveBtn.classList.remove('hidden'); else saveBtn.classList.add('hidden');
         }
     </script>
 </body>
