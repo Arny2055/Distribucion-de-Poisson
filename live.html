@@ -197,8 +197,10 @@
                             <option value="UNDER 3.5">Under 3.5 FT</option>
                             <option value="BTTS (SÍ)">BTTS (SÍ)</option>
                             <option value="BTTS (NO)">BTTS (NO)</option>
-                            <option value="OVER 0.5 HT" selected>Over 0.5 HT</option>
+                            <option value="OVER 0.5 HT">Over 0.5 HT</option>
                             <option value="OVER 1.5 HT">Over 1.5 HT</option>
+                            <option value="GOL ANTES 30" selected>Gol antes del 30</option>
+                            <option value="GOL ANTES 70">Gol antes del 70</option>
                         </select>
                     </div>
                     
@@ -374,7 +376,7 @@
 
             const currentMin = parseInt(inputs.min.value) || 0;
             const startMin = parseInt(inputs.start.value) || 0;
-            const endMin = parseInt(inputs.end.value) || 0;
+            const endMin = parseInt(inputs.end.value) || 90;
             const gH = parseInt(inputs.gh.value) || 0;
             const gA = parseInt(inputs.ga.value) || 0;
 
@@ -422,23 +424,33 @@
 
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
             let effectiveLambda = lRem;
-            if (market.includes("HT")) {
-                const limitHT = 45;
-                const windowHT = Math.max(0, limitHT - startMin);
-                if (startMin >= limitHT) return 0;
-                effectiveLambda = lPre * (windowHT / 90);
+            
+            // Lógica para mercados de tiempo limitado
+            if (market.includes("HT") || market.includes("ANTES")) {
+                let limit = 45; // Default HT
+                if(market.includes("30")) limit = 30;
+                if(market.includes("70")) limit = 70;
+
+                const windowLimit = Math.max(0, limit - startMin);
+                if (startMin >= limit) return 0;
+                effectiveLambda = lPre * (windowLimit / 90);
+                
+                // Si es un mercado de "Gol antes de", es equivalente a un Over 0.5 en esa ventana
+                if(market.includes("ANTES") || market.includes("OVER 0.5")) {
+                    return 1 - Math.exp(-effectiveLambda);
+                }
             }
 
             if(market.includes("OVER")) {
-                let limit = parseFloat(market.split(" ")[1]);
-                const needed = Math.max(0, Math.ceil(limit) - total);
+                let limitVal = parseFloat(market.split(" ")[1]);
+                const needed = Math.max(0, Math.ceil(limitVal) - total);
                 if(needed === 0) return 1.0;
                 let p_under = 0;
                 for(let i=0; i < needed; i++) p_under += poisson(i, effectiveLambda);
                 return 1 - p_under;
             } else if(market.includes("UNDER")) {
-                let limit = parseFloat(market.split(" ")[1]);
-                const neededLimit = Math.ceil(limit) - total;
+                let limitVal = parseFloat(market.split(" ")[1]);
+                const neededLimit = Math.ceil(limitVal) - total;
                 if(neededLimit <= 0) return 0;
                 let p_under = 0;
                 for(let i=0; i < neededLimit; i++) p_under += poisson(i, effectiveLambda);
@@ -462,8 +474,8 @@
                 const chartData = Array(96).fill(null);
                 for(let i = min; i <= 95; i++) {
                     const tRem = 95 - i;
-                    const lRem = lPre * (tRem/90) * (i > 45 ? 1.15 : 1.0);
-                    chartData[i] = 1 - Math.exp(-lRem);
+                    const lRemChart = lPre * (tRem/90) * (i > 45 ? 1.15 : 1.0);
+                    chartData[i] = 1 - Math.exp(-lRemChart);
                 }
                 pressureChart.data.datasets[0].data = chartData;
                 pressureChart.update('none');
@@ -477,9 +489,8 @@
             sugList.innerHTML = '';
             
             const markets = [
-                `OVER ${total + 0.5}`, `OVER ${total + 1.5}`, `OVER ${total + 2.5}`,
-                `UNDER ${total + 0.5}`, `UNDER ${total + 1.5}`, `UNDER ${total + 2.5}`,
-                `BTTS (SÍ)`, `OVER ${total + 0.5} HT`, `OVER ${total + 1.5} HT`
+                `OVER ${total + 0.5}`, `OVER ${total + 1.5}`, `GOL ANTES 30`, `GOL ANTES 70`,
+                `UNDER ${total + 0.5}`, `BTTS (SÍ)`, `OVER ${total + 0.5} HT`
             ];
 
             markets.forEach((m, idx) => {
