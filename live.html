@@ -249,56 +249,46 @@
         let globalLiveProb = 0;
         let pressureChart = null;
 
-        // --- Mejora: Automatización de rangos de tiempo con búsqueda de cuota ---
+        // --- Mejora: Automatización de rangos de tiempo ---
         function updateTimeRange() {
-            if(!currentMatch) return;
+            const market = document.getElementById('live-market-selector').value;
+            const minInput = document.getElementById('live-min-start');
+            const maxInput = document.getElementById('live-min-end');
+
+            switch(market) {
+                case "OVER 0.5 HT":
+                case "OVER 1.5 HT":
+                    minInput.value = 0;
+                    maxInput.value = 45;
+                    break;
+                case "OVER 1.5":
+                    minInput.value = 45;
+                    maxInput.value = 90;
+                    break;
+                case "GOL ANTES 30":
+                    minInput.value = 0;
+                    maxInput.value = 29;
+                    break;
+                case "GOL ANTES 70":
+                    minInput.value = 45;
+                    maxInput.value = 69;
+                    break;
+            }
+        }
+
+        // NUEVA MEJORA: Adaptación automática por cuota justa
+        function adaptTimeWindowForOverHT(fairOdd) {
             const market = document.getElementById('live-market-selector').value;
             const minInput = document.getElementById('live-min-start');
             const maxInput = document.getElementById('live-min-end');
             const currentMin = parseInt(document.getElementById('live-min').value) || 0;
 
+            // Solo aplicar si el mercado es Over 0.5 HT
             if (market === "OVER 0.5 HT") {
-                // Algoritmo para encontrar cuota justa entre 1.67 y 1.73
-                minInput.value = currentMin;
-                let foundMatch = false;
-                
-                // Iteramos desde el minuto 45 hacia el actual para encontrar el rango óptimo
-                for (let endMin = 45; endMin > currentMin; endMin--) {
-                    const lPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
-                    const windowLimit = Math.max(0, endMin - currentMin);
-                    const effectiveLambda = lPre * (windowLimit / 90);
-                    const prob = 1 - Math.exp(-effectiveLambda);
-                    const fairOdd = prob > 0 ? 1 / prob : 999;
-
-                    if (fairOdd >= 1.67 && fairOdd <= 1.73) {
-                        maxInput.value = endMin;
-                        foundMatch = true;
-                        break;
-                    }
-                }
-                
-                // Si no encuentra el rango exacto, pone el estándar 45
-                if (!foundMatch) maxInput.value = 45;
-
-            } else {
-                // Lógica estándar para los demás mercados
-                switch(market) {
-                    case "OVER 1.5 HT":
-                        minInput.value = 0;
-                        maxInput.value = 45;
-                        break;
-                    case "OVER 1.5":
-                        minInput.value = 45;
-                        maxInput.value = 90;
-                        break;
-                    case "GOL ANTES 30":
-                        minInput.value = 0;
-                        maxInput.value = 29;
-                        break;
-                    case "GOL ANTES 70":
-                        minInput.value = 45;
-                        maxInput.value = 69;
-                        break;
+                // Rango solicitado: 1.67 a 1.73
+                if (fairOdd >= 1.67 && fairOdd <= 1.73) {
+                    minInput.value = currentMin;
+                    maxInput.value = 45;
                 }
             }
         }
@@ -333,6 +323,7 @@
             document.getElementById('live-min').value = 0;
             document.getElementById('live-min-range').value = 0;
             
+            // Asegurar que use el rango del mercado seleccionado por defecto (0.5 HT)
             updateTimeRange();
 
             if(!pressureChart) initChart();
@@ -356,6 +347,7 @@
             document.getElementById('live-gh').value = 0;
             document.getElementById('live-ga').value = 0;
             
+            // Resetear a valores iniciales según el mercado seleccionado
             updateTimeRange();
             calculateLive();
         }
@@ -463,6 +455,12 @@
 
             let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
             globalLiveProb = liveProb;
+            
+            // --- NUEVA MEJORA APLICADA AQUÍ ---
+            const fairOddResult = liveProb > 0.05 ? (1 / liveProb) : 0;
+            adaptTimeWindowForOverHT(fairOddResult);
+            // ----------------------------------
+
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
             calculateROI();
         }
