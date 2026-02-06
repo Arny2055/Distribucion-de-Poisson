@@ -46,10 +46,15 @@
             z-index: 20;
         }
 
-        #time-bar { opacity: 1; }
+        #time-bar {
+            opacity: 0; 
+        }
 
-        #clock-control-wrapper { display: block !important; }
+        #clock-control-wrapper {
+            display: none !important;
+        }
 
+        /* Estilo para errores de validación */
         .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
         @keyframes shake {
             0% { transform: translateX(0); }
@@ -59,23 +64,21 @@
             100% { transform: translateX(0); }
         }
 
+        /* Ocultar secciones sin borrar código */
         #pressure-timer-card, 
         #opportunity-window-card,
         #suggestions-card,
         #risk-alerts-card,
         #live-score-wrapper {
-            display: block !important;
+            display: none !important;
         }
 
-        .alert-item { padding: 8px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 8px; }
-        .alert-item.warning { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-
-        .pressure-pulse { animation: pulse-shadow 2s infinite; }
-        @keyframes pulse-shadow {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
+        /* Estilos Nueva Tabla de Probabilidad */
+        .prob-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        .prob-table th { padding: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        .prob-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .row-active { background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: bold; }
+        .row-past { opacity: 0.4; }
     </style>
 </head>
 <body>
@@ -240,6 +243,32 @@
                     </div>
                 </div>
 
+                <div class="glass-card p-6 rounded-3xl border-emerald-500/20">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-[11px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-table-list"></i> Estrategia de Entrada (Minuto a Minuto)
+                        </h3>
+                        <span id="table-market-label" class="text-[9px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase italic">--</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="prob-table">
+                            <thead>
+                                <tr>
+                                    <th>Minuto</th>
+                                    <th>Probabilidad %</th>
+                                    <th>Cuota Justa</th>
+                                    <th>Acción Sugerida</th>
+                                </tr>
+                            </thead>
+                            <tbody id="probability-table-body">
+                                <tr>
+                                    <td colspan="4" class="py-10 text-slate-500 italic">Carga un partido para ver el análisis temporal...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div id="suggestions-card" class="glass-card p-5 rounded-2xl">
                         <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2"><i class="fa-solid fa-brain"></i> Alternativas Sugeridas</h3>
@@ -324,29 +353,11 @@
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
             const num = document.getElementById('live-min');
-            const startInput = document.getElementById('live-min-start');
-            const endInput = document.getElementById('live-min-end');
-            const market = document.getElementById('live-market-selector').value;
-
-            // Sincronizar num y range
+            const start = document.getElementById('live-min-start');
             if(type === 'range') num.value = range.value;
             else range.value = num.value;
             
-            const currentVal = parseInt(num.value);
-
-            // CONTROL MAESTRO DE TIEMPO MÍN/MÁX
-            // El mínimo siempre será el minuto actual
-            startInput.value = currentVal;
-
-            // El máximo se ajusta según el mercado para mantener coherencia
-            if (market.includes("HT") || market === "GOL ANTES 30") {
-                endInput.value = Math.max(currentVal, market === "GOL ANTES 30" ? 30 : 45);
-            } else if (market === "GOL ANTES 70") {
-                endInput.value = Math.max(currentVal, 70);
-            } else {
-                endInput.value = Math.max(currentVal, 90);
-            }
-
+            start.value = num.value;
             calculateLive();
         }
 
@@ -426,21 +437,6 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // ESCANEO AUTOMÁTICO PARA MERCADOS HT
-            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0 && currentMin < 10) {
-                for (let testMin = currentMin; testMin < 45; testMin++) {
-                    const timeLeft = 45 - testMin;
-                    const lambdaTest = lambdaPre * (timeLeft / 90);
-                    const probTest = 1 - Math.exp(-lambdaTest);
-                    const oddTest = probTest > 0 ? (1 / probTest) : 100;
-
-                    if (oddTest >= 1.67 && oddTest <= 1.73) {
-                        inputs.start.value = testMin;
-                        break; 
-                    }
-                }
-            }
-
             let startMin = parseInt(inputs.start.value) || 0;
             let endMin = parseInt(inputs.end.value) || 90;
 
@@ -477,7 +473,54 @@
             
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
             updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
+            
+            // ACTUALIZAR TABLA MINUTO A MINUTO
+            updateProbabilityTable(selectedMarket, lambdaPre, currentMin, currentTotal, gH, gA);
+
             calculateROI();
+        }
+
+        // Nueva Función para llenar la Tabla
+        function updateProbabilityTable(market, lambdaPre, currentMin, total, gh, ga) {
+            const tbody = document.getElementById('probability-table-body');
+            const label = document.getElementById('table-market-label');
+            label.innerText = market;
+            tbody.innerHTML = '';
+
+            // Definir límites de la tabla según el mercado
+            let start = 0;
+            let end = 90;
+            let step = 10;
+
+            if (market.includes("HT") || market.includes("30")) {
+                end = 45; step = 5;
+            }
+
+            for (let min = start; min <= end; min += step) {
+                let limit = (market.includes("HT")) ? 45 : (market.includes("30")) ? 30 : (market.includes("70")) ? 70 : 90;
+                
+                const timeLeft = Math.max(0, limit - min);
+                const lTest = lambdaPre * (timeLeft / 90) * (min > 45 ? 1.15 : 1.0);
+                
+                let pTest = calculateSpecificProb(market, lTest, total, gh, ga, lambdaPre, min, min, limit);
+                let fairOdd = pTest > 0.01 ? (1 / pTest).toFixed(2) : "N/A";
+                
+                const tr = document.createElement('tr');
+                if (min <= currentMin && currentMin < min + step) tr.className = "row-active";
+                else if (min < currentMin) tr.className = "row-past";
+
+                let action = pTest > 0.6 ? "🔥 ALTA" : pTest > 0.4 ? "⚡ MEDIA" : "❄️ BAJA";
+                if(pTest >= 1) action = "✅ GANADA";
+                if(min > limit) action = "❌ CERRADA";
+
+                tr.innerHTML = `
+                    <td>Min ${min}'</td>
+                    <td class="font-mono">${(pTest * 100).toFixed(1)}%</td>
+                    <td class="text-amber-500 font-black">${fairOdd}</td>
+                    <td class="text-[9px] font-bold">${action}</td>
+                `;
+                tbody.appendChild(tr);
+            }
         }
 
         function updateMarketFocus(market, lambdaPre, total, gh, ga) {
@@ -566,43 +609,6 @@
                 pressureChart.update('none');
             }
             generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
-            updatePressureTimer(lPre, min);
-            updateRiskAlerts(prob, min, total);
-        }
-
-        function updatePressureTimer(lPre, min) {
-            const container = document.getElementById('next-goal-timer-container');
-            const intensity = min > 45 ? 1.15 : 1.0;
-            const lambda10 = lPre * (10 / 90) * intensity;
-            const probNext10 = (1 - Math.exp(-lambda10)).toFixed(2);
-            const color = probNext10 > 0.3 ? 'text-emerald-400' : (probNext10 > 0.15 ? 'text-amber-400' : 'text-slate-400');
-            const isHigh = probNext10 > 0.3;
-
-            container.innerHTML = `
-                <div class="p-3 bg-white/5 rounded-xl border border-white/5 ${isHigh ? 'pressure-pulse border-emerald-500/30' : ''}">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol Próximos 10' (Min ${min})</span>
-                        <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(1)}%</span>
-                    </div>
-                    <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
-                        <div class="h-full transition-all duration-500 ${isHigh ? 'bg-emerald-500' : 'bg-slate-600'}" style="width: ${probNext10 * 100}%"></div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateRiskAlerts(prob, min, total) {
-            const list = document.getElementById('alerts-list');
-            list.innerHTML = '';
-            if (min > 80 && prob < 0.2) {
-                list.innerHTML += `<div class="alert-item"><i class="fa-solid fa-circle-exclamation mr-2"></i> RIESGO ALTO: Tiempo insuficiente para la varianza.</div>`;
-            }
-            if (prob > 0.85) {
-                list.innerHTML += `<div class="alert-item warning"><i class="fa-solid fa-triangle-exclamation mr-2"></i> CUOTA MUY BAJA: No hay valor matemático aquí.</div>`;
-            }
-            if (list.innerHTML === '') {
-                list.innerHTML = '<p class="text-slate-500 italic text-center">Sin alertas activas</p>';
-            }
         }
 
         function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
