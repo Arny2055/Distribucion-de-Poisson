@@ -188,10 +188,10 @@
                         <span class="text-[10px] text-slate-500 font-black uppercase block tracking-tighter">Midiendo Mercado</span>
                         <select id="live-market-selector" class="market-select" onchange="calculateLive()">
                             <option value="OVER 1.5">Over 1.5 FT</option>
-                            <option value="OVER 0.5 HT">Over 0.5 HT</option>
+                            <option value="OVER 0.5 HT" selected>Over 0.5 HT</option>
                             <option value="OVER 1.5 HT">Over 1.5 HT</option>
                             <option value="GOL ANTES 30">Gol antes del 30</option>
-                            <option value="GOL ANTES 70" selected>Gol antes del 70</option>
+                            <option value="GOL ANTES 70">Gol antes del 70</option>
                         </select>
                     </div>
                     
@@ -478,7 +478,7 @@
             sugList.innerHTML = '';
             
             const markets = [
-                `GOL ANTES 30`, `GOL ANTES 70`, `OVER 0.5 HT`, `OVER 1.5 HT`, `OVER 1.5`
+                `OVER 0.5 HT`, `GOL ANTES 30`, `GOL ANTES 70`, `OVER 1.5 HT`, `OVER 1.5`
             ];
 
             markets.forEach((m, idx) => {
