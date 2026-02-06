@@ -46,14 +46,9 @@
             z-index: 20;
         }
 
-        #time-bar {
-            opacity: 1; /* Restaurado */
-        }
+        #time-bar { opacity: 1; }
 
-        /* Bloque de visibilidad restaurado */
-        #clock-control-wrapper {
-            display: block !important;
-        }
+        #clock-control-wrapper { display: block !important; }
 
         .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
         @keyframes shake {
@@ -64,7 +59,6 @@
             100% { transform: translateX(0); }
         }
 
-        /* SECCIONES RESTAURADAS */
         #pressure-timer-card, 
         #opportunity-window-card,
         #suggestions-card,
@@ -75,6 +69,14 @@
 
         .alert-item { padding: 8px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 8px; }
         .alert-item.warning { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+        /* Estilos Mejora Barra de Presión */
+        .pressure-pulse { animation: pulse-shadow 2s infinite; }
+        @keyframes pulse-shadow {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
     </style>
 </head>
 <body>
@@ -175,8 +177,7 @@
 
                 <div id="pressure-timer-card" class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
                     <p class="text-[10px] text-amber-500 font-black uppercase mb-4 tracking-widest"><i class="fa-solid fa-stopwatch mr-2"></i>Cronómetro de Presión</p>
-                    <div id="next-goal-timer-container" class="space-y-4">
-                        </div>
+                    <div id="next-goal-timer-container" class="space-y-4"></div>
                 </div>
 
                 <div id="opportunity-window-card" class="glass-card p-5 rounded-2xl">
@@ -557,12 +558,21 @@
 
         function updatePressureTimer(lPre, min) {
             const container = document.getElementById('next-goal-timer-container');
-            const probNext10 = (1 - Math.exp(-lPre * (10/90))).toFixed(2);
-            const color = probNext10 > 0.3 ? 'text-emerald-400' : 'text-slate-400';
+            const intensity = min > 45 ? 1.15 : 1.0;
+            const lambda10 = lPre * (10 / 90) * intensity;
+            const probNext10 = (1 - Math.exp(-lambda10)).toFixed(2);
+            const color = probNext10 > 0.3 ? 'text-emerald-400' : (probNext10 > 0.15 ? 'text-amber-400' : 'text-slate-400');
+            const isHigh = probNext10 > 0.3;
+
             container.innerHTML = `
-                <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                    <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol en próximos 10'</span>
-                    <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(0)}%</span>
+                <div class="p-3 bg-white/5 rounded-xl border border-white/5 ${isHigh ? 'pressure-pulse border-emerald-500/30' : ''}">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol Próximos 10'</span>
+                        <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+                        <div class="h-full transition-all duration-500 ${isHigh ? 'bg-emerald-500' : 'bg-slate-600'}" style="width: ${probNext10 * 100}%"></div>
+                    </div>
                 </div>
             `;
         }
