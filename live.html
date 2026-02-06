@@ -249,7 +249,6 @@
         let globalLiveProb = 0;
         let pressureChart = null;
 
-        // --- Mejora: Automatización de rangos de tiempo ---
         function updateTimeRange() {
             const market = document.getElementById('live-market-selector').value;
             const minInput = document.getElementById('live-min-start');
@@ -307,7 +306,6 @@
             document.getElementById('live-min-range').value = 0;
             
             updateTimeRange();
-
             if(!pressureChart) initChart();
             calculateLive();
         }
@@ -342,7 +340,7 @@
                 data: {
                     labels: Array.from({length: 96}, (_, i) => i),
                     datasets: [{
-                        label: 'Presión de Gol',
+                        label: 'Presión de Goles',
                         data: [],
                         borderColor: '#fbbf24',
                         borderWidth: 2,
@@ -393,31 +391,35 @@
             };
 
             const currentMin = parseInt(inputs.min.value) || 0;
-            let startMin = parseInt(inputs.start.value) || 0;
-            let endMin = parseInt(inputs.end.value) || 90;
             const gH = parseInt(inputs.gh.value) || 0;
             const gA = parseInt(inputs.ga.value) || 0;
             const currentTotal = gH + gA;
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // --- MEJORA SOLICITADA: ADAPTACIÓN AUTOMÁTICA ---
-            if (selectedMarket === "OVER 0.5 HT" && currentMin < 45 && currentTotal === 0) {
-                // Calculamos la cuota justa basada en el tiempo RESTANTE REAL (desde el minuto actual hasta el 45)
-                const realTimeLeft = 45 - currentMin;
-                const lambdaPotential = lambdaPre * (realTimeLeft / 90);
-                const probPotential = 1 - Math.exp(-lambdaPotential);
-                const oddPotential = probPotential > 0 ? (1 / probPotential) : 100;
+            // --- MEJORA: ESCANEO MINUTO A MINUTO (Hacia adelante) ---
+            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
+                let foundScan = false;
+                // Escaneamos desde el minuto actual hasta el final del primer tiempo (44)
+                for (let testMin = currentMin; testMin < 45; testMin++) {
+                    const timeLeft = 45 - testMin;
+                    const lambdaTest = lambdaPre * (timeLeft / 90);
+                    const probTest = 1 - Math.exp(-lambdaTest);
+                    const oddTest = probTest > 0 ? (1 / probTest) : 100;
 
-                // Si esa cuota justa potencial está en el rango, ajustamos los inputs
-                if (oddPotential >= 1.67 && oddPotential <= 1.73) {
-                    inputs.start.value = currentMin;
-                    inputs.end.value = 45;
-                    startMin = currentMin;
-                    endMin = 45;
+                    if (oddTest >= 1.67 && oddTest <= 1.73) {
+                        inputs.start.value = testMin;
+                        inputs.end.value = 45;
+                        foundScan = true;
+                        break; 
+                    }
                 }
+                // Si el bucle termina sin encontrar el rango, los inputs conservan sus valores manuales/previos
             }
-            // -----------------------------------------------
+            // -------------------------------------------------------
+
+            let startMin = parseInt(inputs.start.value) || 0;
+            let endMin = parseInt(inputs.end.value) || 90;
 
             Object.values(inputs).forEach(input => input.classList.remove('input-error'));
 
