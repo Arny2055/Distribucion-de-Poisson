@@ -196,7 +196,7 @@
                         </select>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-4 border-b border-white/5">
                         <div class="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0">
                             <p class="text-[11px] text-slate-500 font-black uppercase mb-1 tracking-widest">Probabilidad Dinámica</p>
                             <div id="live-prob-display" class="text-7xl font-black text-white tracking-tighter">--%</div>
@@ -227,6 +227,12 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <div id="market-focus-container" class="mt-8 text-center py-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
+                        <p id="market-focus-title" class="text-[11px] text-emerald-500 font-black uppercase tracking-[0.2em] mb-2">PROBABILIDAD SELECCIONADA</p>
+                        <div id="market-focus-prob" class="text-8xl md:text-9xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">--%</div>
+                        <p id="market-focus-range" class="text-xs text-slate-500 font-bold mt-2 uppercase tracking-widest">Esperando datos...</p>
                     </div>
                 </div>
 
@@ -451,7 +457,52 @@
             globalLiveProb = liveProb;
             
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
+            
+            // Lógica para el Mercado Fijo en números grandes
+            updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
+
             calculateROI();
+        }
+
+        function updateMarketFocus(market, lambdaPre, total, gh, ga) {
+            const focusProb = document.getElementById('market-focus-prob');
+            const focusRange = document.getElementById('market-focus-range');
+            const focusContainer = document.getElementById('market-focus-container');
+            
+            let prob = 0;
+            let rangeText = "";
+            let show = false;
+
+            if (market === "OVER 0.5 HT" || market === "OVER 1.5 HT") {
+                const limit = 45;
+                const lambdaHT = lambdaPre * (limit / 90);
+                prob = calculateProbByLambda(market, lambdaHT, total);
+                rangeText = "Probabilidad Tiempo Real (Min 0 - 45)";
+                show = true;
+            } else if (market === "OVER 1.5") {
+                const limit = 90;
+                const lambdaFT = lambdaPre * (limit / 90);
+                prob = calculateProbByLambda(market, lambdaFT, total);
+                rangeText = "Probabilidad Tiempo Real (Min 0 - 90)";
+                show = true;
+            }
+
+            if (show) {
+                focusContainer.style.display = "block";
+                focusProb.innerText = (prob * 100).toFixed(1) + "%";
+                focusRange.innerText = rangeText;
+            } else {
+                focusContainer.style.display = "none";
+            }
+        }
+
+        function calculateProbByLambda(market, lambda, currentTotal) {
+            let limitVal = parseFloat(market.split(" ")[1]);
+            const needed = Math.max(0, Math.ceil(limitVal) - currentTotal);
+            if(needed === 0) return 1.0;
+            let p_under = 0;
+            for(let i=0; i < needed; i++) p_under += poisson(i, lambda);
+            return 1 - p_under;
         }
 
         function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
