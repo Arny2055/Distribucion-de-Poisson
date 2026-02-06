@@ -47,14 +47,14 @@
         }
 
         #time-bar {
-            opacity: 0; 
+            opacity: 1; /* Restaurado */
         }
 
+        /* Bloque de visibilidad restaurado */
         #clock-control-wrapper {
-            display: none !important;
+            display: block !important;
         }
 
-        /* Estilo para errores de validación */
         .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
         @keyframes shake {
             0% { transform: translateX(0); }
@@ -64,14 +64,17 @@
             100% { transform: translateX(0); }
         }
 
-        /* Ocultar secciones sin borrar código */
+        /* SECCIONES RESTAURADAS */
         #pressure-timer-card, 
         #opportunity-window-card,
         #suggestions-card,
         #risk-alerts-card,
         #live-score-wrapper {
-            display: none !important;
+            display: block !important;
         }
+
+        .alert-item { padding: 8px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 8px; }
+        .alert-item.warning { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
     </style>
 </head>
 <body>
@@ -172,7 +175,8 @@
 
                 <div id="pressure-timer-card" class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
                     <p class="text-[10px] text-amber-500 font-black uppercase mb-4 tracking-widest"><i class="fa-solid fa-stopwatch mr-2"></i>Cronómetro de Presión</p>
-                    <div id="next-goal-timer-container" class="space-y-4"></div>
+                    <div id="next-goal-timer-container" class="space-y-4">
+                        </div>
                 </div>
 
                 <div id="opportunity-window-card" class="glass-card p-5 rounded-2xl">
@@ -457,10 +461,7 @@
             globalLiveProb = liveProb;
             
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
-            
-            // Lógica para el Mercado Fijo en números grandes
             updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
-
             calculateROI();
         }
 
@@ -550,6 +551,34 @@
                 pressureChart.update('none');
             }
             generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
+            updatePressureTimer(lPre, min);
+            updateRiskAlerts(prob, min, total);
+        }
+
+        function updatePressureTimer(lPre, min) {
+            const container = document.getElementById('next-goal-timer-container');
+            const probNext10 = (1 - Math.exp(-lPre * (10/90))).toFixed(2);
+            const color = probNext10 > 0.3 ? 'text-emerald-400' : 'text-slate-400';
+            container.innerHTML = `
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                    <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol en próximos 10'</span>
+                    <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(0)}%</span>
+                </div>
+            `;
+        }
+
+        function updateRiskAlerts(prob, min, total) {
+            const list = document.getElementById('alerts-list');
+            list.innerHTML = '';
+            if (min > 80 && prob < 0.2) {
+                list.innerHTML += `<div class="alert-item"><i class="fa-solid fa-circle-exclamation mr-2"></i> RIESGO ALTO: Tiempo insuficiente para la varianza.</div>`;
+            }
+            if (prob > 0.85) {
+                list.innerHTML += `<div class="alert-item warning"><i class="fa-solid fa-triangle-exclamation mr-2"></i> CUOTA MUY BAJA: No hay valor matemático aquí.</div>`;
+            }
+            if (list.innerHTML === '') {
+                list.innerHTML = '<p class="text-slate-500 italic text-center">Sin alertas activas</p>';
+            }
         }
 
         function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
