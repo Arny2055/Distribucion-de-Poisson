@@ -33,22 +33,30 @@
     </nav>
 
     <div class="container mx-auto p-4 max-w-6xl">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div class="glass-card p-4 rounded-2xl text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Picks</p>
-                <p id="stat-total" class="text-2xl font-black">0</p>
-            </div>
-            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-emerald-500/50">
-                <p class="text-[10px] text-emerald-500 font-bold uppercase mb-1">Win Rate</p>
-                <p id="stat-wr" class="text-2xl font-black">0%</p>
-            </div>
-            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-amber-500/50">
-                <p class="text-[10px] text-amber-500 font-bold uppercase mb-1">Profit (u)</p>
-                <p id="stat-profit" class="text-2xl font-black">0.00</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Profit Total</p>
+                <p id="stat-profit" class="text-xl font-black">0.00u</p>
             </div>
             <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-blue-500/50">
-                <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">ROI %</p>
-                <p id="stat-roi" class="text-2xl font-black">0%</p>
+                <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">Yield</p>
+                <p id="stat-roi" class="text-xl font-black">0.0%</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-emerald-500/50">
+                <p class="text-[10px] text-emerald-500 font-bold uppercase mb-1">Hit Rate</p>
+                <p id="stat-wr" class="text-xl font-black">0%</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-red-500/50">
+                <p class="text-[10px] text-red-500 font-bold uppercase mb-1">Max Drawdown</p>
+                <p id="stat-dd" class="text-xl font-black">0.00u</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Picks</p>
+                <p id="stat-total" class="text-xl font-black">0</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center border-b-2 border-purple-500/50">
+                <p class="text-[10px] text-purple-500 font-bold uppercase mb-1">P-Value</p>
+                <p id="stat-pvalue" class="text-xl font-black">0.000</p>
             </div>
         </div>
 
@@ -101,13 +109,31 @@
     </div>
 
     <script>
-        // MEJORA: Solo lee lo que guarda el Código 3
         const STORAGE_KEY = 'betags_live_exclusive';
         let equityChart = null;
 
         function loadHistory() {
             return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         }
+
+        // Función matemática para P-Value (Aproximación normal para apuestas)
+        function calculatePValue(total, wins, yieldPct) {
+            if (total < 5) return 1.000;
+            const yieldDec = yieldPct / 100;
+            // Z-score simplificado para apuestas: Yield * sqrt(N) / DesvEst (asumiendo cuota media 2.0)
+            const z = (yieldDec * Math.sqrt(total)) / 1.0; 
+            const p = 1 - 0.5 * (1 + Math.erf(z / Math.sqrt(2)));
+            return Math.max(0, p).toFixed(3);
+        }
+
+        function erf(x) {
+            const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+            const sign = (x < 0) ? -1 : 1; x = Math.abs(x);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return sign * y;
+        }
+        Math.erf = erf;
 
         function renderHistory() {
             const history = loadHistory();
@@ -117,16 +143,15 @@
             
             tableBody.innerHTML = '';
             
-            let stats = { total: 0, wins: 0, profit: 0, invested: 0 };
-            let equityData = [0]; // Empezamos en 0 unidades
+            let stats = { total: 0, wins: 0, profit: 0, invested: 0, maxDD: 0 };
+            let equityData = [0];
             let currentEquity = 0;
+            let peak = 0;
 
             history.forEach(bet => {
-                // Aplicación de filtros
                 if(filterMarket !== 'ALL' && !bet.market.includes(filterMarket)) return;
                 if(filterStatus !== 'ALL' && bet.status !== filterStatus) return;
 
-                // Cálculo de estadísticas base
                 stats.total++;
                 const stake = parseFloat(bet.stake) || 0;
                 
@@ -142,9 +167,12 @@
                     currentEquity -= stake;
                 }
                 
-                // Guardamos el punto en la curva solo si no es pendiente
                 if(bet.status !== 'PENDIENTE') {
                     equityData.push(currentEquity);
+                    // Cálculo de Drawdown
+                    if (currentEquity > peak) peak = currentEquity;
+                    const dd = peak - currentEquity;
+                    if (dd > stats.maxDD) stats.maxDD = dd;
                 }
 
                 const edgeValue = parseFloat(bet.edge);
@@ -190,10 +218,7 @@
 
         function updateChart(dataPoints) {
             const ctx = document.getElementById('equityChart').getContext('2d');
-            
-            if (equityChart) {
-                equityChart.destroy();
-            }
+            if (equityChart) equityChart.destroy();
 
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
             gradient.addColorStop(0, 'rgba(251, 191, 36, 0.2)');
@@ -218,18 +243,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#64748b', font: { size: 10 } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#64748b', font: { size: 10 } }
-                        }
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
                     }
                 }
             });
@@ -267,13 +284,19 @@
 
         function updateStatsUI(s) {
             const wr = s.total > 0 ? (s.wins / s.total * 100).toFixed(1) : 0;
-            const roi = s.invested > 0 ? (s.profit / s.invested * 100).toFixed(1) : 0;
+            const yieldPct = s.invested > 0 ? (s.profit / s.invested * 100).toFixed(1) : 0;
+            const pValue = calculatePValue(s.total, s.wins, yieldPct);
 
             document.getElementById('stat-total').innerText = s.total;
             document.getElementById('stat-wr').innerText = wr + "%";
-            document.getElementById('stat-profit').innerText = s.profit.toFixed(2);
-            document.getElementById('stat-roi').innerText = roi + "%";
-            document.getElementById('stat-roi').className = `text-2xl font-black ${roi >= 0 ? 'roi-positive' : 'roi-negative'}`;
+            document.getElementById('stat-profit').innerText = (s.profit >= 0 ? "+" : "") + s.profit.toFixed(2) + "u";
+            document.getElementById('stat-roi').innerText = yieldPct + "%";
+            document.getElementById('stat-dd').innerText = s.maxDD.toFixed(2) + "u";
+            document.getElementById('stat-pvalue').innerText = pValue;
+
+            // Colores dinámicos
+            document.getElementById('stat-profit').className = `text-xl font-black ${s.profit >= 0 ? 'roi-positive' : 'roi-negative'}`;
+            document.getElementById('stat-roi').className = `text-xl font-black ${yieldPct >= 0 ? 'roi-positive' : 'roi-negative'}`;
         }
 
         document.addEventListener('DOMContentLoaded', renderHistory);
