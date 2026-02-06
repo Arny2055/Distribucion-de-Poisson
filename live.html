@@ -70,7 +70,6 @@
         .alert-item { padding: 8px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 8px; }
         .alert-item.warning { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
 
-        /* Estilos Mejora Barra de Presión */
         .pressure-pulse { animation: pulse-shadow 2s infinite; }
         @keyframes pulse-shadow {
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
@@ -325,11 +324,29 @@
         function syncInputs(type) {
             const range = document.getElementById('live-min-range');
             const num = document.getElementById('live-min');
-            const start = document.getElementById('live-min-start');
+            const startInput = document.getElementById('live-min-start');
+            const endInput = document.getElementById('live-min-end');
+            const market = document.getElementById('live-market-selector').value;
+
+            // Sincronizar num y range
             if(type === 'range') num.value = range.value;
             else range.value = num.value;
             
-            start.value = num.value;
+            const currentVal = parseInt(num.value);
+
+            // CONTROL MAESTRO DE TIEMPO MÍN/MÁX
+            // El mínimo siempre será el minuto actual
+            startInput.value = currentVal;
+
+            // El máximo se ajusta según el mercado para mantener coherencia
+            if (market.includes("HT") || market === "GOL ANTES 30") {
+                endInput.value = Math.max(currentVal, market === "GOL ANTES 30" ? 30 : 45);
+            } else if (market === "GOL ANTES 70") {
+                endInput.value = Math.max(currentVal, 70);
+            } else {
+                endInput.value = Math.max(currentVal, 90);
+            }
+
             calculateLive();
         }
 
@@ -409,9 +426,8 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // ESCANEO MINUTO A MINUTO (Hacia adelante)
-            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
-                let foundScan = false;
+            // ESCANEO AUTOMÁTICO PARA MERCADOS HT
+            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0 && currentMin < 10) {
                 for (let testMin = currentMin; testMin < 45; testMin++) {
                     const timeLeft = 45 - testMin;
                     const lambdaTest = lambdaPre * (timeLeft / 90);
@@ -420,8 +436,6 @@
 
                     if (oddTest >= 1.67 && oddTest <= 1.73) {
                         inputs.start.value = testMin;
-                        inputs.end.value = 45;
-                        foundScan = true;
                         break; 
                     }
                 }
@@ -567,8 +581,8 @@
             container.innerHTML = `
                 <div class="p-3 bg-white/5 rounded-xl border border-white/5 ${isHigh ? 'pressure-pulse border-emerald-500/30' : ''}">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol Próximos 10'</span>
-                        <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(0)}%</span>
+                        <span class="text-[10px] font-bold text-slate-300 uppercase">Prob. Gol Próximos 10' (Min ${min})</span>
+                        <span class="text-xl font-black ${color}">${(probNext10 * 100).toFixed(1)}%</span>
                     </div>
                     <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
                         <div class="h-full transition-all duration-500 ${isHigh ? 'bg-emerald-500' : 'bg-slate-600'}" style="width: ${probNext10 * 100}%"></div>
