@@ -19,6 +19,10 @@
         .btn-save-live { background: #10b981; color: white; transition: all 0.3s; }
         .btn-save-live:hover { background: #059669; transform: translateY(-1px); }
         
+        /* Estilo para botón forzado */
+        .btn-force-save { background: #1e293b; color: #94a3b8; border: 1px solid #334155; transition: all 0.3s; }
+        .btn-force-save:hover { background: #334155; color: white; }
+
         .chart-container { position: relative; height: 200px; width: 100%; }
 
         .alt-input { background: #000; border: 1px solid #334155; border-radius: 4px; padding: 2px 4px; width: 60px; text-align: center; color: #10b981; font-weight: 900; font-size: 12px; outline: none; }
@@ -35,7 +39,6 @@
         .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
         .input-manual:focus { border-color: #fbbf24; }
 
-        /* Mejora solicitada: Campos de entrada más grandes y centrados */
         .input-manual-large { 
             font-size: 16px !important; 
             padding: 10px !important; 
@@ -61,15 +64,9 @@
             z-index: 20;
         }
 
-        #time-bar {
-            opacity: 0; 
-        }
+        #time-bar { opacity: 0; }
+        #clock-control-wrapper { display: none !important; }
 
-        #clock-control-wrapper {
-            display: none !important;
-        }
-
-        /* Estilo para errores de validación */
         .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
         @keyframes shake {
             0% { transform: translateX(0); }
@@ -79,7 +76,6 @@
             100% { transform: translateX(0); }
         }
 
-        /* Ocultar secciones sin borrar código */
         #pressure-timer-card, 
         #opportunity-window-card,
         #suggestions-card,
@@ -88,7 +84,6 @@
             display: none !important;
         }
         
-        /* Mejora Visual para la Sugerencia Dinámica */
         .strategy-glow { animation: strategy-pulse 2s infinite; }
         @keyframes strategy-pulse {
             0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
@@ -262,7 +257,11 @@
                                     <p class="text-[9px] text-slate-500 font-bold uppercase">ROI Esperado / Edge</p>
                                     <p id="roi-display" class="text-3xl font-black">--%</p>
                                     <p id="bet-signal" class="text-[10px] font-black uppercase mt-1 text-slate-600">Sin Datos</p>
-                                    <button id="btn-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full mt-4 py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">Confirmar Entrada Live</button>
+                                    
+                                    <div class="flex flex-col gap-2 mt-4">
+                                        <button id="btn-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">Confirmar Entrada Live</button>
+                                        <button id="btn-force-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full py-3 rounded-lg font-black uppercase text-[10px] btn-force-save">Confirmar Entrada (Sin Valor)</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -443,7 +442,6 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // ACTUALIZACIÓN DE ESTRATEGIA DINÁMICA
             if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
                 let bestMin = "--";
                 let bestOdd = "--";
@@ -649,11 +647,26 @@
             const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
             const roiDisplay = document.getElementById('roi-display');
             const saveBtn = document.getElementById('btn-save-action');
-            if (!bookieOdd || globalLiveProb <= 0) { saveBtn.classList.add('hidden'); return; }
+            const forceSaveBtn = document.getElementById('btn-force-save-action');
+            
+            if (!bookieOdd || globalLiveProb <= 0) { 
+                saveBtn.classList.add('hidden'); 
+                forceSaveBtn.classList.add('hidden');
+                return; 
+            }
+            
             const ev = (globalLiveProb * bookieOdd) - 1;
             roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
             roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
-            if(ev > 0) saveBtn.classList.remove('hidden'); else saveBtn.classList.add('hidden');
+            
+            // Lógica de visibilidad
+            if(ev > 0) {
+                saveBtn.classList.remove('hidden');
+                forceSaveBtn.classList.add('hidden');
+            } else {
+                saveBtn.classList.add('hidden');
+                forceSaveBtn.classList.remove('hidden');
+            }
         }
     </script>
 </body>
