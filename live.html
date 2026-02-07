@@ -35,6 +35,21 @@
         .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
         .input-manual:focus { border-color: #fbbf24; }
 
+        /* Mejora solicitada: Campos de entrada más grandes y centrados */
+        .input-manual-large { 
+            font-size: 16px !important; 
+            padding: 10px !important; 
+            text-align: center !important; 
+            font-weight: 800 !important;
+            letter-spacing: 0.5px;
+        }
+        
+        .xg-input-xl {
+            font-size: 24px !important;
+            padding: 12px !important;
+            height: auto !important;
+        }
+
         #time-bar-container { position: relative; background: #1e293b; }
         #range-highlight {
             position: absolute;
@@ -100,21 +115,22 @@
             
             <div class="lg:col-span-1 space-y-6">
                 <div class="glass-card p-5 rounded-2xl border-dashed border-amber-500/30 bg-amber-500/5">
-                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest"><i class="fa-solid fa-keyboard mr-2"></i>Poisson Manual (xG)</p>
-                    <div class="space-y-3">
-                        <input type="text" id="manual-league" placeholder="Nombre de la Liga (Ej: Premier League)" class="input-manual border-amber-500/20">
-                        <input type="text" id="manual-teams" placeholder="Equipo A vs Equipo B" class="input-manual">
-                        <div class="grid grid-cols-2 gap-2">
+                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest text-center"><i class="fa-solid fa-keyboard mr-2"></i>Poisson Manual (xG)</p>
+                    <div class="space-y-4">
+                        <input type="text" id="manual-league" placeholder="LIGA" class="input-manual border-amber-500/40 input-manual-large">
+                        <input type="text" id="manual-teams" placeholder="EQUIPO A VS EQUIPO B" class="input-manual input-manual-large">
+                        
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="text-[9px] text-slate-500 font-bold uppercase mb-1 block text-center">xG Local</label>
-                                <input type="number" id="manual-xg-h" step="0.01" placeholder="1.45" class="input-manual text-center font-bold text-emerald-400">
+                                <label class="text-[10px] text-slate-500 font-black uppercase mb-1 block text-center">xG Local</label>
+                                <input type="number" id="manual-xg-h" step="0.01" placeholder="0.00" class="input-manual xg-input-xl text-center font-black text-emerald-400">
                             </div>
                             <div>
-                                <label class="text-[9px] text-slate-500 font-bold uppercase mb-1 block text-center">xG Visita</label>
-                                <input type="number" id="manual-xg-a" step="0.01" placeholder="1.10" class="input-manual text-center font-bold text-amber-400">
+                                <label class="text-[10px] text-slate-500 font-black uppercase mb-1 block text-center">xG Visita</label>
+                                <input type="number" id="manual-xg-a" step="0.01" placeholder="0.00" class="input-manual xg-input-xl text-center font-black text-amber-400">
                             </div>
                         </div>
-                        <button onclick="loadManualMatch()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-[10px] uppercase py-2 rounded-lg transition-all shadow-lg">
+                        <button onclick="loadManualMatch()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase py-3 rounded-xl transition-all shadow-lg">
                             Cargar Análisis xG
                         </button>
                     </div>
@@ -136,8 +152,8 @@
                 </div>
 
                 <div class="glass-card p-6 rounded-2xl">
-                    <h2 id="live-match-name" class="text-lg font-black text-white mb-1 italic uppercase">Sin Partido</h2>
-                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Configura un evento manual</p>
+                    <h2 id="live-match-name" class="text-lg font-black text-white mb-1 italic uppercase text-center">Sin Partido</h2>
+                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2 text-center">Configura un evento manual</p>
 
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-2 mb-2 border-b border-white/5 pb-4">
