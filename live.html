@@ -442,17 +442,22 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
+            // LOGICA AFINADA PARA PREDECIR ENTRADA (Métrica de Valor Proyectada)
             if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
                 let bestMin = "--";
                 let bestOdd = "--";
                 
+                // Barrido de simulación para encontrar el "Punto de Oro"
                 for (let testMin = 0; testMin < 45; testMin++) {
                     const timeLeft = 45 - testMin;
-                    const lambdaTest = lambdaPre * (timeLeft / 90);
+                    // Factor de aceleración por presión de cierre HT (Mejora métrica)
+                    const htBooster = testMin > 30 ? 1.12 : 1.0; 
+                    const lambdaTest = lambdaPre * (timeLeft / 90) * htBooster;
                     const probTest = 1 - Math.exp(-lambdaTest);
                     const oddTest = probTest > 0 ? (1 / probTest) : 100;
 
-                    if (oddTest >= 1.70) {
+                    // Buscamos cuotas con valor a partir de 1.70-1.80
+                    if (oddTest >= 1.75) {
                         bestMin = testMin + "'";
                         bestOdd = oddTest.toFixed(2);
                         break; 
@@ -461,9 +466,10 @@
                 
                 document.getElementById('strategy-min').innerText = bestMin;
                 document.getElementById('strategy-odd').innerText = bestOdd;
-                document.getElementById('strategy-note').innerText = "Espera a este minuto para entrar con valor.";
+                document.getElementById('strategy-note').innerText = "Momento óptimo donde la estadística supera el precio del mercado.";
                 
-                if (bestMin !== "--") {
+                // Sincronizar Tiempo Mín si se detecta oportunidad
+                if (bestMin !== "--" && currentMin < parseInt(bestMin)) {
                     inputs.start.value = parseInt(bestMin);
                 }
             }
@@ -485,7 +491,8 @@
 
             document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
             const timeWindow = Math.max(0, endMin - startMin);
-            const intensityBoost = currentMin > 45 ? 1.15 : 1.0; 
+            // Ajuste dinámico de intensidad HT vs FT
+            const intensityBoost = currentMin > 45 ? 1.15 : (currentMin > 30 ? 1.08 : 1.0); 
             const lambdaRemaining = lambdaPre * (timeWindow / 90) * intensityBoost;
 
             document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
@@ -518,7 +525,7 @@
 
             if (market === "OVER 0.5 HT" || market === "OVER 1.5 HT") {
                 const limit = 45;
-                const lambdaHT = lambdaPre * (limit / 90);
+                const lambdaHT = (lambdaPre * (limit / 90)) * 1.05; 
                 prob = calculateProbByLambda(market, lambdaHT, total);
                 rangeText = "Probabilidad Tiempo Real (Min 0 - 45)";
                 show = true;
@@ -556,7 +563,11 @@
                 if(market.includes("70")) limit = 70;
                 const windowLimit = Math.max(0, limit - startMin);
                 if (startMin >= limit) return 0;
-                effectiveLambda = lPre * (windowLimit / 90);
+                
+                const timeFactor = (windowLimit / 90);
+                const acceleration = startMin > 30 ? 1.12 : 1.0;
+                effectiveLambda = lPre * timeFactor * acceleration;
+                
                 if(market.includes("ANTES") || market.includes("OVER 0.5")) return 1 - Math.exp(-effectiveLambda);
             }
 
@@ -586,7 +597,7 @@
                 const chartData = Array(96).fill(null);
                 for(let i = min; i <= 95; i++) {
                     const tRem = 95 - i;
-                    const lRemChart = lPre * (tRem/90) * (i > 45 ? 1.15 : 1.0);
+                    const lRemChart = lPre * (tRem/90) * (i > 45 ? 1.15 : (i > 30 ? 1.08 : 1.0));
                     chartData[i] = 1 - Math.exp(-lRemChart);
                 }
                 pressureChart.data.datasets[0].data = chartData;
@@ -625,11 +636,9 @@
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
             
-            // MEJORA: Capturar exactamente los inputs de Liga y Equipos
             const manualLeagueVal = document.getElementById('manual-league').value || "General";
             const manualTeamsVal = document.getElementById('manual-teams').value || "Partido Manual";
             
-            // Definir el nombre del evento combinando Liga + Equipos
             const eventInfo = `[${manualLeagueVal.toUpperCase()}] ${manualTeamsVal}`;
 
             if (source === 'DIRECT') {
@@ -649,7 +658,7 @@
             const betData = { 
                 id: Date.now(), 
                 timestamp: dateStr, 
-                match: eventInfo, // Se usa la información capturada de los inputs
+                match: eventInfo, 
                 market: finalMarket, 
                 prob: (finalProb * 100).toFixed(1) + "%", 
                 fairOdd: finalFair.toFixed(2), 
@@ -682,7 +691,6 @@
             roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
             roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
             
-            // Lógica de visibilidad
             if(ev > 0) {
                 saveBtn.classList.remove('hidden');
                 forceSaveBtn.classList.add('hidden');
