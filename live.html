@@ -72,13 +72,6 @@
         #live-score-wrapper {
             display: none !important;
         }
-
-        /* Estilos Nueva Tabla de Probabilidad */
-        .prob-table { width: 100%; font-size: 11px; border-collapse: collapse; }
-        .prob-table th { padding: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-        .prob-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .row-active { background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: bold; }
-        .row-past { opacity: 0.4; }
     </style>
 </head>
 <body>
@@ -240,32 +233,6 @@
                         <p id="market-focus-title" class="text-[11px] text-emerald-500 font-black uppercase tracking-[0.2em] mb-2">PROBABILIDAD SELECCIONADA</p>
                         <div id="market-focus-prob" class="text-5xl md:text-7xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">--%</div>
                         <p id="market-focus-range" class="text-xs text-slate-500 font-bold mt-2 uppercase tracking-widest">Esperando datos...</p>
-                    </div>
-                </div>
-
-                <div class="glass-card p-6 rounded-3xl border-emerald-500/20">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-[11px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-table-list"></i> Estrategia de Entrada (Minuto a Minuto)
-                        </h3>
-                        <span id="table-market-label" class="text-[9px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase italic">--</span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="prob-table">
-                            <thead>
-                                <tr>
-                                    <th>Minuto</th>
-                                    <th>Probabilidad %</th>
-                                    <th>Cuota Justa</th>
-                                    <th>Acción Sugerida</th>
-                                </tr>
-                            </thead>
-                            <tbody id="probability-table-body">
-                                <tr>
-                                    <td colspan="4" class="py-10 text-slate-500 italic">Carga un partido para ver el análisis temporal...</td>
-                                </tr>
-                            </tbody>
-                        </table>
                     </div>
                 </div>
 
@@ -437,6 +404,24 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
+            // ESCANEO MINUTO A MINUTO (Hacia adelante)
+            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
+                let foundScan = false;
+                for (let testMin = currentMin; testMin < 45; testMin++) {
+                    const timeLeft = 45 - testMin;
+                    const lambdaTest = lambdaPre * (timeLeft / 90);
+                    const probTest = 1 - Math.exp(-lambdaTest);
+                    const oddTest = probTest > 0 ? (1 / probTest) : 100;
+
+                    if (oddTest >= 1.67 && oddTest <= 1.73) {
+                        inputs.start.value = testMin;
+                        inputs.end.value = 45;
+                        foundScan = true;
+                        break; 
+                    }
+                }
+            }
+
             let startMin = parseInt(inputs.start.value) || 0;
             let endMin = parseInt(inputs.end.value) || 90;
 
@@ -472,55 +457,11 @@
             globalLiveProb = liveProb;
             
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
-            updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
             
-            // ACTUALIZAR TABLA MINUTO A MINUTO
-            updateProbabilityTable(selectedMarket, lambdaPre, currentMin, currentTotal, gH, gA);
+            // Lógica para el Mercado Fijo en números grandes
+            updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
 
             calculateROI();
-        }
-
-        // Nueva Función para llenar la Tabla
-        function updateProbabilityTable(market, lambdaPre, currentMin, total, gh, ga) {
-            const tbody = document.getElementById('probability-table-body');
-            const label = document.getElementById('table-market-label');
-            label.innerText = market;
-            tbody.innerHTML = '';
-
-            // Definir límites de la tabla según el mercado
-            let start = 0;
-            let end = 90;
-            let step = 10;
-
-            if (market.includes("HT") || market.includes("30")) {
-                end = 45; step = 5;
-            }
-
-            for (let min = start; min <= end; min += step) {
-                let limit = (market.includes("HT")) ? 45 : (market.includes("30")) ? 30 : (market.includes("70")) ? 70 : 90;
-                
-                const timeLeft = Math.max(0, limit - min);
-                const lTest = lambdaPre * (timeLeft / 90) * (min > 45 ? 1.15 : 1.0);
-                
-                let pTest = calculateSpecificProb(market, lTest, total, gh, ga, lambdaPre, min, min, limit);
-                let fairOdd = pTest > 0.01 ? (1 / pTest).toFixed(2) : "N/A";
-                
-                const tr = document.createElement('tr');
-                if (min <= currentMin && currentMin < min + step) tr.className = "row-active";
-                else if (min < currentMin) tr.className = "row-past";
-
-                let action = pTest > 0.6 ? "🔥 ALTA" : pTest > 0.4 ? "⚡ MEDIA" : "❄️ BAJA";
-                if(pTest >= 1) action = "✅ GANADA";
-                if(min > limit) action = "❌ CERRADA";
-
-                tr.innerHTML = `
-                    <td>Min ${min}'</td>
-                    <td class="font-mono">${(pTest * 100).toFixed(1)}%</td>
-                    <td class="text-amber-500 font-black">${fairOdd}</td>
-                    <td class="text-[9px] font-bold">${action}</td>
-                `;
-                tbody.appendChild(tr);
-            }
         }
 
         function updateMarketFocus(market, lambdaPre, total, gh, ga) {
