@@ -624,6 +624,16 @@
         function saveLiveBet(source, market, fair, bookie) {
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
+            
+            // CORRECCIÓN: Detectar nombre del partido correctamente
+            let matchName = "Partido Manual";
+            if (currentMatch && currentMatch.teams) {
+                matchName = currentMatch.teams;
+            } else {
+                const manualTeamsVal = document.getElementById('manual-teams').value;
+                if(manualTeamsVal) matchName = manualTeamsVal;
+            }
+
             if (source === 'DIRECT') {
                 finalMarket = document.getElementById('live-market-selector').value;
                 finalFair = parseFloat(document.getElementById('live-odd-fair').innerText) || 0;
@@ -632,15 +642,30 @@
             } else {
                 finalMarket = market; finalFair = parseFloat(fair); finalBookie = parseFloat(bookie); finalProb = 1 / finalFair;
             }
+            
             if (!finalBookie || finalBookie <= 1) { alert("Ingresa una cuota válida."); return; }
             const edge = (((finalBookie / finalFair) - 1) * 100).toFixed(2);
             const now = new Date();
             const dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const betData = { id: Date.now(), timestamp: dateStr, match: document.getElementById('live-match-name').innerText, market: finalMarket, prob: (finalProb * 100).toFixed(1) + "%", fairOdd: finalFair.toFixed(2), bookieOdd: finalBookie.toFixed(2), edge: edge + "%", stake: stake, isLive: "SÍ", status: "PENDIENTE" };
+            
+            const betData = { 
+                id: Date.now(), 
+                timestamp: dateStr, 
+                match: matchName, 
+                market: finalMarket, 
+                prob: (finalProb * 100).toFixed(1) + "%", 
+                fairOdd: finalFair.toFixed(2), 
+                bookieOdd: finalBookie.toFixed(2), 
+                edge: edge + "%", 
+                stake: stake, 
+                isLive: "SÍ", 
+                status: "PENDIENTE" 
+            };
+            
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            alert(`✅ ENVIADO A ROI LIVE HISTORY`);
+            alert(`✅ ENVIADO A ROI LIVE HISTORY\nEvento: ${matchName}`);
         }
 
         function calculateROI() {
