@@ -625,14 +625,12 @@
             let finalMarket, finalFair, finalBookie, finalProb;
             const stake = document.getElementById('live-stake').value || 1;
             
-            // CORRECCIÓN: Detectar nombre del partido correctamente
-            let matchName = "Partido Manual";
-            if (currentMatch && currentMatch.teams) {
-                matchName = currentMatch.teams;
-            } else {
-                const manualTeamsVal = document.getElementById('manual-teams').value;
-                if(manualTeamsVal) matchName = manualTeamsVal;
-            }
+            // MEJORA: Capturar exactamente los inputs de Liga y Equipos
+            const manualLeagueVal = document.getElementById('manual-league').value || "General";
+            const manualTeamsVal = document.getElementById('manual-teams').value || "Partido Manual";
+            
+            // Definir el nombre del evento combinando Liga + Equipos
+            const eventInfo = `[${manualLeagueVal.toUpperCase()}] ${manualTeamsVal}`;
 
             if (source === 'DIRECT') {
                 finalMarket = document.getElementById('live-market-selector').value;
@@ -651,7 +649,7 @@
             const betData = { 
                 id: Date.now(), 
                 timestamp: dateStr, 
-                match: matchName, 
+                match: eventInfo, // Se usa la información capturada de los inputs
                 market: finalMarket, 
                 prob: (finalProb * 100).toFixed(1) + "%", 
                 fairOdd: finalFair.toFixed(2), 
@@ -665,7 +663,7 @@
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(betData);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            alert(`✅ ENVIADO A ROI LIVE HISTORY\nEvento: ${matchName}`);
+            alert(`✅ ENVIADO A ROI LIVE HISTORY\nEvento: ${eventInfo}`);
         }
 
         function calculateROI() {
