@@ -72,6 +72,14 @@
         #live-score-wrapper {
             display: none !important;
         }
+        
+        /* Mejora Visual para la Sugerencia Dinámica */
+        .strategy-glow { animation: strategy-pulse 2s infinite; }
+        @keyframes strategy-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
     </style>
 </head>
 <body>
@@ -109,6 +117,21 @@
                         <button onclick="loadManualMatch()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-[10px] uppercase py-2 rounded-lg transition-all shadow-lg">
                             Cargar Análisis xG
                         </button>
+                    </div>
+                </div>
+
+                <div id="dynamic-strategy-card" class="glass-card p-5 rounded-2xl border-amber-500/50 bg-amber-500/10 strategy-glow">
+                    <p class="text-[10px] text-amber-500 font-black uppercase mb-2 tracking-[0.2em]"><i class="fa-solid fa-bolt mr-2"></i>Sugerencia de Entrada</p>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-end">
+                            <span class="text-[9px] text-slate-400 uppercase font-bold">Minuto Ideal:</span>
+                            <span id="strategy-min" class="text-xl font-black text-white">--</span>
+                        </div>
+                        <div class="flex justify-between items-end border-t border-white/5 pt-2">
+                            <span class="text-[9px] text-slate-400 uppercase font-bold">Cuota de Disparo:</span>
+                            <span id="strategy-odd" class="text-xl font-black text-amber-500">--</span>
+                        </div>
+                        <p id="strategy-note" class="text-[8px] text-slate-500 italic mt-2 text-center">Carga xG para calcular el punto de oro.</p>
                     </div>
                 </div>
 
@@ -404,21 +427,34 @@
             const selectedMarket = document.getElementById('live-market-selector').value;
             const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
 
-            // ESCANEO MINUTO A MINUTO (Hacia adelante)
+            // ACTUALIZACIÓN DE ESTRATEGIA DINÁMICA
+            // Escanea minuto a minuto para encontrar la cuota ideal basada en xG
             if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
-                let foundScan = false;
-                for (let testMin = currentMin; testMin < 45; testMin++) {
+                let bestMin = "--";
+                let bestOdd = "--";
+                
+                // Buscamos el punto donde la probabilidad sea ~58-60% (Cuota ~1.70)
+                // Pero lo hacemos dinámico: si el xG es muy alto, el minuto ideal será más temprano
+                for (let testMin = 0; testMin < 45; testMin++) {
                     const timeLeft = 45 - testMin;
                     const lambdaTest = lambdaPre * (timeLeft / 90);
                     const probTest = 1 - Math.exp(-lambdaTest);
                     const oddTest = probTest > 0 ? (1 / probTest) : 100;
 
-                    if (oddTest >= 1.67 && oddTest <= 1.73) {
-                        inputs.start.value = testMin;
-                        inputs.end.value = 45;
-                        foundScan = true;
+                    if (oddTest >= 1.70) {
+                        bestMin = testMin + "'";
+                        bestOdd = oddTest.toFixed(2);
                         break; 
                     }
+                }
+                
+                document.getElementById('strategy-min').innerText = bestMin;
+                document.getElementById('strategy-odd').innerText = bestOdd;
+                document.getElementById('strategy-note').innerText = "Espera a este minuto para entrar con valor.";
+                
+                // Ajuste automático de la ventana de análisis (Tiempo Mín)
+                if (bestMin !== "--") {
+                    inputs.start.value = parseInt(bestMin);
                 }
             }
 
@@ -457,10 +493,7 @@
             globalLiveProb = liveProb;
             
             updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
-            
-            // Lógica para el Mercado Fijo en números grandes
             updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
-
             calculateROI();
         }
 
