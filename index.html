@@ -300,6 +300,8 @@
                 title.classList.add('text-blue-400');
                 title.classList.remove('text-emerald-400');
             }
+            // Recalcular si ya hay datos
+            if(document.getElementById('h_gf').value) calculatePoisson();
         }
 
         function factorial(n) { return (n <= 1) ? 1 : n * factorial(n - 1); }
@@ -398,18 +400,24 @@
             const edgeEl = document.getElementById('edge_' + id);
             const stakeEl = document.getElementById('stake_' + id);
             const rowEl = document.getElementById('row_' + id);
+            
             if(odd > 1) {
                 const edge = (odd * prob) - 1;
                 const edgePercent = (edge * 100).toFixed(1);
                 edgeEl.innerText = edgePercent + "%";
                 rowEl.classList.toggle('gold-value-row', edgePercent >= 8.0);
                 edgeEl.style.color = edge > 0 ? "#00ff88" : "#ff4444";
-                const kelly = (prob - (1 - prob)/(odd - 1)) * 0.125; 
-                stakeEl.innerText = Math.max(0, kelly * 100).toFixed(1) + "%";
+                
+                // MEJORA: Si es modo GOLES, usa Stake 1 Parejo. Si es xG, usa Kelly.
+                if(currentAnalysisMode === 'GOLES') {
+                    stakeEl.innerText = (edge > 0) ? "1.0%" : "0.0%";
+                } else {
+                    const kelly = (prob - (1 - prob)/(odd - 1)) * 0.125; 
+                    stakeEl.innerText = Math.max(0, kelly * 100).toFixed(1) + "%";
+                }
             }
         }
 
-        // Mejora aplicada: Función sendToROI optimizada
         function sendToROI(id, market, prob) {
             const league = document.getElementById('league_name').value.trim() || 'Desconocida';
             const event = document.getElementById('event_name').value.trim() || 'Evento';
@@ -444,7 +452,7 @@
             let p_over = 0;
             for(let h=0; h<=5; h++) { for(let a=0; a<=5; a++) { if(h+a > 2.5) p_over += (p_h[h] * p_a[a]); } }
             
-            const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG." : "Analizando con Goles.";
+            const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG (Kelly Activo)." : "Analizando con Goles (Stake 1 Plano).";
             text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
             document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : (p_over < 0.40 ? "🛡️" : "📊");
         }
