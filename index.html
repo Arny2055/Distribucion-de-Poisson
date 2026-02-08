@@ -16,21 +16,15 @@
             --accent-green: #00ff88; 
             --gold-value: #ffd700; 
             --bet-blue: #3b82f6; 
-            /* Variables de Color de Texto Personalizables */
-            --text-main: #f8fafc;
-            --text-titles: #94a3b8;
         }
         
         body { 
             background-color: var(--dark-bg); 
-            color: var(--text-main); 
+            color: #f8fafc; 
             font-family: 'Inter', sans-serif; 
             background-image: radial-gradient(circle at top right, #0f172a, var(--dark-bg));
             min-height: 100vh;
         }
-
-        /* Aplicación de colores personalizables */
-        h2, h3, .text-slate-500, .text-slate-400 { color: var(--text-titles) !important; }
 
         .glass-card { 
             background: rgba(15, 23, 42, 0.8); 
@@ -105,31 +99,6 @@
         .scroll-custom::-webkit-scrollbar-thumb:hover { background: #334155; }
 
         thead th { background-color: #020617 !important; }
-
-        /* Estilo para el selector de color */
-        .color-picker-container {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            background: rgba(0,0,0,0.3);
-            padding: 5px 12px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .color-input-wrapper {
-            position: relative;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 1px solid white;
-        }
-        .color-input-wrapper input[type="color"] {
-            position: absolute;
-            top: -5px; left: -5px;
-            width: 40px; height: 40px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -138,22 +107,6 @@
             <h1 class="text-2xl font-black italic text-white tracking-tighter">
                 BET<span class="text-bet-yellow">AGS</span> <span class="text-[10px] uppercase tracking-widest text-emerald-400 not-italic ml-1">MATCHUP EDITION</span>
             </h1>
-
-            <div class="color-picker-container">
-                <div class="flex items-center gap-2">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase">Texto</span>
-                    <div class="color-input-wrapper">
-                        <input type="color" id="picker-main" value="#f8fafc" oninput="changeTextColor('main', this.value)">
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 border-l border-white/10 pl-2">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase">Títulos</span>
-                    <div class="color-input-wrapper">
-                        <input type="color" id="picker-titles" value="#94a3b8" oninput="changeTextColor('titles', this.value)">
-                    </div>
-                </div>
-            </div>
-
             <div class="flex bg-slate-900 p-1 rounded-xl gap-1 items-center border border-white/5 overflow-x-auto max-w-full">
                 <a href="#" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-bet-yellow shadow-inner">Poisson</a>
                 <a href="live.html" class="px-4 py-2 rounded-lg text-xs font-bold text-fuchsia-400 hover:text-white hover:bg-fuchsia-600/20 transition-all"><i class="fa-solid fa-bolt-lightning mr-2 animate-pulse"></i>Live Analysis</a>
@@ -251,42 +204,14 @@
     <script>
         let pChart;
         let currentAnalysisMode = 'GOLES';
+        // Mejora aplicada: STORAGE_KEY exclusivo para Pre-Match
         const STORAGE_KEY = 'betags_pre_match'; 
         const MODE_KEY = 'betags_preferred_mode'; 
-        const COLOR_KEY = 'betags_colors';
         
+        // Parámetro Rho para Dixon-Coles
         let RHO_CORRECTION = -0.11;
 
-        // --- Mejora de Colores ---
-        function changeTextColor(type, color) {
-            const root = document.documentElement;
-            if(type === 'main') {
-                root.style.setProperty('--text-main', color);
-            } else {
-                root.style.setProperty('--text-titles', color);
-            }
-            saveColors();
-        }
-
-        function saveColors() {
-            const colors = {
-                main: document.getElementById('picker-main').value,
-                titles: document.getElementById('picker-titles').value
-            };
-            localStorage.setItem(COLOR_KEY, JSON.stringify(colors));
-        }
-
-        function loadColors() {
-            const saved = JSON.parse(localStorage.getItem(COLOR_KEY));
-            if(saved) {
-                document.getElementById('picker-main').value = saved.main;
-                document.getElementById('picker-titles').value = saved.titles;
-                document.documentElement.style.setProperty('--text-main', saved.main);
-                document.documentElement.style.setProperty('--text-titles', saved.titles);
-            }
-        }
-        // -------------------------
-
+        // DICCIONARIO EXPANDIDO BILINGÜE DE RHO
         const RHO_MAP = [
             { 
                 keys: [
@@ -375,6 +300,7 @@
                 title.classList.add('text-blue-400');
                 title.classList.remove('text-emerald-400');
             }
+            // Recalcular si ya hay datos
             if(document.getElementById('h_gf').value) calculatePoisson();
         }
 
@@ -482,6 +408,7 @@
                 rowEl.classList.toggle('gold-value-row', edgePercent >= 8.0);
                 edgeEl.style.color = edge > 0 ? "#00ff88" : "#ff4444";
                 
+                // MEJORA: Si es modo GOLES, usa Stake 1 Parejo. Si es xG, usa Kelly.
                 if(currentAnalysisMode === 'GOLES') {
                     stakeEl.innerText = (edge > 0) ? "1.0%" : "0.0%";
                 } else {
@@ -568,7 +495,6 @@
             const savedMode = localStorage.getItem(MODE_KEY) || 'GOLES';
             setAnalysisMode(savedMode);
             autoAdjustRho();
-            loadColors(); // Carga tus colores personalizados al iniciar
         };
     </script>
 </body>
