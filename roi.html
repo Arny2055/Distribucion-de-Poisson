@@ -167,6 +167,11 @@
                                     <input type="number" id="f_p_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
                                 </div>
                                 <div class="filter-row">
+                                    <span class="filter-label">VAL %</span>
+                                    <input type="number" id="f_v_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
+                                    <input type="number" id="f_v_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
+                                </div>
+                                <div class="filter-row">
                                     <span class="filter-label">C. Justa</span>
                                     <input type="number" id="f_fj_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
                                     <input type="number" id="f_fj_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
@@ -180,11 +185,6 @@
                                     <span class="filter-label">Edge %</span>
                                     <input type="number" id="f_e_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
                                     <input type="number" id="f_e_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">Valor (u)</span>
-                                    <input type="number" id="f_v_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_v_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
                                 </div>
                                 <div class="filter-row">
                                     <span class="filter-label">Stake</span>
@@ -227,8 +227,8 @@
                                     <th>Prob %</th>
                                     <th>Justa</th>
                                     <th>Casa</th>
+                                    <th>VAL %</th>
                                     <th>Edge</th>
-                                    <th>Val (u)</th>
                                     <th>Stake</th>
                                     <th>Resolución</th>
                                     <th></th>
@@ -286,12 +286,12 @@
             const ocMax = parseFloat(document.getElementById('f_oc_max').value) || Infinity;
             const eMin = parseFloat(document.getElementById('f_e_min').value) || -Infinity;
             const eMax = parseFloat(document.getElementById('f_e_max').value) || Infinity;
-            const vMin = parseFloat(document.getElementById('f_v_min').value) || -Infinity;
-            const vMax = parseFloat(document.getElementById('f_v_max').value) || Infinity;
             const sMin = parseFloat(document.getElementById('f_s_min').value) || -Infinity;
             const sMax = parseFloat(document.getElementById('f_s_max').value) || Infinity;
+            const vMin = parseFloat(document.getElementById('f_v_min').value) || -Infinity;
+            const vMax = parseFloat(document.getElementById('f_v_max').value) || Infinity;
 
-            const isFiltering = f_market || f_status || f_source || pMin !== -Infinity || pMax !== Infinity || fjMin !== -Infinity || fjMax !== Infinity || ocMin !== -Infinity || ocMax !== Infinity || eMin !== -Infinity || eMax !== Infinity || vMin !== -Infinity || vMax !== Infinity || sMin !== -Infinity || sMax !== Infinity;
+            const isFiltering = f_market || f_status || f_source || pMin !== -Infinity || pMax !== Infinity || fjMin !== -Infinity || fjMax !== Infinity || ocMin !== -Infinity || ocMax !== Infinity || eMin !== -Infinity || eMax !== Infinity || sMin !== -Infinity || sMax !== Infinity || vMin !== -Infinity || vMax !== Infinity;
             document.getElementById('active-indicator').style.display = isFiltering ? 'inline-block' : 'none';
 
             const filtered = bets.filter(b => {
@@ -299,20 +299,16 @@
                 const matchS = !f_status || (b.status === f_status);
                 const matchSource = !f_source || (b.teams && b.teams.toUpperCase().includes(f_source.toUpperCase()));
                 
-                const prob = (Number(b.prob) * 100) || 0;
-                const fair = Number(b.fair_odd) || (b.prob ? 1/b.prob : 0);
+                const probVal = (Number(b.prob) * 100) || 0;
                 const odd = Number(b.odd) || 0;
-                const edgeRaw = parseFloat(b.edge?.toString().replace('%','')) || 0;
-                const stake = Number(b.stake) || 0;
-                const valorUnidades = (stake * (edgeRaw / 100)) || 0;
+                const houseProb = odd > 0 ? (1 / odd) * 100 : 0;
+                const valColumn = probVal - houseProb;
 
-                return matchM && matchS && matchSource && 
-                       (prob >= pMin && prob <= pMax) && 
-                       (fair >= fjMin && fair <= fjMax) && 
-                       (odd >= ocMin && odd <= ocMax) && 
-                       (edgeRaw >= eMin && edgeRaw <= eMax) && 
-                       (valorUnidades >= vMin && valorUnidades <= vMax) && 
-                       (stake >= sMin && stake <= sMax);
+                const fair = Number(b.fair_odd) || (b.prob ? 1/b.prob : 0);
+                const edge = parseFloat(b.edge?.toString().replace('%','')) || 0;
+                const stake = Number(b.stake) || 0;
+
+                return matchM && matchS && matchSource && (probVal >= pMin && probVal <= pMax) && (fair >= fjMin && fair <= fjMax) && (odd >= ocMin && odd <= ocMax) && (edge >= eMin && edge <= eMax) && (stake >= sMin && stake <= sMax) && (valColumn >= vMin && valColumn <= vMax);
             });
 
             const resolved = filtered.filter(b => b.status === 'win' || b.status === 'loss');
@@ -369,11 +365,15 @@
                 const status = b.status || 'pending';
                 tr.className = `row-${status}`;
                 
-                const probDisp = b.prob ? (Number(b.prob) * 100).toFixed(1) + "%" : "0%";
+                const probNum = (Number(b.prob) * 100) || 0;
+                const probDisp = probNum.toFixed(1) + "%";
                 const fairDisp = b.fair_odd ? Number(b.fair_odd).toFixed(2) : (b.prob ? (1/Number(b.prob)).toFixed(2) : "0.00");
-                const edgeRaw = parseFloat(b.edge?.toString().replace('%','')) || 0;
-                const stakeVal = Number(b.stake) || 0;
-                const unidadesValor = (stakeVal * (edgeRaw / 100)).toFixed(2);
+                const edgeVal = parseFloat(b.edge?.toString().replace('%','')) || 0;
+                
+                // Cálculo de la columna VAL (%)
+                const oddNum = Number(b.odd) || 0;
+                const houseProb = oddNum > 0 ? (1 / oddNum) * 100 : 0;
+                const valCol = probNum - houseProb;
 
                 tr.innerHTML = `
                     <td>
@@ -383,10 +383,10 @@
                     <td class="font-bold text-emerald-500">${b.market || '-'}</td>
                     <td class="text-slate-400">${probDisp}</td>
                     <td class="text-slate-400">${fairDisp}</td>
-                    <td class="font-black text-white">${b.odd || '0.00'}</td>
-                    <td class="${edgeRaw > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeRaw.toFixed(1)}%</td>
-                    <td class="font-mono text-emerald-500/80 font-bold">${unidadesValor}u</td>
-                    <td class="font-bold">${stakeVal}u</td>
+                    <td class="font-black text-white">${oddNum.toFixed(2)}</td>
+                    <td class="font-bold text-blue-400">${valCol.toFixed(1)}%</td>
+                    <td class="${edgeVal > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeVal.toFixed(1)}%</td>
+                    <td class="font-bold">${b.stake || '0'}u</td>
                     <td>
                         <div class="flex gap-1">
                             <button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button>
