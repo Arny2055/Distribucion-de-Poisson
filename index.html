@@ -115,6 +115,7 @@
                 <a href="live.html" class="px-4 py-2 rounded-lg text-xs font-bold text-fuchsia-400 hover:text-white hover:bg-fuchsia-600/20 transition-all"><i class="fa-solid fa-bolt-lightning mr-2 animate-pulse"></i>Live Analysis</a>
                 <a href="roi.html" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><i class="fa-solid fa-flask-vial mr-2"></i>ROI Pre</a>
                 <a href="roilive.html" class="px-4 py-2 rounded-lg text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all border border-rose-500/20"><i class="fa-solid fa-satellite-dish mr-2 animate-pulse"></i>ROI Live</a>
+                <a href="https://www.thestatsdontlie.com/football/leagues/" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold text-amber-400 hover:bg-amber-500/10 transition-all border border-amber-500/20"><i class="fa-solid fa-database mr-2"></i>Stats Data</a>
             </div>
         </div>
     </nav>
@@ -325,30 +326,20 @@
             return 1;
         }
 
-        // NUEVA FUNCIÓN: Cálculo de Rating Relativo (SoS)
         function calculatePoisson() {
             const val = (id) => parseFloat(document.getElementById(id).value) || 0;
-            
-            // Datos Base
             let h_gf = val('h_gf');
             let h_ga = val('h_ga');
             let a_gf = val('a_gf');
             let a_ga = val('a_ga');
-            let l_avg = val('league_avg') || 1.35; // Default liga estándar
-
-            // Lógica de Rating Relativo / Strength of Schedule
-            // Lambda Local = (Ataque Local * Defensa Visita) / Media Liga
-            // Lambda Visita = (Ataque Visita * Defensa Local) / Media Liga
+            let l_avg = val('league_avg') || 1.35; 
             
             let lambda_h, lambda_a;
 
             if (h_ga > 0 && a_ga > 0) {
-                // Cálculo Avanzado: Rating de Ataque/Defensa Relativo
                 lambda_h = (h_gf * a_ga) / l_avg;
                 lambda_a = (a_gf * h_ga) / l_avg;
-                console.log(`Modo SoS Activo: L_H=${lambda_h.toFixed(2)}, L_A=${lambda_a.toFixed(2)}`);
             } else {
-                // Fallback al modo simple si no hay datos de defensa
                 lambda_h = h_gf;
                 lambda_a = a_gf;
             }
