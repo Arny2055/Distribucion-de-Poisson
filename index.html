@@ -99,6 +99,9 @@
         .scroll-custom::-webkit-scrollbar-thumb:hover { background: #334155; }
 
         thead th { background-color: #020617 !important; }
+
+        /* Estilos adicionales para SoS */
+        .sos-badge { font-size: 8px; padding: 2px 5px; border-radius: 4px; background: #1e293b; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -151,18 +154,29 @@
 
                     <div class="space-y-4">
                         <div class="bg-black/20 p-4 rounded-xl border border-blue-500/10 transition-all duration-300" id="container_h">
-                            <label class="text-[9px] font-black text-blue-400 mb-2 uppercase block">Local (A Favor)</label>
-                            <input type="number" id="h_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.75">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[9px] font-black text-blue-400 uppercase block">Local (A Favor)</label>
+                                <span class="sos-badge">SoS / Rating Relativo</span>
+                            </div>
+                            <input type="number" id="h_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Goles Marcados">
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <input type="number" id="h_ga" step="0.01" class="p-1 text-[10px] text-center" placeholder="Recibidos">
+                                <input type="number" id="league_avg" step="0.01" class="p-1 text-[10px] text-center border-dashed border-emerald-900" placeholder="Media Liga">
+                            </div>
                         </div>
 
                         <div class="bg-black/20 p-4 rounded-xl border border-orange-500/10 transition-all duration-300" id="container_a">
                             <label class="text-[9px] font-black text-orange-400 mb-2 uppercase block">Visitante (A Favor)</label>
-                            <input type="number" id="a_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.20">
+                            <input type="number" id="a_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Goles Marcados">
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <input type="number" id="a_ga" step="0.01" class="p-1 text-[10px] text-center" placeholder="Recibidos">
+                                <span class="text-[8px] text-slate-600 flex items-center justify-center uppercase font-bold">Ajuste Ataque/Def</span>
+                            </div>
                         </div>
                         
                         <div class="flex flex-col gap-2">
                             <button id="calc-btn" onclick="calculatePoisson()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]">
-                                Calcular Probabilidades
+                                Calcular con Ajuste SoS
                             </button>
                             <button id="clear-btn" onclick="clearData()" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded-lg font-bold text-[10px] text-slate-400 uppercase tracking-widest transition-all">
                                 <i class="fa-solid fa-trash-can mr-2"></i>Limpiar Datos
@@ -204,14 +218,11 @@
     <script>
         let pChart;
         let currentAnalysisMode = 'GOLES';
-        // Mejora aplicada: STORAGE_KEY exclusivo para Pre-Match
         const STORAGE_KEY = 'betags_pre_match'; 
         const MODE_KEY = 'betags_preferred_mode'; 
         
-        // Parámetro Rho para Dixon-Coles
         let RHO_CORRECTION = -0.11;
 
-        // DICCIONARIO EXPANDIDO BILINGÜE DE RHO
         const RHO_MAP = [
             { 
                 keys: [
@@ -300,7 +311,6 @@
                 title.classList.add('text-blue-400');
                 title.classList.remove('text-emerald-400');
             }
-            // Recalcular si ya hay datos
             if(document.getElementById('h_gf').value) calculatePoisson();
         }
 
@@ -315,10 +325,33 @@
             return 1;
         }
 
+        // NUEVA FUNCIÓN: Cálculo de Rating Relativo (SoS)
         function calculatePoisson() {
             const val = (id) => parseFloat(document.getElementById(id).value) || 0;
-            const lambda_h = val('h_gf');
-            const lambda_a = val('a_gf');
+            
+            // Datos Base
+            let h_gf = val('h_gf');
+            let h_ga = val('h_ga');
+            let a_gf = val('a_gf');
+            let a_ga = val('a_ga');
+            let l_avg = val('league_avg') || 1.35; // Default liga estándar
+
+            // Lógica de Rating Relativo / Strength of Schedule
+            // Lambda Local = (Ataque Local * Defensa Visita) / Media Liga
+            // Lambda Visita = (Ataque Visita * Defensa Local) / Media Liga
+            
+            let lambda_h, lambda_a;
+
+            if (h_ga > 0 && a_ga > 0) {
+                // Cálculo Avanzado: Rating de Ataque/Defensa Relativo
+                lambda_h = (h_gf * a_ga) / l_avg;
+                lambda_a = (a_gf * h_ga) / l_avg;
+                console.log(`Modo SoS Activo: L_H=${lambda_h.toFixed(2)}, L_A=${lambda_a.toFixed(2)}`);
+            } else {
+                // Fallback al modo simple si no hay datos de defensa
+                lambda_h = h_gf;
+                lambda_a = a_gf;
+            }
 
             if(lambda_h <= 0 && lambda_a <= 0) return alert("Ingresa los promedios.");
 
@@ -330,7 +363,7 @@
             
             renderChart(p_h, p_a);
             processMarkets(p_h, p_a, lambda_h, lambda_a);
-            updateAssistant(p_h, p_a);
+            updateAssistant(p_h, p_a, lambda_h, lambda_a);
         }
 
         function processMarkets(p_h, p_a, lh, la) {
@@ -408,7 +441,6 @@
                 rowEl.classList.toggle('gold-value-row', edgePercent >= 8.0);
                 edgeEl.style.color = edge > 0 ? "#00ff88" : "#ff4444";
                 
-                // MEJORA: Si es modo GOLES, usa Stake 1 Parejo. Si es xG, usa Kelly.
                 if(currentAnalysisMode === 'GOLES') {
                     stakeEl.innerText = (edge > 0) ? "1.0%" : "0.0%";
                 } else {
@@ -446,14 +478,14 @@
             setTimeout(() => btn.innerHTML = 'ROI', 2000);
         }
 
-        function updateAssistant(p_h, p_a) {
+        function updateAssistant(p_h, p_a, lh, la) {
             const box = document.getElementById('strategy-assistant-box'); box.classList.remove('hidden');
             const text = document.getElementById('strategy-text');
             let p_over = 0;
             for(let h=0; h<=5; h++) { for(let a=0; a<=5; a++) { if(h+a > 2.5) p_over += (p_h[h] * p_a[a]); } }
             
-            const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG (Kelly Activo)." : "Analizando con Goles (Stake 1 Plano).";
-            text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
+            const modeText = currentAnalysisMode === 'XG' ? "Rating Relativo xG Activo." : "Rating Relativo Goles Activo.";
+            text.innerHTML = `${modeText} | Exp: H(${lh.toFixed(2)}) A(${la.toFixed(2)}) <br> <span class="text-xs text-slate-400">AJUSTE SOS: La fuerza del calendario ha sido ponderada en el cálculo Poisson.</span>`;
             document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : (p_over < 0.40 ? "🛡️" : "📊");
         }
 
@@ -480,10 +512,7 @@
         }
 
         function clearData() {
-            document.getElementById('league_name').value = '';
-            document.getElementById('event_name').value = '';
-            document.getElementById('h_gf').value = '';
-            document.getElementById('a_gf').value = '';
+            document.querySelectorAll('input').forEach(i => i.value = '');
             document.getElementById('score-matrix').innerHTML = '';
             document.getElementById('market-table').innerHTML = '';
             document.getElementById('strategy-assistant-box').classList.add('hidden');
