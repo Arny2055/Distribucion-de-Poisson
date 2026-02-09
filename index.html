@@ -112,6 +112,7 @@
                 <a href="live.html" class="px-4 py-2 rounded-lg text-xs font-bold text-fuchsia-400 hover:text-white hover:bg-fuchsia-600/20 transition-all"><i class="fa-solid fa-bolt-lightning mr-2 animate-pulse"></i>Live Analysis</a>
                 <a href="roi.html" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><i class="fa-solid fa-flask-vial mr-2"></i>ROI Pre</a>
                 <a href="roilive.html" class="px-4 py-2 rounded-lg text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all border border-rose-500/20"><i class="fa-solid fa-satellite-dish mr-2 animate-pulse"></i>ROI Live</a>
+                <a href="https://www.thestatsdontlie.com/football/leagues/" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 transition-all border border-emerald-500/20"><i class="fa-solid fa-list-check mr-2"></i>Stats Leagues</a>
             </div>
         </div>
     </nav>
@@ -366,7 +367,7 @@
             let p_btts_no = 0;
             for(let i=0; i<=5; i++) {
                 p_btts_no += (p_h[i] * p_a[0]) * getDixonColesTau(i, 0, lh, la);
-                if(i > 0) p_btts_no += (p_h[0] * p_a[i]) * getDixonColesTau(0, i, lh, la);
+                if(i > 0) p_btts_no += (p_h[0] * p_a[i]) * getDixonColesTau(0, i, la, lh);
             }
 
             const markets = [
