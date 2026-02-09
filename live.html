@@ -58,12 +58,38 @@
         .glow-btts { text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); color: #fbbf24; }
         
         .status-tag { font-size: 11px; font-weight: 900; padding: 4px 12px; border-radius: 6px; text-transform: uppercase; margin-bottom: 12px; display: inline-block; letter-spacing: 1px; }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #94a3b8;
+        }
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: rgba(251, 191, 36, 0.5);
+        }
     </style>
 </head>
 <body>
     <nav class="p-4 bg-black/60 border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-black tracking-tighter italic gothic-font">BetAGS <span class="text-emerald-500">Quantum</span></h1>
+            <div class="flex items-center gap-6">
+                <a href="index.html" class="btn-back">
+                    <i class="fa-solid fa-chevron-left text-amber-500"></i>
+                    Poisson
+                </a>
+                <h1 class="text-3xl font-black tracking-tighter italic gothic-font">BetAGS <span class="text-emerald-500">Quantum</span></h1>
+            </div>
             <div class="flex items-center gap-4">
                 <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">LIVE ENGINE 2.0</div>
             </div>
@@ -106,7 +132,7 @@
                     <div id="card-o05-ht" class="prob-card">
                         <span id="tag-o05-ht" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
                         <span class="label-mini">Over 0.5 HT</span>
-                        <div id="prob-o05-ht" class="value-large glow-ht gothic-font">0%</div>
+                        <div id="prob-o05-ht" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
                             <span id="fair-o05-ht" class="odd-badge">1.00</span>
@@ -116,7 +142,7 @@
                     <div id="card-o15-ht" class="prob-card">
                         <span id="tag-o15-ht" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
                         <span class="label-mini">Over 1.5 HT</span>
-                        <div id="prob-o15-ht" class="value-large glow-ht gothic-font">0%</div>
+                        <div id="prob-o15-ht" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
                             <span id="fair-o15-ht" class="odd-badge">1.00</span>
@@ -126,7 +152,7 @@
                     <div id="card-o15-ft" class="prob-card">
                         <span id="tag-o15-ft" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
                         <span class="label-mini">Over 1.5 FT</span>
-                        <div id="prob-o15-ft" class="value-large glow-ft gothic-font">0%</div>
+                        <div id="prob-o15-ft" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
                             <span id="fair-o15-ft" class="odd-badge">1.00</span>
@@ -136,7 +162,7 @@
                     <div id="card-o25-ft" class="prob-card">
                         <span id="tag-o25-ft" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
                         <span class="label-mini">Over 2.5 FT</span>
-                        <div id="prob-o25-ft" class="value-large glow-ft gothic-font">0%</div>
+                        <div id="prob-o25-ft" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
                             <span id="fair-o25-ft" class="odd-badge">1.00</span>
@@ -146,7 +172,7 @@
                     <div id="card-btts" class="prob-card md:col-span-2">
                         <span id="tag-btts" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
                         <span class="label-mini">Ambos Equipos Anotan (BTTS)</span>
-                        <div id="prob-btts" class="value-large glow-btts gothic-font">0%</div>
+                        <div id="prob-btts" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
                             <span id="fair-btts" class="odd-badge px-10">1.00</span>
@@ -191,14 +217,14 @@
             const p25ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT) + getPoisson(2, lambdaFT));
             const pBTTS = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
 
-            updateMarket('o05-ht', p05ht, 0.70);
-            updateMarket('o15-ht', p15ht, 0.50);
-            updateMarket('o15-ft', p15ft, 0.80);
-            updateMarket('o25-ft', p25ft, 0.55);
-            updateMarket('btts', pBTTS, 0.60);
+            updateMarket('o05-ht', p05ht, 0.70, 'glow-ht');
+            updateMarket('o15-ht', p15ht, 0.50, 'glow-ht');
+            updateMarket('o15-ft', p15ft, 0.80, 'glow-ft');
+            updateMarket('o25-ft', p25ft, 0.55, 'glow-ft');
+            updateMarket('btts', pBTTS, 0.60, 'glow-btts');
         }
 
-        function updateMarket(id, value, threshold) {
+        function updateMarket(id, value, threshold, glowClass) {
             const card = document.getElementById(`card-${id}`);
             const probText = document.getElementById(`prob-${id}`);
             const fairOddText = document.getElementById(`fair-${id}`);
@@ -207,6 +233,9 @@
             const perc = value * 100;
             probText.innerText = perc.toFixed(1) + "%";
             fairOddText.innerText = value > 0.01 ? (1 / value).toFixed(2) : "---";
+
+            // Limpiar clases de brillo previas
+            probText.classList.remove('glow-ht', 'glow-ft', 'glow-btts');
 
             if (value >= threshold && value > 0) {
                 card.classList.add('alert-active');
@@ -222,6 +251,7 @@
                     tag.className = "status-tag bg-white/5 text-slate-500";
                 }
                 probText.style.color = ""; 
+                if (value > 0) probText.classList.add(glowClass);
             }
             card.style.opacity = (value <= 0 && (id.includes('ht') || id.includes('ft'))) ? "0.3" : "1";
         }
