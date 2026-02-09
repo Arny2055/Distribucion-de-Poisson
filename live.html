@@ -3,101 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetAGS - Análisis Live Pro</title>
+    <title>BetAGS - Quantum Miner Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .roi-positive { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-        .roi-negative { color: #ef4444; }
-        .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
-        .input-manual-large { font-size: 16px !important; padding: 10px !important; text-align: center !important; font-weight: 800 !important; }
-        .xg-input-xl { font-size: 24px !important; padding: 12px !important; height: auto !important; }
-        .prob-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.5rem; text-align: center; }
-        .prob-value { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 0.5rem; }
-        .prob-label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+        .glass-card { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        
+        .input-accent { 
+            background: #000; 
+            border: 2px solid #1e293b; 
+            border-radius: 12px; 
+            color: #fff; 
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 900;
+        }
+        .input-accent:focus { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); outline: none; }
+
+        .prob-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .prob-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
+        
+        .value-large { font-size: 3.5rem; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+        .label-mini { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; }
+        .odd-badge { background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; color: #fbbf24; }
+        
+        .glow-ht { text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); color: #10b981; }
+        .glow-ft { text-shadow: 0 0 20px rgba(59, 130, 246, 0.4); color: #3b82f6; }
+        .glow-btts { text-shadow: 0 0 20px rgba(251, 191, 36, 0.4); color: #fbbf24; }
     </style>
 </head>
 <body>
-    <nav class="p-4 bg-black/60 border-b border-emerald-500/10 backdrop-blur-md sticky top-0 z-50">
+    <nav class="p-4 bg-black/40 border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-amber-500">PROBABILIDAD LIVE</span></h1>
+            <h1 class="text-xl font-black tracking-tighter italic">BETAGS <span class="text-amber-500 underline">QUANTUM</span></h1>
+            <div class="text-[10px] font-bold bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20">LIVE ENGINE 2026</div>
         </div>
     </nav>
 
     <div class="container mx-auto p-4 max-w-6xl">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="lg:col-span-1 space-y-6">
-                <div class="glass-card p-5 rounded-2xl border-dashed border-amber-500/30 bg-amber-500/5">
-                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest text-center">Configuración de xG</p>
+            <div class="lg:col-span-1 space-y-4">
+                <div class="glass-card p-6 rounded-3xl">
+                    <div class="mb-6">
+                        <label class="label-mini block mb-2 text-center">Minuto Actual de Entrada</label>
+                        <input type="number" id="live-min-start" value="0" min="0" max="90" 
+                               class="w-full input-accent py-5 text-5xl" 
+                               oninput="calculateLive()">
+                    </div>
+
                     <div class="space-y-4">
-                        <input type="text" id="manual-teams" placeholder="EQUIPO A VS EQUIPO B" class="input-manual input-manual-large">
-                        <div class="grid grid-cols-2 gap-3">
+                        <p class="label-mini text-center italic">Datos Proyectados (xG)</p>
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="text-[10px] text-slate-500 font-black uppercase mb-1 block text-center">xG Local</label>
-                                <input type="number" id="manual-xg-h" step="0.01" placeholder="0.00" class="input-manual xg-input-xl text-center font-black text-emerald-400">
+                                <label class="text-[9px] font-bold uppercase text-slate-500 block mb-1 text-center">xG Local</label>
+                                <input type="number" id="manual-xg-h" step="0.1" placeholder="1.5" 
+                                       class="w-full input-accent py-3 text-2xl text-emerald-400" oninput="calculateLive()">
                             </div>
                             <div>
-                                <label class="text-[10px] text-slate-500 font-black uppercase mb-1 block text-center">xG Visita</label>
-                                <input type="number" id="manual-xg-a" step="0.01" placeholder="0.00" class="input-manual xg-input-xl text-center font-black text-amber-400">
+                                <label class="text-[9px] font-bold uppercase text-slate-500 block mb-1 text-center">xG Visita</label>
+                                <input type="number" id="manual-xg-a" step="0.1" placeholder="1.2" 
+                                       class="w-full input-accent py-3 text-2xl text-amber-400" oninput="calculateLive()">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="glass-card p-6 rounded-2xl">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-4 text-center">Minuto de Entrada</p>
-                    <input type="number" id="live-min-start" value="0" min="0" max="90" 
-                           class="w-full bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-4xl text-white font-black text-center outline-none focus:border-emerald-500" 
-                           oninput="calculateLive()">
+                <div class="p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
+                    <p class="text-[10px] text-blue-400 font-bold leading-tight">
+                        <i class="fa-solid fa-info-circle mr-1"></i> El sistema ajusta automáticamente la probabilidad de los mercados HT si el minuto es superior a 45'.
+                    </p>
                 </div>
             </div>
 
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="prob-box border-emerald-500/20">
-                        <p class="prob-label">Over 0.5 HT (0-45')</p>
-                        <div id="prob-o05-ht" class="prob-value text-emerald-400">--%</div>
-                        <p id="fair-o05-ht" class="text-xs font-mono text-slate-500">Cuota: --</p>
+                    
+                    <div class="prob-card">
+                        <span class="label-mini">Over 0.5 HT</span>
+                        <div id="prob-o05-ht" class="value-large glow-ht">0%</div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-[10px] font-bold text-slate-500">CUOTA JUSTA</span>
+                            <span id="fair-o05-ht" class="odd-badge">1.00</span>
+                        </div>
                     </div>
-                    <div class="prob-box border-emerald-500/20">
-                        <p class="prob-label">Over 1.5 HT (0-45')</p>
-                        <div id="prob-o15-ht" class="prob-value text-emerald-500">--%</div>
-                        <p id="fair-o15-ht" class="text-xs font-mono text-slate-500">Cuota: --</p>
+
+                    <div class="prob-card">
+                        <span class="label-mini">Over 1.5 HT</span>
+                        <div id="prob-o15-ht" class="value-large glow-ht">0%</div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-[10px] font-bold text-slate-500">CUOTA JUSTA</span>
+                            <span id="fair-o15-ht" class="odd-badge">1.00</span>
+                        </div>
                     </div>
-                    <div class="prob-box border-blue-500/20">
-                        <p class="prob-label">Over 1.5 FT (0-90')</p>
-                        <div id="prob-o15-ft" class="prob-value text-blue-400">--%</div>
-                        <p id="fair-o15-ft" class="text-xs font-mono text-slate-500">Cuota: --</p>
+
+                    <div class="prob-card">
+                        <span class="label-mini">Over 1.5 FT (Live)</span>
+                        <div id="prob-o15-ft" class="value-large glow-ft">0%</div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-[10px] font-bold text-slate-500">CUOTA JUSTA</span>
+                            <span id="fair-o15-ft" class="odd-badge">1.00</span>
+                        </div>
                     </div>
-                    <div class="prob-box border-blue-500/20">
-                        <p class="prob-label">Over 2.5 FT (0-90')</p>
-                        <div id="prob-o25-ft" class="prob-value text-blue-400">--%</div>
-                        <p id="fair-o25-ft" class="text-xs font-mono text-slate-500">Cuota: --</p>
+
+                    <div class="prob-card">
+                        <span class="label-mini">Over 2.5 FT (Live)</span>
+                        <div id="prob-o25-ft" class="value-large glow-ft">0%</div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-[10px] font-bold text-slate-500">CUOTA JUSTA</span>
+                            <span id="fair-o25-ft" class="odd-badge">1.00</span>
+                        </div>
                     </div>
-                    <div class="prob-box border-amber-500/20 md:col-span-2">
-                        <p class="prob-label">Ambos Anotan (BTTS YES)</p>
-                        <div id="prob-btts" class="prob-value text-amber-400">--%</div>
-                        <p id="fair-btts" class="text-xs font-mono text-slate-500">Cuota: --</p>
+
+                    <div class="prob-card md:col-span-2 bg-gradient-to-r from-amber-500/10 to-transparent">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="label-mini">Ambos Anotan (BTTS YES)</span>
+                                <div id="prob-btts" class="value-large glow-btts">0%</div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold text-slate-500 block mb-1">CUOTA JUSTA</span>
+                                <span id="fair-btts" class="odd-badge text-xl">1.00</span>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
-                
-                <button onclick="calculateLive()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest shadow-lg">
-                    Actualizar Probabilidades Live
-                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function poisson(k, lambda) {
-            if(lambda <= 0) return k === 0 ? 1 : 0;
-            let factorial = 1;
-            for (let i = 2; i <= k; i++) factorial *= i;
-            return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial;
+        // Función Poisson optimizada para evitar errores de desbordamiento
+        function getPoisson(k, lambda) {
+            if (lambda <= 0) return k === 0 ? 1 : 0;
+            const logExp = -lambda + k * Math.log(lambda) - logFactorial(k);
+            return Math.exp(logExp);
+        }
+
+        function logFactorial(n) {
+            let res = 0;
+            for (let i = 2; i <= n; i++) res += Math.log(i);
+            return res;
         }
 
         function calculateLive() {
@@ -105,40 +161,62 @@
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            const lambdaTotal = xgH + xgA;
-            if (lambdaTotal <= 0) return;
+            const totalXG = xgH + xgA;
 
-            // Fracción de tiempo restante para HT (45 min) y FT (90 min)
-            const timeRemHT = Math.max(0, 45 - currentMin);
-            const timeRemFT = Math.max(0, 90 - currentMin);
+            // Tiempo restante
+            const remHT = Math.max(0, 45 - currentMin);
+            const remFT = Math.max(0, 90 - currentMin);
 
-            const lambdaHT = lambdaTotal * (timeRemHT / 90);
-            const lambdaFT = lambdaTotal * (timeRemFT / 90);
+            // Lambdas proporcionales al tiempo
+            const lambdaHT = totalXG * (remHT / 90);
+            const lambdaFT = totalXG * (remFT / 90);
+            const lambdaH_FT = xgH * (remFT / 90);
+            const lambdaA_FT = xgA * (remFT / 90);
+
+            // 1. Over 0.5 HT (1 - prob 0 goles)
+            const p05ht = currentMin >= 45 ? 0 : (1 - getPoisson(0, lambdaHT));
             
-            // Especial para BTTS (Probabilidad combinada aproximada)
-            const lambdaH_FT = xgH * (timeRemFT / 90);
-            const lambdaA_FT = xgA * (timeRemFT / 90);
+            // 2. Over 1.5 HT (1 - prob 0 y 1 gol)
+            const p15ht = currentMin >= 45 ? 0 : (1 - (getPoisson(0, lambdaHT) + getPoisson(1, lambdaHT)));
 
-            // Cálculos
-            const o05ht = 1 - poisson(0, lambdaHT);
-            const o15ht = 1 - (poisson(0, lambdaHT) + poisson(1, lambdaHT));
-            const o15ft = 1 - (poisson(0, lambdaFT) + poisson(1, lambdaFT));
-            const o25ft = 1 - (poisson(0, lambdaFT) + poisson(1, lambdaFT) + poisson(2, lambdaFT));
-            const btts = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
+            // 3. Over 1.5 FT
+            const p15ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT));
+
+            // 4. Over 2.5 FT
+            const p25ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT) + getPoisson(2, lambdaFT));
+
+            // 5. BTTS YES (Prob H > 0 Y Prob A > 0)
+            const pBTTS = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
 
             // Actualizar UI
-            updateDisplay('prob-o05-ht', 'fair-o05-ht', o05ht);
-            updateDisplay('prob-o15-ht', 'fair-o15-ht', o15ht);
-            updateDisplay('prob-o15-ft', 'fair-o15-ft', o15ft);
-            updateDisplay('prob-o25-ft', 'fair-o25-ft', o25ft);
-            updateDisplay('prob-btts', 'fair-btts', btts);
+            updateUI('prob-o05-ht', 'fair-o05-ht', p05ht);
+            updateUI('prob-o15-ht', 'fair-o15-ht', p15ht);
+            updateUI('prob-o15-ft', 'fair-o15-ft', p15ft);
+            updateUI('prob-o25-ft', 'fair-o25-ft', p25ft);
+            updateUI('prob-btts', 'fair-btts', pBTTS);
         }
 
-        function updateDisplay(probId, fairId, value) {
-            const p = Math.max(0, Math.min(0.99, value));
-            document.getElementById(probId).innerText = (p * 100).toFixed(1) + "%";
-            document.getElementById(fairId).innerText = "Cuota Justa: " + (p > 0 ? (1/p).toFixed(2) : "N/A");
+        function updateUI(probId, oddId, value) {
+            const display = document.getElementById(probId);
+            const oddDisplay = document.getElementById(oddId);
+            
+            const percentage = (value * 100).toFixed(1);
+            const fairOdd = value > 0.01 ? (1 / value).toFixed(2) : "99.00";
+
+            display.innerText = percentage + "%";
+            oddDisplay.innerText = fairOdd;
+
+            // Feedback visual si no hay probabilidad (mercado cerrado)
+            if (value <= 0) {
+                display.style.opacity = "0.2";
+                oddDisplay.innerText = "---";
+            } else {
+                display.style.opacity = "1";
+            }
         }
+
+        // Ejecutar al cargar
+        window.onload = calculateLive;
     </script>
 </body>
 </html>
