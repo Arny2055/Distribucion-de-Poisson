@@ -10,111 +10,31 @@
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .suggestion-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
-        .suggestion-card:hover { transform: translateX(5px); background: rgba(255,255,255,0.02); }
-        .value-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
-        
         .roi-positive { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
         .roi-negative { color: #ef4444; }
-        .btn-save-live { background: #10b981; color: white; transition: all 0.3s; }
-        .btn-save-live:hover { background: #059669; transform: translateY(-1px); }
-        
-        /* Estilo para botón forzado */
-        .btn-force-save { background: #1e293b; color: #94a3b8; border: 1px solid #334155; transition: all 0.3s; }
-        .btn-force-save:hover { background: #334155; color: white; }
-
-        .chart-container { position: relative; height: 200px; width: 100%; }
-
-        .alt-input { background: #000; border: 1px solid #334155; border-radius: 4px; padding: 2px 4px; width: 60px; text-align: center; color: #10b981; font-weight: 900; font-size: 12px; outline: none; }
-        .alt-input:focus { border-color: #10b981; }
-        .btn-mini-save { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; display: none; transition: scale 0.2s; }
-        .btn-mini-save:active { scale: 0.9; }
-
-        .market-select { background: #0f172a; border: 1px solid #1e293b; color: #94a3b8; font-weight: 800; font-size: 10px; text-transform: uppercase; border-radius: 6px; padding: 4px 8px; outline: none; cursor: pointer; }
-        .market-select:hover { border-color: #fbbf24; color: white; }
-
-        .btn-reset { background: #1e293b; color: #94a3b8; transition: all 0.3s; border: 1px solid #334155; }
-        .btn-reset:hover { background: #991b1b; color: white; border-color: #ef4444; }
-
         .input-manual { background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: white; font-size: 11px; padding: 5px; width: 100%; outline: none; }
-        .input-manual:focus { border-color: #fbbf24; }
-
-        .input-manual-large { 
-            font-size: 16px !important; 
-            padding: 10px !important; 
-            text-align: center !important; 
-            font-weight: 800 !important;
-            letter-spacing: 0.5px;
-        }
-        
-        .xg-input-xl {
-            font-size: 24px !important;
-            padding: 12px !important;
-            height: auto !important;
-        }
-
-        #time-bar-container { position: relative; background: #1e293b; }
-        #range-highlight {
-            position: absolute;
-            height: 100%;
-            background: #39ff14; 
-            box-shadow: 0 0 15px #39ff14;
-            opacity: 0.8;
-            transition: all 0.3s ease;
-            z-index: 20;
-        }
-
-        #time-bar { opacity: 0; }
-        #clock-control-wrapper { display: none !important; }
-
-        .input-error { border-color: #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(3px); }
-            50% { transform: translateX(-3px); }
-            75% { transform: translateX(3px); }
-            100% { transform: translateX(0); }
-        }
-
-        #pressure-timer-card, 
-        #opportunity-window-card,
-        #suggestions-card,
-        #risk-alerts-card,
-        #live-score-wrapper {
-            display: none !important;
-        }
-        
-        .strategy-glow { animation: strategy-pulse 2s infinite; }
-        @keyframes strategy-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
-        }
+        .input-manual-large { font-size: 16px !important; padding: 10px !important; text-align: center !important; font-weight: 800 !important; }
+        .xg-input-xl { font-size: 24px !important; padding: 12px !important; height: auto !important; }
+        .prob-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.5rem; text-align: center; }
+        .prob-value { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 0.5rem; }
+        .prob-label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
     </style>
 </head>
 <body>
     <nav class="p-4 bg-black/60 border-b border-emerald-500/10 backdrop-blur-md sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-amber-500">LIVE LAB</span></h1>
-            <div class="flex flex-wrap gap-2">
-                <a href="index.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800">Poisson</a>
-                <a href="live.html" class="px-4 py-1.5 text-xs font-semibold bg-amber-500/10 text-amber-400 rounded-full border border-amber-500/30">Live Analysis</a>
-                <a href="roi.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800 text-slate-400">ROI Pre</a>
-                <a href="roilive.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30"><i class="fa-solid fa-chart-line mr-1"></i> ROI Live</a>
-            </div>
+            <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-amber-500">PROBABILIDAD LIVE</span></h1>
         </div>
     </nav>
 
-    <div class="container mx-auto p-4 max-w-5xl">
+    <div class="container mx-auto p-4 max-w-6xl">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <div class="lg:col-span-1 space-y-6">
                 <div class="glass-card p-5 rounded-2xl border-dashed border-amber-500/30 bg-amber-500/5">
-                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest text-center"><i class="fa-solid fa-keyboard mr-2"></i>Poisson Manual (xG)</p>
+                    <p class="text-[10px] text-amber-500 font-black uppercase mb-3 tracking-widest text-center">Configuración de xG</p>
                     <div class="space-y-4">
-                        <input type="text" id="manual-league" placeholder="LIGA" class="input-manual border-amber-500/40 input-manual-large">
                         <input type="text" id="manual-teams" placeholder="EQUIPO A VS EQUIPO B" class="input-manual input-manual-large">
-                        
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-[10px] text-slate-500 font-black uppercase mb-1 block text-center">xG Local</label>
@@ -125,579 +45,99 @@
                                 <input type="number" id="manual-xg-a" step="0.01" placeholder="0.00" class="input-manual xg-input-xl text-center font-black text-amber-400">
                             </div>
                         </div>
-                        <button onclick="loadManualMatch()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase py-3 rounded-xl transition-all shadow-lg">
-                            Cargar Análisis xG
-                        </button>
-                    </div>
-                </div>
-
-                <div id="dynamic-strategy-card" class="glass-card p-6 rounded-2xl border-amber-500 bg-amber-500/10 strategy-glow">
-                    <p class="text-[11px] text-amber-500 font-black uppercase mb-4 tracking-[0.2em] text-center"><i class="fa-solid fa-bolt mr-2"></i>Sugerencia de Entrada</p>
-                    <div class="space-y-4">
-                        <div class="flex flex-col items-center justify-center bg-black/20 py-3 rounded-xl border border-white/5">
-                            <span class="text-xs text-slate-400 uppercase font-bold mb-1">Minuto Ideal</span>
-                            <span id="strategy-min" class="text-4xl font-black text-white leading-none">--</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center bg-black/20 py-3 rounded-xl border border-white/5">
-                            <span class="text-xs text-slate-400 uppercase font-bold mb-1">Cuota de Disparo</span>
-                            <span id="strategy-odd" class="text-4xl font-black text-amber-400 leading-none">--</span>
-                        </div>
-                        <p id="strategy-note" class="text-[10px] text-slate-400 italic mt-2 text-center px-2">Carga xG para calcular el punto de oro.</p>
                     </div>
                 </div>
 
                 <div class="glass-card p-6 rounded-2xl">
-                    <h2 id="live-match-name" class="text-lg font-black text-white mb-1 italic uppercase text-center">Sin Partido</h2>
-                    <p id="live-match-market" class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-2 text-center">Configura un evento manual</p>
-
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-2 mb-2 border-b border-white/5 pb-4">
-                            <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block text-center">Tiempo Mín</label>
-                                <input type="number" id="live-min-start" value="0" min="0" max="90" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="calculateLive()">
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block text-center">Tiempo Máx</label>
-                                <input type="number" id="live-min-end" value="90" min="1" max="100" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="calculateLive()">
-                            </div>
-                        </div>
-
-                        <div id="clock-control-wrapper">
-                            <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Reloj del Partido (Control Visual)</label>
-                            <div class="flex items-center gap-4">
-                                <input type="range" id="live-min-range" min="0" max="95" value="0" class="flex-1 accent-amber-500" oninput="syncInputs('range')">
-                                <input type="number" id="live-min" value="0" class="w-16 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold text-center" oninput="syncInputs('number')">
-                            </div>
-                        </div>
-                        
-                        <div id="live-score-wrapper" class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Local</label>
-                                <input type="number" id="live-gh" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Visita</label>
-                                <input type="number" id="live-ga" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-bold text-center text-xl" oninput="calculateLive()">
-                            </div>
-                        </div>
-                        <button onclick="resetMatch()" class="w-full py-2 rounded-lg text-[10px] font-black uppercase tracking-widest btn-reset">
-                            <i class="fa-solid fa-rotate-left mr-2"></i> Reiniciar Marcador y Reloj
-                        </button>
-                    </div>
-                </div>
-
-                <div class="glass-card p-5 rounded-2xl bg-slate-900/30">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-4">Métricas de Presión Residual</p>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs text-slate-300">λ Original (90')</span>
-                            <span id="metric-lambda-pre" class="font-mono text-white text-xs">--</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs text-slate-300">λ Restante (Ventana)</span>
-                            <span id="live-lambda" class="font-mono text-amber-500 font-bold text-xs">--</span>
-                        </div>
-                        <div id="time-bar-container" class="w-full h-1.5 rounded-full overflow-hidden">
-                            <div id="range-highlight" style="left: 0%; width: 100%;"></div>
-                            <div id="time-bar" class="bg-white/20 h-full transition-all relative z-10" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="pressure-timer-card" class="glass-card p-5 rounded-2xl bg-amber-500/5 border-amber-500/10">
-                    <p class="text-[10px] text-amber-500 font-black uppercase mb-4 tracking-widest"><i class="fa-solid fa-stopwatch mr-2"></i>Cronómetro de Presión</p>
-                    <div id="next-goal-timer-container" class="space-y-4"></div>
-                </div>
-
-                <div id="opportunity-window-card" class="glass-card p-5 rounded-2xl">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-4 text-center tracking-widest">Ventana de Oportunidad</p>
-                    <div class="chart-container">
-                        <canvas id="pressureChart"></canvas>
-                    </div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-4 text-center">Minuto de Entrada</p>
+                    <input type="number" id="live-min-start" value="0" min="0" max="90" 
+                           class="w-full bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-4xl text-white font-black text-center outline-none focus:border-emerald-500" 
+                           oninput="calculateLive()">
                 </div>
             </div>
 
             <div class="lg:col-span-2 space-y-6">
-                <div class="glass-card p-6 rounded-3xl relative overflow-hidden bg-gradient-to-br from-slate-900 to-black border-white/10">
-                    <div class="absolute top-4 right-6 text-right flex flex-col items-end gap-1">
-                        <span class="text-[10px] text-slate-500 font-black uppercase block tracking-tighter">Midiendo Mercado</span>
-                        <select id="live-market-selector" class="market-select" onchange="updateTimeRange(); calculateLive();">
-                            <option value="OVER 1.5">Over 1.5 FT</option>
-                            <option value="OVER 0.5 HT" selected>Over 0.5 HT</option>
-                            <option value="OVER 1.5 HT">Over 1.5 HT</option>
-                            <option value="GOL ANTES 30">Gol antes del 30</option>
-                            <option value="GOL ANTES 70">Gol antes del 70</option>
-                        </select>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-4 border-b border-white/5">
-                        <div class="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0">
-                            <p class="text-[11px] text-slate-500 font-black uppercase mb-1 tracking-widest">Probabilidad Dinámica</p>
-                            <div id="live-prob-display" class="text-7xl font-black text-white tracking-tighter">--%</div>
-                            <div class="text-center mt-2">
-                                <p class="text-[10px] text-slate-400 font-bold uppercase">Cuota Justa</p>
-                                <p id="live-odd-fair" class="text-2xl font-black text-amber-500">--</p>
-                            </div>
-                        </div>
-
-                        <div class="px-4">
-                            <p class="text-[11px] text-slate-500 font-black uppercase mb-4 tracking-widest text-center">Calculadora de Valor</p>
-                            <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="text-[9px] text-slate-400 font-bold uppercase mb-1 block">Cuota Bookie</label>
-                                        <input type="number" id="bookie-odd" step="0.01" placeholder="2.10" class="w-full bg-black border border-slate-700 rounded-xl p-3 text-lg font-black text-center text-emerald-400 outline-none" oninput="calculateROI()">
-                                    </div>
-                                    <div>
-                                        <label class="text-[9px] text-slate-400 font-bold uppercase mb-1 block">Stake (u)</label>
-                                        <input type="number" id="live-stake" value="1" step="0.5" class="w-full bg-black border border-slate-700 rounded-xl p-3 text-lg font-black text-center text-white outline-none" oninput="calculateROI()">
-                                    </div>
-                                </div>
-                                <div class="bg-white/5 p-4 rounded-xl text-center relative overflow-hidden">
-                                    <p class="text-[9px] text-slate-500 font-bold uppercase">ROI Esperado / Edge</p>
-                                    <p id="roi-display" class="text-3xl font-black">--%</p>
-                                    <p id="bet-signal" class="text-[10px] font-black uppercase mt-1 text-slate-600">Sin Datos</p>
-                                    
-                                    <div class="flex flex-col gap-2 mt-4">
-                                        <button id="btn-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full py-3 rounded-lg font-black uppercase text-xs btn-save-live shadow-lg">Confirmar Entrada Live</button>
-                                        <button id="btn-force-save-action" onclick="saveLiveBet('DIRECT')" class="hidden w-full py-3 rounded-lg font-black uppercase text-[10px] btn-force-save">Confirmar Entrada (Sin Valor)</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="market-focus-container" class="mt-8 text-center py-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
-                        <p id="market-focus-title" class="text-[11px] text-emerald-500 font-black uppercase tracking-[0.2em] mb-2">PROBABILIDAD SELECCIONADA</p>
-                        <div id="market-focus-prob" class="text-5xl md:text-7xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">--%</div>
-                        <p id="market-focus-range" class="text-xs text-slate-500 font-bold mt-2 uppercase tracking-widest">Esperando datos...</p>
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div id="suggestions-card" class="glass-card p-5 rounded-2xl">
-                        <h3 class="text-[10px] font-black text-emerald-500 uppercase mb-4 flex items-center gap-2"><i class="fa-solid fa-brain"></i> Alternativas Sugeridas</h3>
-                        <div id="suggestions-list" class="space-y-3"></div>
+                    <div class="prob-box border-emerald-500/20">
+                        <p class="prob-label">Over 0.5 HT (0-45')</p>
+                        <div id="prob-o05-ht" class="prob-value text-emerald-400">--%</div>
+                        <p id="fair-o05-ht" class="text-xs font-mono text-slate-500">Cuota: --</p>
                     </div>
-                    <div id="risk-alerts-card" class="glass-card p-5 rounded-2xl border-amber-500/20">
-                        <h3 class="text-[10px] font-black text-amber-500 uppercase mb-4 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Alertas de Riesgo</h3>
-                        <div id="alerts-list" class="space-y-3 text-[11px]"></div>
+                    <div class="prob-box border-emerald-500/20">
+                        <p class="prob-label">Over 1.5 HT (0-45')</p>
+                        <div id="prob-o15-ht" class="prob-value text-emerald-500">--%</div>
+                        <p id="fair-o15-ht" class="text-xs font-mono text-slate-500">Cuota: --</p>
+                    </div>
+                    <div class="prob-box border-blue-500/20">
+                        <p class="prob-label">Over 1.5 FT (0-90')</p>
+                        <div id="prob-o15-ft" class="prob-value text-blue-400">--%</div>
+                        <p id="fair-o15-ft" class="text-xs font-mono text-slate-500">Cuota: --</p>
+                    </div>
+                    <div class="prob-box border-blue-500/20">
+                        <p class="prob-label">Over 2.5 FT (0-90')</p>
+                        <div id="prob-o25-ft" class="prob-value text-blue-400">--%</div>
+                        <p id="fair-o25-ft" class="text-xs font-mono text-slate-500">Cuota: --</p>
+                    </div>
+                    <div class="prob-box border-amber-500/20 md:col-span-2">
+                        <p class="prob-label">Ambos Anotan (BTTS YES)</p>
+                        <div id="prob-btts" class="prob-value text-amber-400">--%</div>
+                        <p id="fair-btts" class="text-xs font-mono text-slate-500">Cuota: --</p>
                     </div>
                 </div>
+                
+                <button onclick="calculateLive()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest shadow-lg">
+                    Actualizar Probabilidades Live
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        const STORAGE_KEY = 'betags_live_exclusive'; 
-        let currentMatch = null;
-        let globalLiveProb = 0;
-        let pressureChart = null;
-
-        function updateTimeRange() {
-            const market = document.getElementById('live-market-selector').value;
-            const minInput = document.getElementById('live-min-start');
-            const maxInput = document.getElementById('live-min-end');
-
-            switch(market) {
-                case "OVER 0.5 HT":
-                case "OVER 1.5 HT":
-                    minInput.value = 0;
-                    maxInput.value = 45;
-                    break;
-                case "OVER 1.5":
-                    minInput.value = 45;
-                    maxInput.value = 90;
-                    break;
-                case "GOL ANTES 30":
-                    minInput.value = 0;
-                    maxInput.value = 29;
-                    break;
-                case "GOL ANTES 70":
-                    minInput.value = 45;
-                    maxInput.value = 69;
-                    break;
-            }
-        }
-
-        function loadManualMatch() {
-            const league = document.getElementById('manual-league').value || "General";
-            const teams = document.getElementById('manual-teams').value || "Partido Manual";
-            const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
-            const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
-            const lambdaTotal = xgH + xgA;
-            
-            if (lambdaTotal <= 0) {
-                alert("Ingresa valores de xG válidos.");
-                return;
-            }
-
-            currentMatch = {
-                teams: teams,
-                league: league,
-                manual: true,
-                lambdaPre: lambdaTotal,
-                xgH: xgH,
-                xgA: xgA,
-                prob: (1 - Math.exp(-lambdaTotal)).toFixed(4),
-                market: "OVER 0.5"
-            };
-
-            document.getElementById('live-match-name').innerText = currentMatch.teams;
-            document.getElementById('live-match-market').innerText = `LIGA: ${currentMatch.league} | POISSON LIVE`;
-            document.getElementById('live-gh').value = 0;
-            document.getElementById('live-ga').value = 0;
-            document.getElementById('live-min').value = 0;
-            document.getElementById('live-min-range').value = 0;
-            
-            updateTimeRange();
-            if(!pressureChart) initChart();
-            calculateLive();
-        }
-
-        function syncInputs(type) {
-            const range = document.getElementById('live-min-range');
-            const num = document.getElementById('live-min');
-            const start = document.getElementById('live-min-start');
-            if(type === 'range') num.value = range.value;
-            else range.value = num.value;
-            
-            start.value = num.value;
-            calculateLive();
-        }
-
-        function resetMatch() {
-            document.getElementById('live-min-range').value = 0;
-            document.getElementById('live-min').value = 0;
-            document.getElementById('live-gh').value = 0;
-            document.getElementById('live-ga').value = 0;
-            
-            updateTimeRange();
-            calculateLive();
-        }
-
-        function initChart() {
-            const canvas = document.getElementById('pressureChart');
-            if(!canvas) return;
-            const ctx = canvas.getContext('2d');
-            pressureChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: 96}, (_, i) => i),
-                    datasets: [{
-                        label: 'Presión de Goles',
-                        data: [],
-                        borderColor: '#fbbf24',
-                        borderWidth: 2,
-                        fill: true,
-                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                        tension: 0.4,
-                        pointRadius: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: true, grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } },
-                        y: { display: false, min: 0, max: 1 }
-                    }
-                }
-            });
-        }
-
         function poisson(k, lambda) {
             if(lambda <= 0) return k === 0 ? 1 : 0;
-            const factorial = (n) => {
-                let res = 1;
-                for (let i = 2; i <= n; i++) res *= i;
-                return res;
-            };
-            return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
-        }
-
-        function getLambdaFromProb(prob, market) {
-            if(currentMatch && currentMatch.manual) return currentMatch.lambdaPre;
-            let p = parseFloat(prob);
-            if(market.includes("UNDER")) p = 1 - p;
-            return -Math.log(Math.max(0.0001, 1 - p));
+            let factorial = 1;
+            for (let i = 2; i <= k; i++) factorial *= i;
+            return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial;
         }
 
         function calculateLive() {
-            if(!currentMatch) return;
+            const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
+            const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
+            const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            const inputs = {
-                min: document.getElementById('live-min'),
-                start: document.getElementById('live-min-start'),
-                end: document.getElementById('live-min-end'),
-                gh: document.getElementById('live-gh'),
-                ga: document.getElementById('live-ga')
-            };
+            const lambdaTotal = xgH + xgA;
+            if (lambdaTotal <= 0) return;
 
-            const currentMin = parseInt(inputs.min.value) || 0;
-            const gH = parseInt(inputs.gh.value) || 0;
-            const gA = parseInt(inputs.ga.value) || 0;
-            const currentTotal = gH + gA;
-            const selectedMarket = document.getElementById('live-market-selector').value;
-            const lambdaPre = getLambdaFromProb(currentMatch.prob, currentMatch.market);
+            // Fracción de tiempo restante para HT (45 min) y FT (90 min)
+            const timeRemHT = Math.max(0, 45 - currentMin);
+            const timeRemFT = Math.max(0, 90 - currentMin);
 
-            // LOGICA AFINADA PARA PREDECIR ENTRADA (Métrica de Valor Proyectada)
-            if (selectedMarket === "OVER 0.5 HT" && currentTotal === 0) {
-                let bestMin = "--";
-                let bestOdd = "--";
-                
-                // Barrido de simulación para encontrar el "Punto de Oro"
-                for (let testMin = 0; testMin < 45; testMin++) {
-                    const timeLeft = 45 - testMin;
-                    // Factor de aceleración por presión de cierre HT (Mejora métrica)
-                    const htBooster = testMin > 30 ? 1.12 : 1.0; 
-                    const lambdaTest = lambdaPre * (timeLeft / 90) * htBooster;
-                    const probTest = 1 - Math.exp(-lambdaTest);
-                    const oddTest = probTest > 0 ? (1 / probTest) : 100;
-
-                    // Buscamos cuotas con valor a partir de 1.70-1.80
-                    if (oddTest >= 1.75) {
-                        bestMin = testMin + "'";
-                        bestOdd = oddTest.toFixed(2);
-                        break; 
-                    }
-                }
-                
-                document.getElementById('strategy-min').innerText = bestMin;
-                document.getElementById('strategy-odd').innerText = bestOdd;
-                document.getElementById('strategy-note').innerText = "Momento óptimo donde la estadística supera el precio del mercado.";
-                
-                // Sincronizar Tiempo Mín si se detecta oportunidad
-                if (bestMin !== "--" && currentMin < parseInt(bestMin)) {
-                    inputs.start.value = parseInt(bestMin);
-                }
-            }
-
-            let startMin = parseInt(inputs.start.value) || 0;
-            let endMin = parseInt(inputs.end.value) || 90;
-
-            Object.values(inputs).forEach(input => input.classList.remove('input-error'));
-
-            let hasError = false;
-            if (startMin > endMin) { inputs.start.classList.add('input-error'); inputs.end.classList.add('input-error'); hasError = true; }
-            if (currentMin < 0 || currentMin > 120) { inputs.min.classList.add('input-error'); hasError = true; }
-
-            if (hasError) {
-                document.getElementById('live-prob-display').innerText = "ERROR";
-                document.getElementById('live-odd-fair').innerText = "--";
-                return;
-            }
-
-            document.getElementById('metric-lambda-pre').innerText = lambdaPre.toFixed(2);
-            const timeWindow = Math.max(0, endMin - startMin);
-            // Ajuste dinámico de intensidad HT vs FT
-            const intensityBoost = currentMin > 45 ? 1.15 : (currentMin > 30 ? 1.08 : 1.0); 
-            const lambdaRemaining = lambdaPre * (timeWindow / 90) * intensityBoost;
-
-            document.getElementById('live-lambda').innerText = lambdaRemaining.toFixed(2);
+            const lambdaHT = lambdaTotal * (timeRemHT / 90);
+            const lambdaFT = lambdaTotal * (timeRemFT / 90);
             
-            const timeBar = document.getElementById('time-bar');
-            const rangeHighlight = document.getElementById('range-highlight');
-            timeBar.style.width = (currentMin/95*100) + "%";
-            
-            const startPct = (startMin / 95) * 100;
-            const endPct = (endMin / 95) * 100;
-            rangeHighlight.style.left = startPct + "%";
-            rangeHighlight.style.width = (endPct - startPct) + "%";
+            // Especial para BTTS (Probabilidad combinada aproximada)
+            const lambdaH_FT = xgH * (timeRemFT / 90);
+            const lambdaA_FT = xgA * (timeRemFT / 90);
 
-            let liveProb = calculateSpecificProb(selectedMarket, lambdaRemaining, currentTotal, gH, gA, lambdaPre, currentMin, startMin, endMin);
-            globalLiveProb = liveProb;
-            
-            updateUI(liveProb, lambdaRemaining, currentMin, currentTotal, gH, gA, lambdaPre, startMin, endMin);
-            updateMarketFocus(selectedMarket, lambdaPre, currentTotal, gH, gA);
-            calculateROI();
+            // Cálculos
+            const o05ht = 1 - poisson(0, lambdaHT);
+            const o15ht = 1 - (poisson(0, lambdaHT) + poisson(1, lambdaHT));
+            const o15ft = 1 - (poisson(0, lambdaFT) + poisson(1, lambdaFT));
+            const o25ft = 1 - (poisson(0, lambdaFT) + poisson(1, lambdaFT) + poisson(2, lambdaFT));
+            const btts = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
+
+            // Actualizar UI
+            updateDisplay('prob-o05-ht', 'fair-o05-ht', o05ht);
+            updateDisplay('prob-o15-ht', 'fair-o15-ht', o15ht);
+            updateDisplay('prob-o15-ft', 'fair-o15-ft', o15ft);
+            updateDisplay('prob-o25-ft', 'fair-o25-ft', o25ft);
+            updateDisplay('prob-btts', 'fair-btts', btts);
         }
 
-        function updateMarketFocus(market, lambdaPre, total, gh, ga) {
-            const focusProb = document.getElementById('market-focus-prob');
-            const focusRange = document.getElementById('market-focus-range');
-            const focusContainer = document.getElementById('market-focus-container');
-            
-            let prob = 0;
-            let rangeText = "";
-            let show = false;
-
-            if (market === "OVER 0.5 HT" || market === "OVER 1.5 HT") {
-                const limit = 45;
-                const lambdaHT = (lambdaPre * (limit / 90)) * 1.05; 
-                prob = calculateProbByLambda(market, lambdaHT, total);
-                rangeText = "Probabilidad Tiempo Real (Min 0 - 45)";
-                show = true;
-            } else if (market === "OVER 1.5") {
-                const limit = 90;
-                const lambdaFT = lambdaPre * (limit / 90);
-                prob = calculateProbByLambda(market, lambdaFT, total);
-                rangeText = "Probabilidad Tiempo Real (Min 0 - 90)";
-                show = true;
-            }
-
-            if (show) {
-                focusContainer.style.display = "block";
-                focusProb.innerText = (prob * 100).toFixed(1) + "%";
-                focusRange.innerText = rangeText;
-            } else {
-                focusContainer.style.display = "none";
-            }
-        }
-
-        function calculateProbByLambda(market, lambda, currentTotal) {
-            let limitVal = parseFloat(market.split(" ")[1]);
-            const needed = Math.max(0, Math.ceil(limitVal) - currentTotal);
-            if(needed === 0) return 1.0;
-            let p_under = 0;
-            for(let i=0; i < needed; i++) p_under += poisson(i, lambda);
-            return 1 - p_under;
-        }
-
-        function calculateSpecificProb(market, lRem, total, gh, ga, lPre, currentMin, startMin, endMin) {
-            let effectiveLambda = lRem;
-            if (market.includes("HT") || market.includes("ANTES")) {
-                let limit = 45; 
-                if(market.includes("30")) limit = 30;
-                if(market.includes("70")) limit = 70;
-                const windowLimit = Math.max(0, limit - startMin);
-                if (startMin >= limit) return 0;
-                
-                const timeFactor = (windowLimit / 90);
-                const acceleration = startMin > 30 ? 1.12 : 1.0;
-                effectiveLambda = lPre * timeFactor * acceleration;
-                
-                if(market.includes("ANTES") || market.includes("OVER 0.5")) return 1 - Math.exp(-effectiveLambda);
-            }
-
-            if(market.includes("OVER")) {
-                let limitVal = parseFloat(market.split(" ")[1]);
-                const needed = Math.max(0, Math.ceil(limitVal) - total);
-                if(needed === 0) return 1.0;
-                let p_under = 0;
-                for(let i=0; i < needed; i++) p_under += poisson(i, effectiveLambda);
-                return 1 - p_under;
-            } else if(market.includes("UNDER")) {
-                let limitVal = parseFloat(market.split(" ")[1]);
-                const neededLimit = Math.ceil(limitVal) - total;
-                if(neededLimit <= 0) return 0;
-                let p_under = 0;
-                for(let i=0; i < neededLimit; i++) p_under += poisson(i, effectiveLambda);
-                return p_under;
-            }
-            return 0;
-        }
-
-        function updateUI(prob, lRest, min, total, gH, gA, lPre, startMin, endMin) {
-            document.getElementById('live-prob-display').innerText = (prob * 100).toFixed(1) + "%";
-            document.getElementById('live-odd-fair').innerText = prob > 0.05 ? (1/prob).toFixed(2) : "N/A";
-            
-            if(pressureChart) {
-                const chartData = Array(96).fill(null);
-                for(let i = min; i <= 95; i++) {
-                    const tRem = 95 - i;
-                    const lRemChart = lPre * (tRem/90) * (i > 45 ? 1.15 : (i > 30 ? 1.08 : 1.0));
-                    chartData[i] = 1 - Math.exp(-lRemChart);
-                }
-                pressureChart.data.datasets[0].data = chartData;
-                pressureChart.update('none');
-            }
-            generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin);
-        }
-
-        function generateSmartInsights(lRest, min, total, gH, gA, lPre, startMin, endMin) {
-            const sugList = document.getElementById('suggestions-list');
-            if(!sugList) return;
-            sugList.innerHTML = '';
-            const markets = [`OVER 0.5 HT`, `GOL ANTES 30`, `GOL ANTES 70`, `OVER 1.5 HT`, `OVER 1.5` ];
-            markets.forEach((m, idx) => {
-                const prob = calculateSpecificProb(m, lRest, total, gH, gA, lPre, min, startMin, endMin);
-                if(prob > 0.02 && prob < 0.98) {
-                    const fairOdd = (1/prob).toFixed(2);
-                    const div = document.createElement('div');
-                    div.className = "suggestion-card p-3 bg-white/5 rounded-xl border-l-slate-700 border-l-2 mb-2";
-                    div.innerHTML = `<div class="flex flex-col gap-2"><div class="flex justify-between items-center"><span class="text-[10px] font-bold text-white uppercase">${m}</span><div class="text-right"><span class="text-[8px] text-slate-500 block">JUSTA</span><span class="text-xs font-black text-amber-500">${fairOdd}</span></div></div><div class="flex items-center gap-2"><input type="number" step="0.01" placeholder="Cuota" id="input-odd-${idx}" class="alt-input flex-1" oninput="checkAltValue('${m}', ${fairOdd}, this.value, 'btn-save-${idx}')"><button id="btn-save-${idx}" onclick="saveLiveBet('ALT', '${m}', ${fairOdd}, document.getElementById('input-odd-${idx}').value)" class="btn-mini-save"><i class="fa-solid fa-plus mr-1"></i> GUARDAR</button></div></div>`;
-                    sugList.appendChild(div);
-                }
-            });
-        }
-
-        function checkAltValue(market, fair, bookie, btnId) {
-            const btn = document.getElementById(btnId);
-            const val = parseFloat(bookie);
-            if (val > fair) {
-                btn.style.display = 'block';
-                btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#10b981';
-            } else { btn.style.display = 'none'; btn.parentElement.parentElement.parentElement.style.borderLeftColor = '#334155'; }
-        }
-
-        function saveLiveBet(source, market, fair, bookie) {
-            let finalMarket, finalFair, finalBookie, finalProb;
-            const stake = document.getElementById('live-stake').value || 1;
-            
-            const manualLeagueVal = document.getElementById('manual-league').value || "General";
-            const manualTeamsVal = document.getElementById('manual-teams').value || "Partido Manual";
-            
-            const eventInfo = `[${manualLeagueVal.toUpperCase()}] ${manualTeamsVal}`;
-
-            if (source === 'DIRECT') {
-                finalMarket = document.getElementById('live-market-selector').value;
-                finalFair = parseFloat(document.getElementById('live-odd-fair').innerText) || 0;
-                finalBookie = parseFloat(document.getElementById('bookie-odd').value) || 0;
-                finalProb = globalLiveProb;
-            } else {
-                finalMarket = market; finalFair = parseFloat(fair); finalBookie = parseFloat(bookie); finalProb = 1 / finalFair;
-            }
-            
-            if (!finalBookie || finalBookie <= 1) { alert("Ingresa una cuota válida."); return; }
-            const edge = (((finalBookie / finalFair) - 1) * 100).toFixed(2);
-            const now = new Date();
-            const dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            const betData = { 
-                id: Date.now(), 
-                timestamp: dateStr, 
-                match: eventInfo, 
-                market: finalMarket, 
-                prob: (finalProb * 100).toFixed(1) + "%", 
-                fairOdd: finalFair.toFixed(2), 
-                bookieOdd: finalBookie.toFixed(2), 
-                edge: edge + "%", 
-                stake: stake, 
-                isLive: "SÍ", 
-                status: "PENDIENTE" 
-            };
-            
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            history.unshift(betData);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            alert(`✅ ENVIADO A ROI LIVE HISTORY\nEvento: ${eventInfo}`);
-        }
-
-        function calculateROI() {
-            const bookieOdd = parseFloat(document.getElementById('bookie-odd').value);
-            const roiDisplay = document.getElementById('roi-display');
-            const saveBtn = document.getElementById('btn-save-action');
-            const forceSaveBtn = document.getElementById('btn-force-save-action');
-            
-            if (!bookieOdd || globalLiveProb <= 0) { 
-                saveBtn.classList.add('hidden'); 
-                forceSaveBtn.classList.add('hidden');
-                return; 
-            }
-            
-            const ev = (globalLiveProb * bookieOdd) - 1;
-            roiDisplay.innerText = (ev * 100).toFixed(2) + "%";
-            roiDisplay.className = "text-3xl font-black " + (ev > 0 ? "roi-positive" : "roi-negative");
-            
-            if(ev > 0) {
-                saveBtn.classList.remove('hidden');
-                forceSaveBtn.classList.add('hidden');
-            } else {
-                saveBtn.classList.add('hidden');
-                forceSaveBtn.classList.remove('hidden');
-            }
+        function updateDisplay(probId, fairId, value) {
+            const p = Math.max(0, Math.min(0.99, value));
+            document.getElementById(probId).innerText = (p * 100).toFixed(1) + "%";
+            document.getElementById(fairId).innerText = "Cuota Justa: " + (p > 0 ? (1/p).toFixed(2) : "N/A");
         }
     </script>
 </body>
