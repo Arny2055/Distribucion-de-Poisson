@@ -38,7 +38,7 @@
             border-color: rgba(255, 255, 255, 0.1);
         }
 
-        input, select { 
+        input { 
             background-color: #020617 !important; 
             color: white !important; 
             border: 1px solid #1e293b !important; 
@@ -47,7 +47,7 @@
             transition: all 0.3s ease; 
         }
 
-        input:focus, select:focus {
+        input:focus {
             border-color: var(--accent-green) !important;
             outline: none;
             box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
@@ -99,9 +99,6 @@
         .scroll-custom::-webkit-scrollbar-thumb:hover { background: #334155; }
 
         thead th { background-color: #020617 !important; }
-
-        /* Mejora SOS Badge */
-        .sos-badge { font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; margin-top: 4px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -155,32 +152,12 @@
                     <div class="space-y-4">
                         <div class="bg-black/20 p-4 rounded-xl border border-blue-500/10 transition-all duration-300" id="container_h">
                             <label class="text-[9px] font-black text-blue-400 mb-2 uppercase block">Local (A Favor)</label>
-                            <input type="number" id="h_gf" step="0.01" class="w-full p-3 text-lg mb-2" placeholder="Ej: 1.75">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[8px] text-slate-500 font-bold uppercase">Rival Reciente:</span>
-                                <select id="h_sos" class="text-[9px] p-1 bg-slate-900 border-none rounded">
-                                    <option value="1.15">Muy Difícil (+15%)</option>
-                                    <option value="1.08">Difícil (+8%)</option>
-                                    <option value="1.00" selected>Normal (Promedio)</option>
-                                    <option value="0.92">Fácil (-8%)</option>
-                                    <option value="0.85">Muy Fácil (-15%)</option>
-                                </select>
-                            </div>
+                            <input type="number" id="h_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.75">
                         </div>
 
                         <div class="bg-black/20 p-4 rounded-xl border border-orange-500/10 transition-all duration-300" id="container_a">
                             <label class="text-[9px] font-black text-orange-400 mb-2 uppercase block">Visitante (A Favor)</label>
-                            <input type="number" id="a_gf" step="0.01" class="w-full p-3 text-lg mb-2" placeholder="Ej: 1.20">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[8px] text-slate-500 font-bold uppercase">Rival Reciente:</span>
-                                <select id="a_sos" class="text-[9px] p-1 bg-slate-900 border-none rounded">
-                                    <option value="1.15">Muy Difícil (+15%)</option>
-                                    <option value="1.08">Difícil (+8%)</option>
-                                    <option value="1.00" selected>Normal (Promedio)</option>
-                                    <option value="0.92">Fácil (-8%)</option>
-                                    <option value="0.85">Muy Fácil (-15%)</option>
-                                </select>
-                            </div>
+                            <input type="number" id="a_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.20">
                         </div>
                         
                         <div class="flex flex-col gap-2">
@@ -340,12 +317,8 @@
 
         function calculatePoisson() {
             const val = (id) => parseFloat(document.getElementById(id).value) || 0;
-            const sos_h = val('h_sos'); // Mejora SoS
-            const sos_a = val('a_sos'); // Mejora SoS
-            
-            // Lambdas ajustados por Fortaleza de Calendario (SoS)
-            const lambda_h = val('h_gf') * sos_h;
-            const lambda_a = val('a_gf') * sos_a;
+            const lambda_h = val('h_gf');
+            const lambda_a = val('a_gf');
 
             if(lambda_h <= 0 && lambda_a <= 0) return alert("Ingresa los promedios.");
 
@@ -357,7 +330,7 @@
             
             renderChart(p_h, p_a);
             processMarkets(p_h, p_a, lambda_h, lambda_a);
-            updateAssistant(p_h, p_a, sos_h, sos_a);
+            updateAssistant(p_h, p_a);
         }
 
         function processMarkets(p_h, p_a, lh, la) {
@@ -473,16 +446,14 @@
             setTimeout(() => btn.innerHTML = 'ROI', 2000);
         }
 
-        function updateAssistant(p_h, p_a, sh, sa) {
+        function updateAssistant(p_h, p_a) {
             const box = document.getElementById('strategy-assistant-box'); box.classList.remove('hidden');
             const text = document.getElementById('strategy-text');
             let p_over = 0;
             for(let h=0; h<=5; h++) { for(let a=0; a<=5; a++) { if(h+a > 2.5) p_over += (p_h[h] * p_a[a]); } }
             
             const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG (Kelly Activo)." : "Analizando con Goles (Stake 1 Plano).";
-            const sosText = (sh !== 1 || sa !== 1) ? `<span class="text-bet-yellow font-bold">[SOS ACTIVO: Calibrando Mérito de Rivales]</span>` : "";
-            
-            text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} ${sosText} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
+            text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
             document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : (p_over < 0.40 ? "🛡️" : "📊");
         }
 
@@ -513,8 +484,6 @@
             document.getElementById('event_name').value = '';
             document.getElementById('h_gf').value = '';
             document.getElementById('a_gf').value = '';
-            document.getElementById('h_sos').value = "1.00";
-            document.getElementById('a_sos').value = "1.00";
             document.getElementById('score-matrix').innerHTML = '';
             document.getElementById('market-table').innerHTML = '';
             document.getElementById('strategy-assistant-box').classList.add('hidden');
