@@ -11,8 +11,8 @@
         :root { 
             --bet-green: #006341; 
             --bet-yellow: #ffeb00; 
-            --dark-bg: #020617; 
-            --card-bg: #0f172a; 
+            --dark-bg: #020617; /* Azul ultra oscuro casi negro */
+            --card-bg: #0f172a; /* Slate profundo para tarjetas */
             --accent-green: #00ff88; 
             --gold-value: #ffd700; 
             --bet-blue: #3b82f6; 
@@ -81,17 +81,24 @@
             z-index: 10;
         }
         
+        /* Modos de Análisis */
         .mode-selector { display: flex; background: #020617; border-radius: 8px; padding: 2px; border: 1px solid #1e293b; }
         .mode-btn { flex: 1; padding: 6px; font-size: 10px; font-weight: 800; border-radius: 6px; transition: all 0.3s; text-align: center; cursor: pointer; color: #64748b; }
         .mode-btn.active { background: var(--bet-green); color: white; border: 1px solid var(--accent-green); }
         .mode-btn.active-xg { background: var(--bet-blue); color: white; border: 1px solid #60a5fa; }
 
+        /* Estilos dinámicos para xG */
         .input-container-xg { border-color: rgba(59, 130, 246, 0.3) !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        .input-xg { border-color: var(--bet-blue) !important; }
+
         .gold-value-row { background: linear-gradient(90deg, rgba(255, 215, 0, 0.02), rgba(255, 215, 0, 0.08)) !important; border-left: 4px solid var(--gold-value) !important; }
         
         .scroll-custom::-webkit-scrollbar { width: 5px; }
         .scroll-custom::-webkit-scrollbar-track { background: #020617; }
         .scroll-custom::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .scroll-custom::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        thead th { background-color: #020617 !important; }
     </style>
 </head>
 <body>
@@ -197,19 +204,56 @@
     <script>
         let pChart;
         let currentAnalysisMode = 'GOLES';
+        // Mejora aplicada: STORAGE_KEY exclusivo para Pre-Match
         const STORAGE_KEY = 'betags_pre_match'; 
         const MODE_KEY = 'betags_preferred_mode'; 
+        
+        // Parámetro Rho para Dixon-Coles
         let RHO_CORRECTION = -0.11;
 
+        // DICCIONARIO EXPANDIDO BILINGÜE DE RHO
         const RHO_MAP = [
-            { keys: ['bundesliga', 'eredivisie', 'mls', 'holanda', 'alemania', 'austria', 'noruega', 'suecia', 'dinamarca', 'j-league', 'australia'], value: -0.07, label: 'Ofensiva (+Over)' },
-            { keys: ['premier', 'england', 'laliga', 'spain', 'serie a', 'italy', 'liga mx', 'mexico', 'champions', 'libertadores', 'portugal', 'brasil a'], value: -0.11, label: 'Standard' },
-            { keys: ['ligue 2', 'france 2', 'segunda', 'spain 2', 'argentina', 'colombia', 'brasil b', 'grecia', 'iran', 'rumania', 'marruecos', 'egipto'], value: -0.15, label: 'Defensiva (+Under)' }
+            { 
+                keys: [
+                    'bundesliga', 'eredivisie', 'mls', 'holanda', 'netherlands', 'holland', 'alemania', 'germany', 
+                    'austria', 'noruega', 'norway', 'suecia', 'sweden', 'dinamarca', 'denmark', 'islandia', 'iceland', 
+                    'suiza', 'switzerland', 'bélgica', 'belgium', 'japan', 'j-league', 'australia', 'a-league', 
+                    'finlandia', 'finland', 'estonia', 'suomi', 'eliteserien', 'allsvenskan', 'superligaen', 
+                    'tipico', 'nb i', 'hungría', 'hungary'
+                ], 
+                value: -0.07, 
+                label: 'Ofensiva (+Over)' 
+            },
+            { 
+                keys: [
+                    'premier', 'england', 'laliga', 'spain', 'serie a', 'italy', 'liga mx', 'mexico', 'mx', 
+                    'champions', 'libertadores', 'mundial', 'world cup', 'eurocopa', 'euro', 'liga nos', 
+                    'portugal', 'rusia', 'russia', 'turkey', 'turquía', 'brasil a', 'brazil', 'chile', 
+                    'uruguay', 'paraguay', 'ecuador', 'concacaf', 'uefa', 'south africa', 'scotland', 
+                    'escocia', 'bolivia', 'mls next', 'copa oro', 'mls pro', 'premier league', 'fa cup', 
+                    'copa del rey'
+                ], 
+                value: -0.11, 
+                label: 'Standard' 
+            },
+            { 
+                keys: [
+                    'ligue 2', 'france 2', 'segunda', 'spain 2', 'argentina', 'colombia', 'brasil b', 'brazil b', 
+                    'grecia', 'greece', 'iran', 'rumania', 'romania', 'marruecos', 'morocco', 'egipto', 'egypt', 
+                    'argelia', 'algeria', 'tunisia', 'túnez', 'sudáfrica', 'venezuela', 'perú', 'peru', 
+                    'b nacional', 'ascenso', 'italia b', 'serie b', 'bwin', 'costa rica', 'honduras', 
+                    'guatemala', 'israel', 'chipre', 'cyprus', 'albania', 'championship', 
+                    'league one', 'league two', 'primera b', 'expansion', 'copa argentina'
+                ], 
+                value: -0.15, 
+                label: 'Defensiva (+Under)' 
+            }
         ];
 
         function autoAdjustRho() {
             const leagueInput = document.getElementById('league_name').value.toLowerCase();
             const indicator = document.getElementById('rho_indicator');
+            
             let newVal = -0.11;
             let newLabel = 'Standard';
 
@@ -220,6 +264,7 @@
                     break;
                 }
             }
+
             RHO_CORRECTION = newVal;
             indicator.innerText = `Rho: ${newVal} (${newLabel})`;
             indicator.style.color = newVal === -0.07 ? '#00ff88' : (newVal === -0.15 ? '#f87171' : '#64748b');
@@ -228,9 +273,12 @@
         function setAnalysisMode(mode) {
             currentAnalysisMode = mode;
             localStorage.setItem(MODE_KEY, mode);
+
             const btnGoles = document.getElementById('mode-goles');
             const btnXG = document.getElementById('mode-xg');
             const card = document.getElementById('main-input-card');
+            const contH = document.getElementById('container_h');
+            const contA = document.getElementById('container_a');
             const calcBtn = document.getElementById('calc-btn');
             const title = document.getElementById('config-title');
 
@@ -238,15 +286,21 @@
                 btnGoles.classList.add('active');
                 btnXG.classList.remove('active', 'active-xg');
                 card.style.borderLeftColor = "rgba(16, 185, 129, 0.5)";
+                contH.classList.remove('input-container-xg');
+                contA.classList.remove('input-container-xg');
                 calcBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]";
-                title.className = "text-xs font-bold text-emerald-400 uppercase";
+                title.classList.replace('text-blue-400', 'text-emerald-400');
             } else {
                 btnXG.classList.add('active', 'active-xg');
                 btnGoles.classList.remove('active');
                 card.style.borderLeftColor = "rgba(59, 130, 246, 0.5)";
+                contH.classList.add('input-container-xg');
+                contA.classList.add('input-container-xg');
                 calcBtn.className = "w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]";
-                title.className = "text-xs font-bold text-blue-400 uppercase";
+                title.classList.add('text-blue-400');
+                title.classList.remove('text-emerald-400');
             }
+            // Recalcular si ya hay datos
             if(document.getElementById('h_gf').value) calculatePoisson();
         }
 
@@ -265,44 +319,54 @@
             const val = (id) => parseFloat(document.getElementById(id).value) || 0;
             const lambda_h = val('h_gf');
             const lambda_a = val('a_gf');
-            if(lambda_h <= 0 && lambda_a <= 0) return;
+
+            if(lambda_h <= 0 && lambda_a <= 0) return alert("Ingresa los promedios.");
 
             let p_h = [], p_a = [];
             for(let i=0; i<=5; i++) { 
                 p_h.push(poissonProb(i, lambda_h)); 
                 p_a.push(poissonProb(i, lambda_a)); 
             }
+            
             renderChart(p_h, p_a);
             processMarkets(p_h, p_a, lambda_h, lambda_a);
             updateAssistant(p_h, p_a);
         }
 
         function processMarkets(p_h, p_a, lh, la) {
-            let p_over = 0, p_under = 0, p_btts_no = 0;
+            let p_over = 0, p_under = 0;
             const matrix = document.getElementById('score-matrix'); matrix.innerHTML = '';
-            let maxProb = 0, bestScore = "0-0";
+            let maxProb = 0;
+            let bestScore = "0-0";
 
             for(let h=0; h<=5; h++) {
                 for(let a=0; a<=5; a++) {
                     const tau = getDixonColesTau(h, a, lh, la);
                     const prob = (p_h[h] * p_a[a]) * tau;
                     if(prob > maxProb) { maxProb = prob; bestScore = `${h}-${a}`; }
-                    if(h + a > 2.5) p_over += prob;
-                    if(h + a < 2.5) p_under += prob;
-                    if(h === 0 || a === 0) p_btts_no += prob;
                 }
             }
 
             for(let h=0; h<=5; h++) {
                 for(let a=0; a<=5; a++) {
-                    const prob = (p_h[h] * p_a[a]) * getDixonColesTau(h, a, lh, la);
+                    const tau = getDixonColesTau(h, a, lh, la);
+                    const prob = (p_h[h] * p_a[a]) * tau;
+                    if(h + a > 2.5) p_over += prob;
+                    if(h + a < 2.5) p_under += prob;
+                    
                     const cell = document.createElement('div');
                     cell.className = 'matrix-cell';
                     if(prob === maxProb && prob > 0) cell.classList.add('matrix-cell-gold');
-                    else cell.style.backgroundColor = `rgba(0, 255, 136, ${prob * 3})`;
+                    else cell.style.backgroundColor = `rgba(0, 255, 136, ${prob * 4})`;
                     cell.innerHTML = `<b>${h}-${a}</b><br>${(prob*100).toFixed(1)}%`;
                     matrix.appendChild(cell);
                 }
+            }
+            
+            let p_btts_no = 0;
+            for(let i=0; i<=5; i++) {
+                p_btts_no += (p_h[i] * p_a[0]) * getDixonColesTau(i, 0, lh, la);
+                if(i > 0) p_btts_no += (p_h[0] * p_a[i]) * getDixonColesTau(0, i, lh, la);
             }
 
             const markets = [
@@ -316,9 +380,10 @@
             const tbody = document.getElementById('market-table'); tbody.innerHTML = '';
             markets.forEach(m => {
                 const fair = (1 / m.prob).toFixed(2);
+                const isCS = m.id === 'cs' ? 'border-l-4 border-yellow-500 bg-yellow-500/5' : '';
                 tbody.innerHTML += `
-                    <tr class="hover:bg-white/5 transition-all" id="row_${m.id}">
-                        <td class="p-4 font-bold text-slate-300">${m.name}</td>
+                    <tr class="hover:bg-white/5 transition-all duration-500 ${isCS}" id="row_${m.id}">
+                        <td class="p-4 font-bold ${m.id === 'cs' ? 'text-yellow-400' : 'text-slate-300'}">${m.name}</td>
                         <td class="p-4 text-emerald-400 font-bold">${(m.prob * 100).toFixed(1)}%</td>
                         <td class="p-4 text-slate-500 font-mono">${fair}</td>
                         <td class="p-4"><input type="number" step="0.01" class="w-16 p-1 text-center font-bold" oninput="updateEdge('${m.id}', ${m.prob})" id="odd_${m.id}"></td>
@@ -334,10 +399,16 @@
             const odd = parseFloat(document.getElementById('odd_' + id).value) || 0;
             const edgeEl = document.getElementById('edge_' + id);
             const stakeEl = document.getElementById('stake_' + id);
+            const rowEl = document.getElementById('row_' + id);
+            
             if(odd > 1) {
                 const edge = (odd * prob) - 1;
-                edgeEl.innerText = (edge * 100).toFixed(1) + "%";
+                const edgePercent = (edge * 100).toFixed(1);
+                edgeEl.innerText = edgePercent + "%";
+                rowEl.classList.toggle('gold-value-row', edgePercent >= 8.0);
                 edgeEl.style.color = edge > 0 ? "#00ff88" : "#ff4444";
+                
+                // MEJORA: Si es modo GOLES, usa Stake 1 Parejo. Si es xG, usa Kelly.
                 if(currentAnalysisMode === 'GOLES') {
                     stakeEl.innerText = (edge > 0) ? "1.0%" : "0.0%";
                 } else {
@@ -348,31 +419,42 @@
         }
 
         function sendToROI(id, market, prob) {
-            const league = document.getElementById('league_name').value.trim() || 'League';
-            const event = document.getElementById('event_name').value.trim() || 'Match';
+            const league = document.getElementById('league_name').value.trim() || 'Desconocida';
+            const event = document.getElementById('event_name').value.trim() || 'Evento';
             const odd = parseFloat(document.getElementById('odd_' + id).value);
-            if(!odd) return alert("Introduce cuota");
+            if(!odd) return alert("⚠️ Introduce la cuota.");
             
             const newBet = {
-                id: Date.now(), date: new Date().toISOString().split('T')[0], 
-                teams: `[${currentAnalysisMode}] ${league}: ${event}`, market: market, 
-                prob: prob, odd: odd, status: 'pending', profit: 0,
-                stake: parseFloat(document.getElementById('stake_' + id).innerText) || 0
+                id: Date.now(), 
+                date: new Date().toISOString().split('T')[0], 
+                teams: `[${currentAnalysisMode}] ${league}: ${event}`, 
+                market: market, 
+                prob: prob, 
+                odd: odd, 
+                edge: document.getElementById('edge_' + id).innerText, 
+                stake: parseFloat(document.getElementById('stake_' + id).innerText) || 0, 
+                status: 'pending', 
+                profit: 0
             };
             
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             bets.unshift(newBet); 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+            
             const btn = document.querySelector(`#row_${id} button`); 
-            btn.innerHTML = '✅'; setTimeout(() => btn.innerHTML = 'ROI', 2000);
+            btn.innerHTML = '✅'; 
+            setTimeout(() => btn.innerHTML = 'ROI', 2000);
         }
 
         function updateAssistant(p_h, p_a) {
-            document.getElementById('strategy-assistant-box').classList.remove('hidden');
+            const box = document.getElementById('strategy-assistant-box'); box.classList.remove('hidden');
+            const text = document.getElementById('strategy-text');
             let p_over = 0;
-            for(let h=0; h<=5; h++) for(let a=0; a<=5; a++) if(h+a > 2.5) p_over += (p_h[h] * p_a[a]);
-            document.getElementById('strategy-text').innerHTML = `Modo: ${currentAnalysisMode} | Rho: ${RHO_CORRECTION} <br> Prob. Over 2.5: ${(p_over*100).toFixed(1)}%`;
-            document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : "📊";
+            for(let h=0; h<=5; h++) { for(let a=0; a<=5; a++) { if(h+a > 2.5) p_over += (p_h[h] * p_a[a]); } }
+            
+            const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG (Kelly Activo)." : "Analizando con Goles (Stake 1 Plano).";
+            text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
+            document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : (p_over < 0.40 ? "🛡️" : "📊");
         }
 
         function renderChart(h, a) {
@@ -382,20 +464,36 @@
                 data: {
                     labels: ['0','1','2','3','4','5+'],
                     datasets: [
-                        { label: 'Local', data: h, borderColor: '#3b82f6', tension: 0.4 },
-                        { label: 'Visita', data: a, borderColor: '#f97316', tension: 0.4 }
+                        { label: 'Local', data: h, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                        { label: 'Visita', data: a, borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.05)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 } } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } }
+                    }
+                }
             });
         }
 
         function clearData() {
-            location.reload();
+            document.getElementById('league_name').value = '';
+            document.getElementById('event_name').value = '';
+            document.getElementById('h_gf').value = '';
+            document.getElementById('a_gf').value = '';
+            document.getElementById('score-matrix').innerHTML = '';
+            document.getElementById('market-table').innerHTML = '';
+            document.getElementById('strategy-assistant-box').classList.add('hidden');
+            autoAdjustRho();
+            if(pChart) { pChart.destroy(); pChart = null; }
         }
 
         window.onload = () => {
-            setAnalysisMode(localStorage.getItem(MODE_KEY) || 'GOLES');
+            const savedMode = localStorage.getItem(MODE_KEY) || 'GOLES';
+            setAnalysisMode(savedMode);
             autoAdjustRho();
         };
     </script>
