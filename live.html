@@ -32,7 +32,7 @@
             padding: 30px;
             position: relative;
             overflow: hidden;
-            text-align: center; /* Centrado de texto */
+            text-align: center; 
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
@@ -91,7 +91,7 @@
                 <h1 class="text-3xl font-black tracking-tighter italic gothic-font">BetAGS <span class="text-emerald-500">Quantum</span></h1>
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">LIVE ENGINE 2.0</div>
+                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">XG+XGA ENGINE</div>
             </div>
         </div>
     </nav>
@@ -109,7 +109,7 @@
                     </div>
 
                     <div class="space-y-6">
-                        <p class="label-mini border-b border-white/5 pb-2">Parámetros xG</p>
+                        <p class="label-mini border-b border-white/5 pb-2">Ataque (xG) y Defensa (xGA)</p>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Local</label>
@@ -117,9 +117,19 @@
                                        class="w-full input-accent py-4 text-3xl text-emerald-400 gothic-font" oninput="calculateLive()">
                             </div>
                             <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Local</label>
+                                <input type="number" id="manual-xga-h" step="0.1" placeholder="0.0" 
+                                       class="w-full input-accent py-4 text-3xl text-red-400 gothic-font" oninput="calculateLive()">
+                            </div>
+                            <div>
                                 <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Visita</label>
                                 <input type="number" id="manual-xg-a" step="0.1" placeholder="0.0" 
                                        class="w-full input-accent py-4 text-3xl text-amber-400 gothic-font" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Visita</label>
+                                <input type="number" id="manual-xga-a" step="0.1" placeholder="0.0" 
+                                       class="w-full input-accent py-4 text-3xl text-red-400 gothic-font" oninput="calculateLive()">
                             </div>
                         </div>
                     </div>
@@ -198,18 +208,30 @@
         }
 
         function calculateLive() {
+            // Entradas xG (Ataque)
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
+            
+            // Entradas xGA (Defensa)
+            const xgaH = parseFloat(document.getElementById('manual-xga-h').value) || 0;
+            const xgaA = parseFloat(document.getElementById('manual-xga-a').value) || 0;
+            
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            const totalXG = xgH + xgA;
+            // Lógica Poisson Pro: La expectativa de goles de un equipo es el promedio 
+            // entre su xG a favor y el xGA en contra del oponente.
+            const expH = (xgH + xgaA) / 2;
+            const expA = (xgA + xgaH) / 2;
+            const totalExp = expH + expA;
+
             const remHT = Math.max(0, 45 - currentMin);
             const remFT = Math.max(0, 90 - currentMin);
 
-            const lambdaHT = totalXG * (remHT / 90);
-            const lambdaFT = totalXG * (remFT / 90);
-            const lambdaH_FT = xgH * (remFT / 90);
-            const lambdaA_FT = xgA * (remFT / 90);
+            // Lambdas ajustadas por tiempo restante
+            const lambdaHT = totalExp * (remHT / 90);
+            const lambdaFT = totalExp * (remFT / 90);
+            const lambdaH_FT = expH * (remFT / 90);
+            const lambdaA_FT = expA * (remFT / 90);
 
             const p05ht = currentMin >= 45 ? 0 : (1 - getPoisson(0, lambdaHT));
             const p15ht = currentMin >= 45 ? 0 : (1 - (getPoisson(0, lambdaHT) + getPoisson(1, lambdaHT)));
@@ -234,7 +256,6 @@
             probText.innerText = perc.toFixed(1) + "%";
             fairOddText.innerText = value > 0.01 ? (1 / value).toFixed(2) : "---";
 
-            // Limpiar clases de brillo previas
             probText.classList.remove('glow-ht', 'glow-ft', 'glow-btts');
 
             if (value >= threshold && value > 0) {
