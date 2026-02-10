@@ -78,6 +78,27 @@
             color: #fff;
             border-color: rgba(251, 191, 36, 0.5);
         }
+
+        /* Estilo Botón Limpiar */
+        .btn-clear {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .btn-clear:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -133,6 +154,10 @@
                             </div>
                         </div>
                     </div>
+
+                    <button onclick="clearData()" class="btn-clear">
+                        <i class="fa-solid fa-trash-can mr-2"></i> Limpiar Datos
+                    </button>
                 </div>
             </div>
 
@@ -207,6 +232,15 @@
             return res;
         }
 
+        function clearData() {
+            document.getElementById('live-min-start').value = 0;
+            document.getElementById('manual-xg-h').value = '';
+            document.getElementById('manual-xga-h').value = '';
+            document.getElementById('manual-xg-a').value = '';
+            document.getElementById('manual-xga-a').value = '';
+            calculateLive();
+        }
+
         function calculateLive() {
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
@@ -227,16 +261,14 @@
             const lambdaH_FT = expH * (remFT / 90);
             const lambdaA_FT = expA * (remFT / 90);
 
-            // Cálculos de Probabilidades
             const p05ht = currentMin >= 45 ? 0 : (1 - getPoisson(0, lambdaHT));
-            const p05ft = 1 - getPoisson(0, lambdaFT); // Nuevo cálculo para Over 0.5 FT
+            const p05ft = 1 - getPoisson(0, lambdaFT);
             const p15ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT));
             const p25ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT) + getPoisson(2, lambdaFT));
             const pBTTS = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
 
-            // Actualización de Tarjetas
             updateMarket('o05-ht', p05ht, 0.70, 'glow-ht');
-            updateMarket('o05-ft', p05ft, 0.90, 'glow-ft'); // Umbral de alerta ajustado a 90% para O0.5 FT
+            updateMarket('o05-ft', p05ft, 0.90, 'glow-ft');
             updateMarket('o15-ft', p15ft, 0.80, 'glow-ft');
             updateMarket('o25-ft', p25ft, 0.55, 'glow-ft');
             updateMarket('btts', pBTTS, 0.60, 'glow-btts');
