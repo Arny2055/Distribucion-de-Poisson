@@ -149,13 +149,13 @@
                         </div>
                     </div>
 
-                    <div id="card-o15-ht" class="prob-card">
-                        <span id="tag-o15-ht" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
-                        <span class="label-mini">Over 1.5 HT</span>
-                        <div id="prob-o15-ht" class="value-large gothic-font">0%</div>
+                    <div id="card-o05-ft" class="prob-card">
+                        <span id="tag-o05-ft" class="status-tag bg-white/5 text-slate-500">Standby</span><br>
+                        <span class="label-mini">Over 0.5 FT</span>
+                        <div id="prob-o05-ft" class="value-large gothic-font">0%</div>
                         <div class="mt-4">
                             <p class="text-[11px] font-black text-slate-500 uppercase mb-2">Cuota Justa</p>
-                            <span id="fair-o15-ht" class="odd-badge">1.00</span>
+                            <span id="fair-o05-ft" class="odd-badge">1.00</span>
                         </div>
                     </div>
 
@@ -208,18 +208,13 @@
         }
 
         function calculateLive() {
-            // Entradas xG (Ataque)
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
-            
-            // Entradas xGA (Defensa)
             const xgaH = parseFloat(document.getElementById('manual-xga-h').value) || 0;
             const xgaA = parseFloat(document.getElementById('manual-xga-a').value) || 0;
             
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            // Lógica Poisson Pro: La expectativa de goles de un equipo es el promedio 
-            // entre su xG a favor y el xGA en contra del oponente.
             const expH = (xgH + xgaA) / 2;
             const expA = (xgA + xgaH) / 2;
             const totalExp = expH + expA;
@@ -227,20 +222,21 @@
             const remHT = Math.max(0, 45 - currentMin);
             const remFT = Math.max(0, 90 - currentMin);
 
-            // Lambdas ajustadas por tiempo restante
             const lambdaHT = totalExp * (remHT / 90);
             const lambdaFT = totalExp * (remFT / 90);
             const lambdaH_FT = expH * (remFT / 90);
             const lambdaA_FT = expA * (remFT / 90);
 
+            // Cálculos de Probabilidades
             const p05ht = currentMin >= 45 ? 0 : (1 - getPoisson(0, lambdaHT));
-            const p15ht = currentMin >= 45 ? 0 : (1 - (getPoisson(0, lambdaHT) + getPoisson(1, lambdaHT)));
+            const p05ft = 1 - getPoisson(0, lambdaFT); // Nuevo cálculo para Over 0.5 FT
             const p15ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT));
             const p25ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT) + getPoisson(2, lambdaFT));
             const pBTTS = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
 
+            // Actualización de Tarjetas
             updateMarket('o05-ht', p05ht, 0.70, 'glow-ht');
-            updateMarket('o15-ht', p15ht, 0.50, 'glow-ht');
+            updateMarket('o05-ft', p05ft, 0.90, 'glow-ft'); // Umbral de alerta ajustado a 90% para O0.5 FT
             updateMarket('o15-ft', p15ft, 0.80, 'glow-ft');
             updateMarket('o25-ft', p25ft, 0.55, 'glow-ft');
             updateMarket('btts', pBTTS, 0.60, 'glow-btts');
