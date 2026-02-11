@@ -43,10 +43,23 @@
             animation: pulse-alert 2s infinite;
         }
 
+        /* Alerta de Insight Cuántico */
+        .insight-alert {
+            animation: pulse-gold 1.5s infinite;
+            border: 1px solid #fbbf24 !important;
+            background: rgba(251, 191, 36, 0.1) !important;
+        }
+
         @keyframes pulse-alert {
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
             70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
             100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
         }
         
         .value-large { font-size: 4.5rem; font-weight: 400; line-height: 1; transition: all 0.3s; margin: 15px 0; }
@@ -79,7 +92,6 @@
             border-color: rgba(251, 191, 36, 0.5);
         }
 
-        /* Estilo Botón Limpiar */
         .btn-clear {
             width: 100%;
             margin-top: 20px;
@@ -99,6 +111,9 @@
             border-color: #ef4444;
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
         }
+
+        .efficiency-bar-bg { background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden; }
+        .efficiency-fill { height: 100%; transition: width 0.5s ease; }
     </style>
 </head>
 <body>
@@ -112,7 +127,7 @@
                 <h1 class="text-3xl font-black tracking-tighter italic gothic-font">BetAGS <span class="text-emerald-500">Quantum</span></h1>
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">XG + REAL GOALS ENGINE</div>
+                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">XG (70%) + GOALS (30%) ENGINE</div>
             </div>
         </div>
     </nav>
@@ -121,7 +136,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div class="lg:col-span-1 space-y-4 text-center">
-                <div class="glass-card p-8 rounded-3xl border-emerald-500/20">
+                <div class="glass-card p-8 rounded-3xl border-emerald-500/20 shadow-2xl">
                     <div class="mb-8">
                         <label class="label-mini block mb-4 text-emerald-500">Minuto de Entrada</label>
                         <input type="number" id="live-min-start" value="0" min="0" max="90" 
@@ -177,6 +192,31 @@
                                        class="w-full input-accent py-4 text-3xl text-red-200 gothic-font" oninput="calculateLive()">
                             </div>
                         </div>
+                    </div>
+
+                    <div id="quantum-insight-card" class="mt-8 pt-6 border-t border-white/5 space-y-4 rounded-xl transition-all duration-500">
+                        <h4 class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Análisis de Eficiencia Quantum</h4>
+                        
+                        <div class="text-left px-2">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-[9px] font-bold text-slate-400">EFICACIA LOCAL</span>
+                                <span id="eff-val-h" class="text-[10px] font-black text-emerald-400">0.0</span>
+                            </div>
+                            <div class="efficiency-bar-bg">
+                                <div id="eff-bar-h" class="efficiency-fill bg-emerald-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="text-left px-2">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-[9px] font-bold text-slate-400">EFICACIA VISITA</span>
+                                <span id="eff-val-a" class="text-[10px] font-black text-amber-400">0.0</span>
+                            </div>
+                            <div class="efficiency-bar-bg">
+                                <div id="eff-bar-a" class="efficiency-fill bg-amber-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p id="quantum-insight" class="text-[9px] italic text-slate-500 mt-2 leading-tight px-2">Introduce datos para generar el insight cuántico...</p>
                     </div>
 
                     <button onclick="clearData()" class="btn-clear">
@@ -244,6 +284,29 @@
     </div>
 
     <script>
+        let lastAlertState = false;
+
+        function playQuantumSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5
+                oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            } catch (e) { console.log("Audio alert blocked by browser"); }
+        }
+
         function getPoisson(k, lambda) {
             if (lambda <= 0) return k === 0 ? 1 : 0;
             const logExp = -lambda + k * Math.log(lambda) - logFactorial(k);
@@ -270,13 +333,10 @@
         }
 
         function calculateLive() {
-            // Inputs Local
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
             const gH = parseFloat(document.getElementById('manual-g-h').value) || 0;
             const xgaH = parseFloat(document.getElementById('manual-xga-h').value) || 0;
             const grH = parseFloat(document.getElementById('manual-gr-h').value) || 0;
-            
-            // Inputs Visita
             const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
             const gA = parseFloat(document.getElementById('manual-g-a').value) || 0;
             const xgaA = parseFloat(document.getElementById('manual-xga-a').value) || 0;
@@ -284,13 +344,16 @@
             
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            // Promedio Híbrido: (xG + Goles) / 2
-            const effectiveAttH = (xgH + gH) / 2;
-            const effectiveDefH = (xgaH + grH) / 2;
-            const effectiveAttA = (xgA + gA) / 2;
-            const effectiveDefA = (xgaA + grA) / 2;
+            const wXG = 0.7;
+            const wG = 0.3;
 
-            // Expectativa de goles basada en ataque de uno vs defensa del otro
+            const effectiveAttH = (xgH * wXG) + (gH * wG);
+            const effectiveDefH = (xgaH * wXG) + (grH * wG);
+            const effectiveAttA = (xgA * wXG) + (gA * wG);
+            const effectiveDefA = (xgaA * wXG) + (grA * wG);
+
+            updateEfficiency(xgH, gH, xgA, gA);
+
             const expH = (effectiveAttH + effectiveDefA) / 2;
             const expA = (effectiveAttA + effectiveDefH) / 2;
             const totalExp = expH + expA;
@@ -314,6 +377,39 @@
             updateMarket('o15-ft', p15ft, 0.80, 'glow-ft');
             updateMarket('o25-ft', p25ft, 0.55, 'glow-ft');
             updateMarket('btts', pBTTS, 0.60, 'glow-btts');
+        }
+
+        function updateEfficiency(xh, gh, xa, ga) {
+            const effH = xh > 0 ? (gh / xh) : 0;
+            const effA = xa > 0 ? (ga / xa) : 0;
+            const insightCard = document.getElementById('quantum-insight-card');
+
+            document.getElementById('eff-val-h').innerText = effH.toFixed(2);
+            document.getElementById('eff-val-a').innerText = effA.toFixed(2);
+
+            document.getElementById('eff-bar-h').style.width = Math.min(effH * 50, 100) + "%";
+            document.getElementById('eff-bar-a').style.width = Math.min(effA * 50, 100) + "%";
+
+            const insight = document.getElementById('quantum-insight');
+            let currentAlert = false;
+
+            if(xh + xa > 0) {
+                if(effH > 1.2 && effA > 1.2) insight.innerText = "ALTA FINALIZACIÓN: Ambos equipos están siendo letales con pocas chances.";
+                else if(effH < 0.8 && effA < 0.8) insight.innerText = "BLOQUEO CUÁNTICO: Muchos ataques pero fallos masivos en definición.";
+                else if(effH > 1.5 || effA > 1.5) {
+                    insight.innerText = effH > 1.5 ? "ALERTA: LOCAL OVERPERFORMING CRÍTICO." : "ALERTA: VISITA OVERPERFORMING CRÍTICO.";
+                    currentAlert = true;
+                }
+                else insight.innerText = "PROCESO NORMAL: Los goles están alineados con la creación de xG.";
+            }
+
+            if(currentAlert) {
+                insightCard.classList.add('insight-alert');
+                if(!lastAlertState) playQuantumSound();
+            } else {
+                insightCard.classList.remove('insight-alert');
+            }
+            lastAlertState = currentAlert;
         }
 
         function updateMarket(id, value, threshold, glowClass) {
