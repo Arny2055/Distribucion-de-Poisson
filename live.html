@@ -63,12 +63,14 @@
         }
         
         .value-large { font-size: 4.5rem; font-weight: 400; line-height: 1; transition: all 0.3s; margin: 15px 0; }
+        .value-mid { font-size: 3rem; font-weight: 400; line-height: 1; transition: all 0.3s; margin: 10px 0; }
         .label-mini { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; color: #94a3b8; }
         .odd-badge { background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 10px; font-family: monospace; font-size: 1.2rem; color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); display: inline-block; }
         
         .glow-ht { text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); color: #10b981; }
         .glow-ft { text-shadow: 0 0 20px rgba(59, 130, 246, 0.5); color: #3b82f6; }
         .glow-btts { text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); color: #fbbf24; }
+        .glow-win { text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); color: #a78bfa; }
         
         .status-tag { font-size: 11px; font-weight: 900; padding: 4px 12px; border-radius: 6px; text-transform: uppercase; margin-bottom: 12px; display: inline-block; letter-spacing: 1px; }
 
@@ -278,6 +280,24 @@
                         </div>
                     </div>
 
+                    <div class="md:col-span-2 grid grid-cols-3 gap-4">
+                        <div id="card-win-h" class="prob-card py-6">
+                            <span class="label-mini block mb-2">Local (1)</span>
+                            <div id="prob-win-h" class="value-mid gothic-font glow-win">0%</div>
+                            <span id="fair-win-h" class="text-[12px] font-mono text-amber-500">1.00</span>
+                        </div>
+                        <div id="card-win-d" class="prob-card py-6">
+                            <span class="label-mini block mb-2">Empate (X)</span>
+                            <div id="prob-win-d" class="value-mid gothic-font glow-win">0%</div>
+                            <span id="fair-win-d" class="text-[12px] font-mono text-amber-500">1.00</span>
+                        </div>
+                        <div id="card-win-a" class="prob-card py-6">
+                            <span class="label-mini block mb-2">Visita (2)</span>
+                            <div id="prob-win-a" class="value-mid gothic-font glow-win">0%</div>
+                            <span id="fair-win-a" class="text-[12px] font-mono text-amber-500">1.00</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -293,7 +313,7 @@
                 const gainNode = audioCtx.createGain();
 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
                 oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
 
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
@@ -343,6 +363,7 @@
             const grA = parseFloat(document.getElementById('manual-gr-a').value) || 0;
             
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
+            const remFT = Math.max(0, 90 - currentMin);
             
             const wXG = 0.7;
             const wG = 0.3;
@@ -359,24 +380,40 @@
             const totalExp = expH + expA;
 
             const remHT = Math.max(0, 45 - currentMin);
-            const remFT = Math.max(0, 90 - currentMin);
-
             const lambdaHT = totalExp * (remHT / 90);
             const lambdaFT = totalExp * (remFT / 90);
             const lambdaH_FT = expH * (remFT / 90);
             const lambdaA_FT = expA * (remFT / 90);
 
+            // Probabilidades Goles
             const p05ht = currentMin >= 45 ? 0 : (1 - getPoisson(0, lambdaHT));
             const p05ft = 1 - getPoisson(0, lambdaFT);
             const p15ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT));
             const p25ft = 1 - (getPoisson(0, lambdaFT) + getPoisson(1, lambdaFT) + getPoisson(2, lambdaFT));
             const pBTTS = (1 - Math.exp(-lambdaH_FT)) * (1 - Math.exp(-lambdaA_FT));
 
+            // Cálculo 1X2 (Matriz de Poisson simplificada)
+            let winH = 0, draw = 0, winA = 0;
+            const maxG = 8;
+            for (let i = 0; i <= maxG; i++) {
+                for (let j = 0; j <= maxG; j++) {
+                    const prob = getPoisson(i, lambdaH_FT) * getPoisson(j, lambdaA_FT);
+                    if (i > j) winH += prob;
+                    else if (i === j) draw += prob;
+                    else winA += prob;
+                }
+            }
+
             updateMarket('o05-ht', p05ht, 0.70, 'glow-ht');
             updateMarket('o05-ft', p05ft, 0.90, 'glow-ft');
             updateMarket('o15-ft', p15ft, 0.80, 'glow-ft');
             updateMarket('o25-ft', p25ft, 0.55, 'glow-ft');
             updateMarket('btts', pBTTS, 0.60, 'glow-btts');
+            
+            // Actualizar 1X2
+            updateMarket('win-h', winH, 0.65, 'glow-win');
+            updateMarket('win-d', draw, 0.35, 'glow-win');
+            updateMarket('win-a', winA, 0.65, 'glow-win');
         }
 
         function updateEfficiency(xh, gh, xa, ga) {
@@ -394,12 +431,10 @@
             let currentAlert = false;
 
             if(xh + xa > 0) {
-                if(effH > 1.2 && effA > 1.2) insight.innerText = "ALTA FINALIZACIÓN: Ambos equipos están siendo letales con pocas chances.";
-                else if(effH < 0.8 && effA < 0.8) insight.innerText = "BLOQUEO CUÁNTICO: Muchos ataques pero fallos masivos en definición.";
-                else if(effH > 1.5 || effA > 1.5) {
+                if(effH > 1.5 || effA > 1.5) {
                     insight.innerText = effH > 1.5 ? "ALERTA: LOCAL OVERPERFORMING CRÍTICO." : "ALERTA: VISITA OVERPERFORMING CRÍTICO.";
                     currentAlert = true;
-                }
+                } else if(effH > 1.2 && effA > 1.2) insight.innerText = "ALTA FINALIZACIÓN: Ambos equipos están siendo letales con pocas chances.";
                 else insight.innerText = "PROCESO NORMAL: Los goles están alineados con la creación de xG.";
             }
 
@@ -422,7 +457,10 @@
             probText.innerText = perc.toFixed(1) + "%";
             fairOddText.innerText = value > 0.01 ? (1 / value).toFixed(2) : "---";
 
-            probText.classList.remove('glow-ht', 'glow-ft', 'glow-btts');
+            if (probText.classList.contains('glow-ht') || probText.classList.contains('glow-ft') || 
+                probText.classList.contains('glow-btts') || probText.classList.contains('glow-win')) {
+                probText.classList.remove('glow-ht', 'glow-ft', 'glow-btts', 'glow-win');
+            }
 
             if (value >= threshold && value > 0) {
                 card.classList.add('alert-active');
