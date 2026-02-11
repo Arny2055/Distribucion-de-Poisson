@@ -3,130 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Score Lab - BetAGS Pro</title>
+    <title>BetAGS Pro - Poisson Matchup</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-
         :root { 
-            --score-bg: #0b0e11; 
-            --score-card: #161a1e; 
-            --score-green: #008a4b; 
-            --score-amber: #7a5118;
-            --score-red: #5c1a1a;
-            --score-text-muted: #848d95;
-            --score-accent: #3d434a;
+            --bet-green: #006341; 
+            --bet-yellow: #ffeb00; 
+            --dark-bg: #020617; /* Azul ultra oscuro casi negro */
+            --card-bg: #0f172a; /* Slate profundo para tarjetas */
+            --accent-green: #00ff88; 
+            --gold-value: #ffd700; 
+            --bet-blue: #3b82f6; 
         }
         
         body { 
-            background-color: var(--score-bg); 
-            color: #ffffff; 
+            background-color: var(--dark-bg); 
+            color: #f8fafc; 
             font-family: 'Inter', sans-serif; 
+            background-image: radial-gradient(circle at top right, #0f172a, var(--dark-bg));
             min-height: 100vh;
         }
 
-        .score-card { 
-            background: var(--score-card); 
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.8); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.03); 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease; 
         }
 
-        .stat-badge {
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-weight: 800;
-            text-align: center;
-            font-size: 13px;
-            min-width: 65px;
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
         }
-
-        .bg-score-green { background-color: rgba(0, 138, 75, 0.3); color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.2); }
-        .bg-score-amber { background-color: rgba(122, 81, 24, 0.3); color: #ffb84d; border: 1px solid rgba(255, 184, 77, 0.2); }
-        .bg-score-red { background-color: rgba(92, 26, 26, 0.3); color: #ff5c5c; border: 1px solid rgba(255, 92, 92, 0.2); }
 
         input { 
-            background-color: #1c2127 !important; 
+            background-color: #020617 !important; 
             color: white !important; 
-            border: 1px solid #2d343c !important; 
-            border-radius: 10px; 
-            font-size: 0.9rem; 
+            border: 1px solid #1e293b !important; 
+            border-radius: 0.5rem; 
+            font-size: 0.8rem; 
+            transition: all 0.3s ease; 
         }
 
-        .mode-selector { background: #1c2127; border-radius: 12px; padding: 4px; display: flex; }
-        .mode-btn { flex: 1; padding: 10px; font-size: 11px; font-weight: 800; border-radius: 10px; text-align: center; cursor: pointer; color: var(--score-text-muted); transition: 0.3s; }
-        .mode-btn.active { background: #3d434a; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        input:focus {
+            border-color: var(--accent-green) !important;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+        }
+
+        .recommendation-box { 
+            background: linear-gradient(135deg, #1e1b4b 0%, #020617 100%); 
+            border: 1px solid #312e81; 
+            padding: 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
 
         .matrix-cell { 
-            padding: 8px; 
+            padding: 6px; 
             text-align: center; 
-            border: 1px solid rgba(255,255,255,0.05); 
-            font-size: 10px; 
-            border-radius: 8px; 
-            background: #1c2127;
+            border: 1px solid rgba(255,255,255,0.03); 
+            font-size: 9px; 
+            border-radius: 4px; 
+            background: rgba(0,0,0,0.2);
+            transition: transform 0.2s;
         }
 
-        .table-header { color: var(--score-text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .matrix-cell-gold {
+            background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%) !important;
+            color: #000 !important;
+            font-weight: 900 !important;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+            border: 1px solid #fff !important;
+            transform: scale(1.05);
+            z-index: 10;
+        }
         
-        .divider { border-bottom: 1px solid rgba(255,255,255,0.05); margin: 15px 0; }
-        
-        .tab-active { border-bottom: 3px solid #7c3aed; color: #ffffff; }
+        /* Modos de Análisis */
+        .mode-selector { display: flex; background: #020617; border-radius: 8px; padding: 2px; border: 1px solid #1e293b; }
+        .mode-btn { flex: 1; padding: 6px; font-size: 10px; font-weight: 800; border-radius: 6px; transition: all 0.3s; text-align: center; cursor: pointer; color: #64748b; }
+        .mode-btn.active { background: var(--bet-green); color: white; border: 1px solid var(--accent-green); }
+        .mode-btn.active-xg { background: var(--bet-blue); color: white; border: 1px solid #60a5fa; }
 
-        /* Estilo Score Lab para los promedios */
-        .input-group-label { font-size: 10px; font-weight: 700; color: #848d95; margin-bottom: 6px; text-transform: uppercase; }
+        /* Estilos dinámicos para xG */
+        .input-container-xg { border-color: rgba(59, 130, 246, 0.3) !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        .input-xg { border-color: var(--bet-blue) !important; }
+
+        .gold-value-row { background: linear-gradient(90deg, rgba(255, 215, 0, 0.02), rgba(255, 215, 0, 0.08)) !important; border-left: 4px solid var(--gold-value) !important; }
+        
+        .scroll-custom::-webkit-scrollbar { width: 5px; }
+        .scroll-custom::-webkit-scrollbar-track { background: #020617; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .scroll-custom::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        thead th { background-color: #020617 !important; }
     </style>
 </head>
 <body>
-    <nav class="bg-[#0b0e11] border-b border-white/5 p-4 sticky top-0 z-50">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-chevron-left text-white/50"></i>
-                <h1 class="text-lg font-bold">Chapecoense <span class="text-white/30 mx-1">0 : 0</span> Coritiba</h1>
+    <nav class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 p-4">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-black italic text-white tracking-tighter">
+                BET<span class="text-bet-yellow">AGS</span> <span class="text-[10px] uppercase tracking-widest text-emerald-400 not-italic ml-1">MATCHUP EDITION</span>
+            </h1>
+            <div class="flex bg-slate-900 p-1 rounded-xl gap-1 items-center border border-white/5 overflow-x-auto max-w-full">
+                <a href="#" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-bet-yellow shadow-inner">Poisson</a>
+                <a href="live.html" class="px-4 py-2 rounded-lg text-xs font-bold text-fuchsia-400 hover:text-white hover:bg-fuchsia-600/20 transition-all"><i class="fa-solid fa-bolt-lightning mr-2 animate-pulse"></i>Live Analysis</a>
+                <a href="roi.html" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><i class="fa-solid fa-flask-vial mr-2"></i>ROI Pre</a>
+                <a href="roilive.html" class="px-4 py-2 rounded-lg text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all border border-rose-500/20"><i class="fa-solid fa-satellite-dish mr-2 animate-pulse"></i>ROI Live</a>
+                <a href="https://www.thestatsdontlie.com/football/leagues/" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 transition-all border border-emerald-500/20"><i class="fa-solid fa-list-check mr-2"></i>Stats Leagues</a>
             </div>
-            <div class="bg-red-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">32'</div>
         </div>
     </nav>
 
-    <div class="container mx-auto p-4 max-w-6xl">
-        <div class="flex gap-6 mb-6 border-b border-white/5 overflow-x-auto whitespace-nowrap scrollbar-hide">
-            <span class="pb-3 text-sm font-bold text-white/40">Overview</span>
-            <span class="pb-3 text-sm font-bold tab-active">Stats</span>
-            <span class="pb-3 text-sm font-bold text-white/40">Lineups</span>
-            <span class="pb-3 text-sm font-bold text-white/40">Matches</span>
-            <span class="pb-3 text-sm font-bold text-white/40">Compare</span>
+    <div class="container mx-auto p-4 max-w-7xl">
+        <div id="strategy-assistant-box" class="recommendation-box hidden mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-black text-blue-400 uppercase mb-1"><i class="fa-solid fa-robot mr-2"></i>ASISTENTE DE ESTRATEGIA</h3>
+                    <div id="strategy-text" class="text-sm text-slate-100 font-medium italic">Introduce promedios para analizar...</div>
+                </div>
+                <div id="strategy-signal" class="text-2xl animate-bounce"></div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-4 space-y-4">
-                <div class="score-card p-5">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                                <i class="fa-solid fa-chart-line text-amber-500 text-sm"></i>
-                            </div>
-                            <h2 class="text-sm font-bold">Over / Under Stats</h2>
+                <div class="glass-card p-5 rounded-2xl">
+                    <h2 class="text-xs font-bold text-slate-500 uppercase mb-3"><i class="fa-solid fa-pen-to-square mr-2"></i>Identificación</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-1">
+                            <input type="text" id="league_name" placeholder="Liga" class="p-2 uppercase font-bold text-emerald-400" oninput="autoAdjustRho()">
+                            <span id="rho_indicator" class="text-[8px] font-bold text-slate-500 uppercase px-1">Rho: -0.11 (Standard)</span>
                         </div>
+                        <input type="text" id="event_name" placeholder="Evento" class="p-2 uppercase font-bold text-emerald-400">
                     </div>
+                </div>
 
-                    <div class="mode-selector mb-6">
-                        <div onclick="setAnalysisMode('GOLES')" id="mode-goles" class="mode-btn active">OVER</div>
-                        <div onclick="setAnalysisMode('XG')" id="mode-xg" class="mode-btn">UNDER</div>
+                <div class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500/50 shadow-lg" id="main-input-card">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-xs font-bold text-emerald-400 uppercase" id="config-title"><i class="fa-solid fa-chart-line mr-2"></i>Configuración</h2>
+                        <div class="mode-selector w-32">
+                            <div onclick="setAnalysisMode('GOLES')" id="mode-goles" class="mode-btn active">GOLES</div>
+                            <div onclick="setAnalysisMode('XG')" id="mode-xg" class="mode-btn">xG</div>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
-                        <div>
-                            <p class="input-group-label">Local (A Favor)</p>
-                            <input type="number" id="h_gf" step="0.01" class="w-full p-4 text-xl font-bold" placeholder="0.00">
+                        <div class="bg-black/20 p-4 rounded-xl border border-blue-500/10 transition-all duration-300" id="container_h">
+                            <label class="text-[9px] font-black text-blue-400 mb-2 uppercase block">Local (A Favor)</label>
+                            <input type="number" id="h_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.75">
                         </div>
-                        <div>
-                            <p class="input-group-label">Visitante (A Favor)</p>
-                            <input type="number" id="a_gf" step="0.01" class="w-full p-4 text-xl font-bold" placeholder="0.00">
+
+                        <div class="bg-black/20 p-4 rounded-xl border border-orange-500/10 transition-all duration-300" id="container_a">
+                            <label class="text-[9px] font-black text-orange-400 mb-2 uppercase block">Visitante (A Favor)</label>
+                            <input type="number" id="a_gf" step="0.01" class="w-full p-3 text-lg" placeholder="Ej: 1.20">
                         </div>
                         
-                        <div class="pt-2">
-                            <button id="calc-btn" onclick="calculatePoisson()" class="w-full bg-[#008a4b] hover:bg-emerald-500 py-4 rounded-xl font-black text-sm uppercase transition-all shadow-lg">
-                                Generar Análisis
+                        <div class="flex flex-col gap-2">
+                            <button id="calc-btn" onclick="calculatePoisson()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]">
+                                Calcular Probabilidades
+                            </button>
+                            <button id="clear-btn" onclick="clearData()" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded-lg font-bold text-[10px] text-slate-400 uppercase tracking-widest transition-all">
+                                <i class="fa-solid fa-trash-can mr-2"></i>Limpiar Datos
                             </button>
                         </div>
                     </div>
@@ -134,37 +174,134 @@
             </div>
 
             <div class="lg:col-span-8 space-y-4">
-                <div class="score-card p-4 overflow-hidden">
-                    <div class="flex justify-between items-center mb-4 px-2">
-                        <span class="text-[11px] font-black text-white/20 uppercase">Mercado</span>
-                        <div class="flex gap-10">
-                            <span class="text-[11px] font-black text-emerald-500 uppercase">Local</span>
-                            <span class="text-[11px] font-black text-blue-400 uppercase">Visita</span>
-                            <span class="text-[11px] font-black text-white/40 uppercase">AVG</span>
-                        </div>
-                    </div>
-                    
-                    <div id="market-table" class="space-y-2">
-                        <div class="text-center py-10 text-white/20 text-xs italic">Ingresa los promedios para ver las probabilidades de Score Lab</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-card p-4 rounded-2xl h-[250px]"><canvas id="poissonChart"></canvas></div>
+                    <div class="glass-card p-4 rounded-2xl overflow-y-auto max-h-[250px] scroll-custom">
+                        <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-2">Matriz de Marcador Exacto (Dixon-Coles)</h3>
+                        <div class="grid grid-cols-6 gap-1" id="score-matrix"></div>
                     </div>
                 </div>
-
-                <div class="score-card p-5">
-                    <h3 class="text-[11px] font-black text-white/30 uppercase mb-4 tracking-widest">Probabilidades de Marcador Exacto</h3>
-                    <div class="grid grid-cols-6 gap-2" id="score-matrix"></div>
+                
+                <div class="glass-card rounded-2xl overflow-hidden border border-white/5">
+                    <table class="w-full text-left text-xs">
+                        <thead class="text-[9px] text-slate-500 uppercase font-bold border-b border-white/5">
+                            <tr>
+                                <th class="p-4">Mercado Objetivos</th>
+                                <th class="p-4">Prob %</th>
+                                <th class="p-4">C. Justa</th>
+                                <th class="p-4">C. Casa</th>
+                                <th class="p-4">Edge</th>
+                                <th class="p-4">Stake</th>
+                                <th class="p-4 text-center">ROI Lab</th>
+                            </tr>
+                        </thead>
+                        <tbody id="market-table" class="divide-y divide-white/5"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        let pChart;
         let currentAnalysisMode = 'GOLES';
+        // Mejora aplicada: STORAGE_KEY exclusivo para Pre-Match
+        const STORAGE_KEY = 'betags_pre_match'; 
+        const MODE_KEY = 'betags_preferred_mode'; 
+        
+        // Parámetro Rho para Dixon-Coles
         let RHO_CORRECTION = -0.11;
+
+        // DICCIONARIO EXPANDIDO BILINGÜE DE RHO
+        const RHO_MAP = [
+            { 
+                keys: [
+                    'bundesliga', 'eredivisie', 'mls', 'holanda', 'netherlands', 'holland', 'alemania', 'germany', 
+                    'austria', 'noruega', 'norway', 'suecia', 'sweden', 'dinamarca', 'denmark', 'islandia', 'iceland', 
+                    'suiza', 'switzerland', 'bélgica', 'belgium', 'japan', 'j-league', 'australia', 'a-league', 
+                    'finlandia', 'finland', 'estonia', 'suomi', 'eliteserien', 'allsvenskan', 'superligaen', 
+                    'tipico', 'nb i', 'hungría', 'hungary'
+                ], 
+                value: -0.07, 
+                label: 'Ofensiva (+Over)' 
+            },
+            { 
+                keys: [
+                    'premier', 'england', 'laliga', 'spain', 'serie a', 'italy', 'liga mx', 'mexico', 'mx', 
+                    'champions', 'libertadores', 'mundial', 'world cup', 'eurocopa', 'euro', 'liga nos', 
+                    'portugal', 'rusia', 'russia', 'turkey', 'turquía', 'brasil a', 'brazil', 'chile', 
+                    'uruguay', 'paraguay', 'ecuador', 'concacaf', 'uefa', 'south africa', 'scotland', 
+                    'escocia', 'bolivia', 'mls next', 'copa oro', 'mls pro', 'premier league', 'fa cup', 
+                    'copa del rey'
+                ], 
+                value: -0.11, 
+                label: 'Standard' 
+            },
+            { 
+                keys: [
+                    'ligue 2', 'france 2', 'segunda', 'spain 2', 'argentina', 'colombia', 'brasil b', 'brazil b', 
+                    'grecia', 'greece', 'iran', 'rumania', 'romania', 'marruecos', 'morocco', 'egipto', 'egypt', 
+                    'argelia', 'algeria', 'tunisia', 'túnez', 'sudáfrica', 'venezuela', 'perú', 'peru', 
+                    'b nacional', 'ascenso', 'italia b', 'serie b', 'bwin', 'costa rica', 'honduras', 
+                    'guatemala', 'israel', 'chipre', 'cyprus', 'albania', 'championship', 
+                    'league one', 'league two', 'primera b', 'expansion', 'copa argentina'
+                ], 
+                value: -0.15, 
+                label: 'Defensiva (+Under)' 
+            }
+        ];
+
+        function autoAdjustRho() {
+            const leagueInput = document.getElementById('league_name').value.toLowerCase();
+            const indicator = document.getElementById('rho_indicator');
+            
+            let newVal = -0.11;
+            let newLabel = 'Standard';
+
+            for (const group of RHO_MAP) {
+                if (group.keys.some(key => leagueInput.includes(key))) {
+                    newVal = group.value;
+                    newLabel = group.label;
+                    break;
+                }
+            }
+
+            RHO_CORRECTION = newVal;
+            indicator.innerText = `Rho: ${newVal} (${newLabel})`;
+            indicator.style.color = newVal === -0.07 ? '#00ff88' : (newVal === -0.15 ? '#f87171' : '#64748b');
+        }
 
         function setAnalysisMode(mode) {
             currentAnalysisMode = mode;
-            document.getElementById('mode-goles').classList.toggle('active', mode === 'GOLES');
-            document.getElementById('mode-xg').classList.toggle('active', mode === 'XG');
+            localStorage.setItem(MODE_KEY, mode);
+
+            const btnGoles = document.getElementById('mode-goles');
+            const btnXG = document.getElementById('mode-xg');
+            const card = document.getElementById('main-input-card');
+            const contH = document.getElementById('container_h');
+            const contA = document.getElementById('container_a');
+            const calcBtn = document.getElementById('calc-btn');
+            const title = document.getElementById('config-title');
+
+            if(mode === 'GOLES') {
+                btnGoles.classList.add('active');
+                btnXG.classList.remove('active', 'active-xg');
+                card.style.borderLeftColor = "rgba(16, 185, 129, 0.5)";
+                contH.classList.remove('input-container-xg');
+                contA.classList.remove('input-container-xg');
+                calcBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]";
+                title.classList.replace('text-blue-400', 'text-emerald-400');
+            } else {
+                btnXG.classList.add('active', 'active-xg');
+                btnGoles.classList.remove('active');
+                card.style.borderLeftColor = "rgba(59, 130, 246, 0.5)";
+                contH.classList.add('input-container-xg');
+                contA.classList.add('input-container-xg');
+                calcBtn.className = "w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]";
+                title.classList.add('text-blue-400');
+                title.classList.remove('text-emerald-400');
+            }
+            // Recalcular si ya hay datos
             if(document.getElementById('h_gf').value) calculatePoisson();
         }
 
@@ -179,63 +316,187 @@
             return 1;
         }
 
-        function getBadgeClass(prob) {
-            if (prob >= 0.70) return 'bg-score-green';
-            if (prob >= 0.40) return 'bg-score-amber';
-            return 'bg-score-red';
-        }
-
         function calculatePoisson() {
-            const lh = parseFloat(document.getElementById('h_gf').value) || 0;
-            const la = parseFloat(document.getElementById('a_gf').value) || 0;
+            const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+            const lambda_h = val('h_gf');
+            const lambda_a = val('a_gf');
 
-            if(lh <= 0 && la <= 0) return;
+            if(lambda_h <= 0 && lambda_a <= 0) return alert("Ingresa los promedios.");
 
             let p_h = [], p_a = [];
             for(let i=0; i<=5; i++) { 
-                p_h.push(poissonProb(i, lh)); 
-                p_a.push(poissonProb(i, la)); 
+                p_h.push(poissonProb(i, lambda_h)); 
+                p_a.push(poissonProb(i, lambda_a)); 
             }
             
-            // Procesar Mercados Estilo Score Lab
-            const markets = [
-                { name: '0.5 Over', h: 1 - p_h[0], a: 1 - p_a[0] },
-                { name: '1.5 Over', h: 1 - (p_h[0] + p_h[1]), a: 1 - (p_a[0] + p_a[1]) },
-                { name: '2.5 Over', h: 1 - (p_h[0] + p_h[1] + p_h[2]), a: 1 - (p_a[0] + p_a[1] + p_a[2]) },
-                { name: '3.5 Over', h: 1 - (p_h[0] + p_h[1] + p_h[2] + p_h[3]), a: 1 - (p_a[0] + p_a[1] + p_a[2] + p_a[3]) }
-            ];
+            renderChart(p_h, p_a);
+            processMarkets(p_h, p_a, lambda_h, lambda_a);
+            updateAssistant(p_h, p_a);
+        }
 
-            const container = document.getElementById('market-table');
-            container.innerHTML = '';
+        function processMarkets(p_h, p_a, lh, la) {
+            let p_over = 0, p_under = 0;
+            const matrix = document.getElementById('score-matrix'); matrix.innerHTML = '';
+            let maxProb = 0;
+            let bestScore = "0-0";
 
-            markets.forEach(m => {
-                const avg = (m.h + m.a) / 2;
-                container.innerHTML += `
-                    <div class="flex justify-between items-center p-2 rounded-lg hover:bg-white/5 transition-all">
-                        <span class="text-sm font-semibold text-white/70">${m.name}</span>
-                        <div class="flex gap-2">
-                            <div class="stat-badge ${getBadgeClass(m.h)}">${(m.h * 100).toFixed(0)}%</div>
-                            <div class="stat-badge ${getBadgeClass(m.a)}">${(m.a * 100).toFixed(0)}%</div>
-                            <div class="stat-badge ${getBadgeClass(avg)}">${(avg * 100).toFixed(0)}%</div>
-                        </div>
-                    </div>
-                `;
-            });
+            for(let h=0; h<=5; h++) {
+                for(let a=0; a<=5; a++) {
+                    const tau = getDixonColesTau(h, a, lh, la);
+                    const prob = (p_h[h] * p_a[a]) * tau;
+                    if(prob > maxProb) { maxProb = prob; bestScore = `${h}-${a}`; }
+                }
+            }
 
-            // Matriz de Marcadores
-            const matrix = document.getElementById('score-matrix');
-            matrix.innerHTML = '';
-            for(let h=0; h<=3; h++) {
-                for(let a=0; a<=3; a++) {
-                    const prob = (p_h[h] * p_a[a]) * getDixonColesTau(h, a, lh, la);
+            for(let h=0; h<=5; h++) {
+                for(let a=0; a<=5; a++) {
+                    const tau = getDixonColesTau(h, a, lh, la);
+                    const prob = (p_h[h] * p_a[a]) * tau;
+                    if(h + a > 2.5) p_over += prob;
+                    if(h + a < 2.5) p_under += prob;
+                    
                     const cell = document.createElement('div');
                     cell.className = 'matrix-cell';
-                    cell.style.borderLeft = `3px solid ${prob > 0.1 ? '#00ff88' : 'transparent'}`;
-                    cell.innerHTML = `<div class="text-white/40 text-[9px] mb-1">${h}-${a}</div><div class="font-bold">${(prob*100).toFixed(1)}%</div>`;
+                    if(prob === maxProb && prob > 0) cell.classList.add('matrix-cell-gold');
+                    else cell.style.backgroundColor = `rgba(0, 255, 136, ${prob * 4})`;
+                    cell.innerHTML = `<b>${h}-${a}</b><br>${(prob*100).toFixed(1)}%`;
                     matrix.appendChild(cell);
                 }
             }
+            
+            let p_btts_no = 0;
+            for(let i=0; i<=5; i++) {
+                p_btts_no += (p_h[i] * p_a[0]) * getDixonColesTau(i, 0, lh, la);
+                if(i > 0) p_btts_no += (p_h[0] * p_a[i]) * getDixonColesTau(0, i, la, lh);
+            }
+
+            const markets = [
+                { id: 'cs', name: `MARCADOR: ${bestScore}`, prob: maxProb },
+                { id: 'o25', name: 'OVER 2.5 GOLES', prob: p_over },
+                { id: 'u25', name: 'UNDER 2.5 GOLES', prob: p_under },
+                { id: 'by', name: 'BTTS (SÍ)', prob: 1 - p_btts_no },
+                { id: 'bn', name: 'BTTS (NO)', prob: p_btts_no }
+            ];
+
+            const tbody = document.getElementById('market-table'); tbody.innerHTML = '';
+            markets.forEach(m => {
+                const fair = (1 / m.prob).toFixed(2);
+                const isCS = m.id === 'cs' ? 'border-l-4 border-yellow-500 bg-yellow-500/5' : '';
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-all duration-500 ${isCS}" id="row_${m.id}">
+                        <td class="p-4 font-bold ${m.id === 'cs' ? 'text-yellow-400' : 'text-slate-300'}">${m.name}</td>
+                        <td class="p-4 text-emerald-400 font-bold">${(m.prob * 100).toFixed(1)}%</td>
+                        <td class="p-4 text-slate-500 font-mono">${fair}</td>
+                        <td class="p-4"><input type="number" step="0.01" class="w-16 p-1 text-center font-bold" oninput="updateEdge('${m.id}', ${m.prob})" id="odd_${m.id}"></td>
+                        <td class="p-4 font-black" id="edge_${m.id}">--</td>
+                        <td class="p-4 text-bet-yellow font-black" id="stake_${m.id}">--</td>
+                        <td class="p-4 text-center"><button onclick="sendToROI('${m.id}', '${m.name}', ${m.prob})" class="bg-emerald-600 hover:bg-emerald-500 text-[9px] px-3 py-2 rounded font-black uppercase transition-all">ROI</button></td>
+                    </tr>
+                `;
+            });
         }
+
+        function updateEdge(id, prob) {
+            const odd = parseFloat(document.getElementById('odd_' + id).value) || 0;
+            const edgeEl = document.getElementById('edge_' + id);
+            const stakeEl = document.getElementById('stake_' + id);
+            const rowEl = document.getElementById('row_' + id);
+            
+            if(odd > 1) {
+                const edge = (odd * prob) - 1;
+                const edgePercent = (edge * 100).toFixed(1);
+                edgeEl.innerText = edgePercent + "%";
+                rowEl.classList.toggle('gold-value-row', edgePercent >= 8.0);
+                edgeEl.style.color = edge > 0 ? "#00ff88" : "#ff4444";
+                
+                // MEJORA: Si es modo GOLES, usa Stake 1 Parejo. Si es xG, usa Kelly.
+                if(currentAnalysisMode === 'GOLES') {
+                    stakeEl.innerText = (edge > 0) ? "1.0%" : "0.0%";
+                } else {
+                    const kelly = (prob - (1 - prob)/(odd - 1)) * 0.125; 
+                    stakeEl.innerText = Math.max(0, kelly * 100).toFixed(1) + "%";
+                }
+            }
+        }
+
+        function sendToROI(id, market, prob) {
+            const league = document.getElementById('league_name').value.trim() || 'Desconocida';
+            const event = document.getElementById('event_name').value.trim() || 'Evento';
+            const odd = parseFloat(document.getElementById('odd_' + id).value);
+            if(!odd) return alert("⚠️ Introduce la cuota.");
+            
+            const newBet = {
+                id: Date.now(), 
+                date: new Date().toISOString().split('T')[0], 
+                teams: `[${currentAnalysisMode}] ${league}: ${event}`, 
+                market: market, 
+                prob: prob, 
+                odd: odd, 
+                edge: document.getElementById('edge_' + id).innerText, 
+                stake: parseFloat(document.getElementById('stake_' + id).innerText) || 0, 
+                status: 'pending', 
+                profit: 0
+            };
+            
+            let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            bets.unshift(newBet); 
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+            
+            const btn = document.querySelector(`#row_${id} button`); 
+            btn.innerHTML = '✅'; 
+            setTimeout(() => btn.innerHTML = 'ROI', 2000);
+        }
+
+        function updateAssistant(p_h, p_a) {
+            const box = document.getElementById('strategy-assistant-box'); box.classList.remove('hidden');
+            const text = document.getElementById('strategy-text');
+            let p_over = 0;
+            for(let h=0; h<=5; h++) { for(let a=0; a<=5; a++) { if(h+a > 2.5) p_over += (p_h[h] * p_a[a]); } }
+            
+            const modeText = currentAnalysisMode === 'XG' ? "Analizando con xG (Kelly Activo)." : "Analizando con Goles (Stake 1 Plano).";
+            text.innerHTML = `${modeText} | Dixon-Coles: ${RHO_CORRECTION} <br> <span class="text-xs text-slate-400">${p_over > 0.60 ? "ESCENARIO DINÁMICO: TENDENCIA AL OVER." : (p_over < 0.40 ? "ESCENARIO CERRADO: TENDENCIA AL UNDER." : "MERCADO EN EQUILIBRIO ESTADÍSTICO.")}`;
+            document.getElementById('strategy-signal').innerText = p_over > 0.60 ? "🔥" : (p_over < 0.40 ? "🛡️" : "📊");
+        }
+
+        function renderChart(h, a) {
+            const ctx = document.getElementById('poissonChart').getContext('2d'); if(pChart) pChart.destroy();
+            pChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['0','1','2','3','4','5+'],
+                    datasets: [
+                        { label: 'Local', data: h, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                        { label: 'Visita', data: a, borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.05)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }
+                    ]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 } } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+
+        function clearData() {
+            document.getElementById('league_name').value = '';
+            document.getElementById('event_name').value = '';
+            document.getElementById('h_gf').value = '';
+            document.getElementById('a_gf').value = '';
+            document.getElementById('score-matrix').innerHTML = '';
+            document.getElementById('market-table').innerHTML = '';
+            document.getElementById('strategy-assistant-box').classList.add('hidden');
+            autoAdjustRho();
+            if(pChart) { pChart.destroy(); pChart = null; }
+        }
+
+        window.onload = () => {
+            const savedMode = localStorage.getItem(MODE_KEY) || 'GOLES';
+            setAnalysisMode(savedMode);
+            autoAdjustRho();
+        };
     </script>
 </body>
 </html>
