@@ -112,7 +112,7 @@
                 <h1 class="text-3xl font-black tracking-tighter italic gothic-font">BetAGS <span class="text-emerald-500">Quantum</span></h1>
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">XG+XGA ENGINE</div>
+                <div class="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">XG + REAL GOALS ENGINE</div>
             </div>
         </div>
     </nav>
@@ -130,27 +130,51 @@
                     </div>
 
                     <div class="space-y-6">
-                        <p class="label-mini border-b border-white/5 pb-2">Ataque (xG) y Defensa (xGA)</p>
+                        <p class="label-mini border-b border-white/5 pb-2">Estadísticas Local</p>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Local</label>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Marcado</label>
                                 <input type="number" id="manual-xg-h" step="0.1" placeholder="0.0" 
                                        class="w-full input-accent py-4 text-3xl text-emerald-400 gothic-font" oninput="calculateLive()">
                             </div>
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Local</label>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Goles Marcados</label>
+                                <input type="number" id="manual-g-h" step="1" placeholder="0" 
+                                       class="w-full input-accent py-4 text-3xl text-emerald-200 gothic-font" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Recibido</label>
                                 <input type="number" id="manual-xga-h" step="0.1" placeholder="0.0" 
                                        class="w-full input-accent py-4 text-3xl text-red-400 gothic-font" oninput="calculateLive()">
                             </div>
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Visita</label>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Goles Recibidos</label>
+                                <input type="number" id="manual-gr-h" step="1" placeholder="0" 
+                                       class="w-full input-accent py-4 text-3xl text-red-200 gothic-font" oninput="calculateLive()">
+                            </div>
+                        </div>
+
+                        <p class="label-mini border-b border-white/5 pb-2 pt-4">Estadísticas Visita</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xG Marcado</label>
                                 <input type="number" id="manual-xg-a" step="0.1" placeholder="0.0" 
                                        class="w-full input-accent py-4 text-3xl text-amber-400 gothic-font" oninput="calculateLive()">
                             </div>
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Visita</label>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Goles Marcados</label>
+                                <input type="number" id="manual-g-a" step="1" placeholder="0" 
+                                       class="w-full input-accent py-4 text-3xl text-amber-200 gothic-font" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">xGA Recibido</label>
                                 <input type="number" id="manual-xga-a" step="0.1" placeholder="0.0" 
                                        class="w-full input-accent py-4 text-3xl text-red-400 gothic-font" oninput="calculateLive()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Goles Recibidos</label>
+                                <input type="number" id="manual-gr-a" step="1" placeholder="0" 
+                                       class="w-full input-accent py-4 text-3xl text-red-200 gothic-font" oninput="calculateLive()">
                             </div>
                         </div>
                     </div>
@@ -235,22 +259,40 @@
         function clearData() {
             document.getElementById('live-min-start').value = 0;
             document.getElementById('manual-xg-h').value = '';
+            document.getElementById('manual-g-h').value = '';
             document.getElementById('manual-xga-h').value = '';
+            document.getElementById('manual-gr-h').value = '';
             document.getElementById('manual-xg-a').value = '';
+            document.getElementById('manual-g-a').value = '';
             document.getElementById('manual-xga-a').value = '';
+            document.getElementById('manual-gr-a').value = '';
             calculateLive();
         }
 
         function calculateLive() {
+            // Inputs Local
             const xgH = parseFloat(document.getElementById('manual-xg-h').value) || 0;
-            const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
+            const gH = parseFloat(document.getElementById('manual-g-h').value) || 0;
             const xgaH = parseFloat(document.getElementById('manual-xga-h').value) || 0;
+            const grH = parseFloat(document.getElementById('manual-gr-h').value) || 0;
+            
+            // Inputs Visita
+            const xgA = parseFloat(document.getElementById('manual-xg-a').value) || 0;
+            const gA = parseFloat(document.getElementById('manual-g-a').value) || 0;
             const xgaA = parseFloat(document.getElementById('manual-xga-a').value) || 0;
+            const grA = parseFloat(document.getElementById('manual-gr-a').value) || 0;
             
             const currentMin = parseInt(document.getElementById('live-min-start').value) || 0;
             
-            const expH = (xgH + xgaA) / 2;
-            const expA = (xgA + xgaH) / 2;
+            // Promedio Híbrido: (xG + Goles) / 2
+            const effectiveAttH = (xgH + gH) / 2;
+            const effectiveDefH = (xgaH + grH) / 2;
+            const effectiveAttA = (xgA + gA) / 2;
+            const effectiveDefA = (xgaA + grA) / 2;
+
+            // Expectativa de goles basada en ataque de uno vs defensa del otro
+            const expH = (effectiveAttH + effectiveDefA) / 2;
+            const expA = (effectiveAttA + effectiveDefH) / 2;
             const totalExp = expH + expA;
 
             const remHT = Math.max(0, 45 - currentMin);
