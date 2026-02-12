@@ -88,6 +88,19 @@
             border-radius: 3px;
             border: 1px solid rgba(0, 242, 255, 0.2);
         }
+
+        /* Estilos para el Historial */
+        .history-item {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--sl-border);
+            border-radius: 6px;
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -216,9 +229,24 @@
                     </table>
                 </div>
 
-                <div class="scorelab-card p-5">
-                    <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Score Matrix (Top 15)</h2>
-                    <div id="score-matrix" class="grid grid-cols-5 gap-2"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="scorelab-card p-5">
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Score Matrix (Top 15)</h2>
+                        <div id="score-matrix" class="grid grid-cols-5 gap-2"></div>
+                    </div>
+                    <div class="scorelab-card p-5">
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Muestra de Datos (Últimos 10)</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (In House)</p>
+                                <div id="history-home" class="space-y-1"></div>
+                            </div>
+                            <div>
+                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (On Road)</p>
+                                <div id="history-away" class="space-y-1"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -275,9 +303,10 @@
             hSel.innerHTML = options;
             aSel.innerHTML = options;
             
-            // Reset sample indicators
             document.getElementById('home_sample').innerText = 'N = 0';
             document.getElementById('away_sample').innerText = 'N = 0';
+            document.getElementById('history-home').innerHTML = '';
+            document.getElementById('history-away').innerHTML = '';
         }
 
         function loadStatsIndependent() {
@@ -290,32 +319,29 @@
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            // Cálculo para LOCAL en CASA
-            const getHomeStats = (team) => {
-                const homeMatches = database.filter(r => r.league === league && r.home === team).slice(-10);
-                const n = homeMatches.length;
-                document.getElementById('home_sample').innerText = `N = ${n}`;
-                
-                if(n === 0) return { fav: 0, con: 0 };
+            // Actualizar Historial Local
+            const homeMatches = database.filter(r => r.league === league && r.home === local).slice(-10);
+            document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
+            renderHistory('history-home', homeMatches, true);
+
+            // Actualizar Historial Visitante
+            const awayMatches = database.filter(r => r.league === league && r.away === visita).slice(-10);
+            document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
+            renderHistory('history-away', awayMatches, false);
+
+            // Calcular Estadísticas para Poisson
+            const getStats = (matches, isHome) => {
+                if(matches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
-                homeMatches.forEach(m => { gf += m.gl; gc += m.gv; });
-                return { fav: (gf / n).toFixed(2), con: (gc / n).toFixed(2) };
+                matches.forEach(m => {
+                    gf += isHome ? m.gl : m.gv;
+                    gc += isHome ? m.gv : m.gl;
+                });
+                return { fav: (gf / matches.length).toFixed(2), con: (gc / matches.length).toFixed(2) };
             };
 
-            // Cálculo para VISITANTE fuera de CASA
-            const getAwayStats = (team) => {
-                const awayMatches = database.filter(r => r.league === league && r.away === team).slice(-10);
-                const n = awayMatches.length;
-                document.getElementById('away_sample').innerText = `N = ${n}`;
-                
-                if(n === 0) return { fav: 0, con: 0 };
-                let gf = 0, gc = 0;
-                awayMatches.forEach(m => { gf += m.gv; gc += m.gl; });
-                return { fav: (gf / n).toFixed(2), con: (gc / n).toFixed(2) };
-            };
-
-            const hStats = getHomeStats(local);
-            const aStats = getAwayStats(visita);
+            const hStats = getStats(homeMatches, true);
+            const aStats = getStats(awayMatches, false);
 
             document.getElementById('h_gf').value = hStats.fav;
             document.getElementById('h_gc').value = hStats.con;
@@ -323,6 +349,22 @@
             document.getElementById('a_gc').value = aStats.con;
 
             calculate();
+        }
+
+        function renderHistory(containerId, matches, isHome) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if(matches.length === 0) {
+                container.innerHTML = '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
+                return;
+            }
+            matches.reverse().forEach(m => {
+                container.innerHTML += `
+                    <div class="history-item">
+                        <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
+                        <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
+                    </div>`;
+            });
         }
 
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
@@ -410,19 +452,7 @@
             const edgeText = document.getElementById(`edge_${index}`).innerText;
             if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida.");
             
-            const newBet = { 
-                id: Date.now(), 
-                date: new Date().toISOString().split('T')[0], 
-                teams: `${league}: ${event}`, 
-                market: market, 
-                prob: prob, 
-                odd: odd, 
-                edge: edgeText, 
-                stake: 1.0, 
-                status: 'pending', 
-                profit: 0 
-            };
-            
+            const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: edgeText, stake: 1.0, status: 'pending', profit: 0 };
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             bets.unshift(newBet);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
