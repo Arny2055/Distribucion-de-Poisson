@@ -70,6 +70,15 @@
             text-transform: uppercase;
             color: var(--sl-accent);
         }
+
+        .match-counter {
+            font-size: 9px;
+            letter-spacing: 0.5px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
     </style>
 </head>
 <body>
@@ -94,7 +103,10 @@
     <main class="container mx-auto p-4 max-w-6xl">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Elegir Liga</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Elegir Liga</span>
+                    <span id="league_count" class="match-counter"><i class="fa-solid fa-database text-[8px]"></i> 0 Partidos</span>
+                </div>
                 <select id="league_select" onchange="filterTeamsByLeague()" class="p-2 rounded text-xs auto-select">
                     <option value="">Cargando ligas...</option>
                 </select>
@@ -222,6 +234,9 @@
                 const lSel = document.getElementById('league_select');
                 lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                                  leagues.map(l => `<option value="${l}">${l}</option>`).join('');
+                
+                // Reset de contador al cargar
+                document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
             } catch (e) { console.error("Sheet Sync Error", e); }
         }
 
@@ -229,7 +244,22 @@
             const league = document.getElementById('league_select').value;
             const hSel = document.getElementById('home_select');
             const aSel = document.getElementById('away_select');
+            const counter = document.getElementById('league_count');
+
+            if(!league) {
+                counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
+                hSel.innerHTML = '<option value="">Liga primero</option>';
+                aSel.innerHTML = '<option value="">Liga primero</option>';
+                return;
+            }
+
             const leagueMatches = database.filter(r => r.league === league);
+            
+            // Actualizar indicador visual
+            counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${leagueMatches.length} Partidos`;
+            counter.classList.add('text-cyan-400');
+            setTimeout(() => counter.classList.remove('text-cyan-400'), 1000);
+
             const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
             const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
@@ -244,9 +274,8 @@
             document.getElementById('league_name').value = document.getElementById('league_select').value;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            // MEJORA: LÓGICA DE POSICIÓN (Casa vs Fuera)
             const getHomeStats = (team) => {
-                const homeMatches = database.filter(r => r.home === team).slice(-10); // Solo partidos en casa
+                const homeMatches = database.filter(r => r.home === team).slice(-10);
                 if(homeMatches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
                 homeMatches.forEach(m => { gf += m.gl; gc += m.gv; });
@@ -254,7 +283,7 @@
             };
 
             const getAwayStats = (team) => {
-                const awayMatches = database.filter(r => r.away === team).slice(-10); // Solo partidos fuera
+                const awayMatches = database.filter(r => r.away === team).slice(-10);
                 if(awayMatches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
                 awayMatches.forEach(m => { gf += m.gv; gc += m.gl; });
@@ -272,7 +301,6 @@
             calculate();
         }
 
-        // --- LÓGICA CORE POISSON ---
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
         function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
@@ -281,11 +309,14 @@
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
+            
             if (h_gf === 0 || a_gf === 0) return;
+            
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
             const probsH = Array.from({length: 7}, (_, i) => poisson(i, lambdaH));
             const probsA = Array.from({length: 7}, (_, i) => poisson(i, lambdaA));
+            
             let over25 = 0, btts = 0, matrixData = [];
             for(let h=0; h<7; h++) {
                 for(let a=0; a<7; a++) {
@@ -297,9 +328,11 @@
             }
             const lambdaHT = (lambdaH + lambdaA) * 0.44; 
             const over05HT = 1 - Math.exp(-lambdaHT);
+            
             updateMarketUI('res_ht05', 'val_ht05', over05HT);
             updateMarketUI('res_ft25', 'val_ft25', over25);
             updateMarketUI('res_btts', 'val_btts', btts);
+            
             renderTable([
                 { name: 'OVER 0.5 HT', p: over05HT },
                 { name: 'OVER 1.5 FT', p: 1 - (probsH[0]*probsA[0] + probsH[1]*probsA[0] + probsH[0]*probsA[1]) },
@@ -327,7 +360,11 @@
                     <td class="p-4 text-slate-500 font-mono">${fair}</td>
                     <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcEdge(this, ${m.p}, 'edge_${i}')" id="odd_${i}"></td>
                     <td class="p-4 font-black" id="edge_${i}">--</td>
-                    <td class="p-4 text-center"><button onclick="sendToROI(${index}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all"><i class="fa-solid fa-share"></i> ROI</button></td>
+                    <td class="p-4 text-center">
+                        <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all">
+                            <i class="fa-solid fa-share"></i> ROI
+                        </button>
+                    </td>
                 </tr>`;
             });
         }
@@ -348,14 +385,31 @@
             const odd = parseFloat(document.getElementById(`odd_${index}`).value);
             const edgeText = document.getElementById(`edge_${index}`).innerText;
             if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida.");
-            const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: edgeText, stake: 1.0, status: 'pending', profit: 0 };
+            
+            const newBet = { 
+                id: Date.now(), 
+                date: new Date().toISOString().split('T')[0], 
+                teams: `${league}: ${event}`, 
+                market: market, 
+                prob: prob, 
+                odd: odd, 
+                edge: edgeText, 
+                stake: 1.0, 
+                status: 'pending', 
+                profit: 0 
+            };
+            
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             bets.unshift(newBet);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+            
             const btn = document.querySelector(`#row_${index} button`);
             btn.innerHTML = '<i class="fa-solid fa-check"></i> OK';
             btn.classList.replace('bg-cyan-600', 'bg-green-500');
-            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; btn.classList.replace('bg-green-500', 'bg-cyan-600'); }, 2000);
+            setTimeout(() => { 
+                btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; 
+                btn.classList.replace('bg-green-500', 'bg-cyan-600'); 
+            }, 2000);
         }
 
         function renderMatrix(data) {
@@ -372,7 +426,25 @@
         function renderChart(h, a) {
             const ctx = document.getElementById('distChart').getContext('2d');
             if(chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'bar', data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'Local', data: h, backgroundColor: '#00f2ff' }, { label: 'Visita', data: a, backgroundColor: '#00ff88' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } } });
+            chart = new Chart(ctx, { 
+                type: 'bar', 
+                data: { 
+                    labels: [0,1,2,3,4,5,6], 
+                    datasets: [
+                        { label: 'Local', data: h, backgroundColor: '#00f2ff' }, 
+                        { label: 'Visita', data: a, backgroundColor: '#00ff88' }
+                    ] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        y: { display: false }, 
+                        x: { grid: { display: false }, ticks: { color: '#475569' } } 
+                    } 
+                } 
+            });
         }
 
         window.onload = syncSheet;
