@@ -89,7 +89,6 @@
             border: 1px solid rgba(0, 242, 255, 0.2);
         }
 
-        /* Estilos para el Historial */
         .history-item {
             background: rgba(0,0,0,0.2);
             border: 1px solid var(--sl-border);
@@ -235,14 +234,14 @@
                         <div id="score-matrix" class="grid grid-cols-5 gap-2"></div>
                     </div>
                     <div class="scorelab-card p-5">
-                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Muestra de Datos (Últimos 10)</h2>
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Muestra (Primeros 10 del Sheet)</h2>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (In House)</p>
+                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (Locales)</p>
                                 <div id="history-home" class="space-y-1"></div>
                             </div>
                             <div>
-                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (On Road)</p>
+                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (Visitantes)</p>
                                 <div id="history-away" class="space-y-1"></div>
                             </div>
                         </div>
@@ -319,17 +318,15 @@
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            // Actualizar Historial Local
-            const homeMatches = database.filter(r => r.league === league && r.home === local).slice(-10);
+            // LÓGICA: Tomar los PRIMEROS 10 (.slice(0, 10)) de la base de datos para la liga seleccionada
+            const homeMatches = database.filter(r => r.league === league && r.home === local).slice(0, 10);
             document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
             renderHistory('history-home', homeMatches, true);
 
-            // Actualizar Historial Visitante
-            const awayMatches = database.filter(r => r.league === league && r.away === visita).slice(-10);
+            const awayMatches = database.filter(r => r.league === league && r.away === visita).slice(0, 10);
             document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
             renderHistory('history-away', awayMatches, false);
 
-            // Calcular Estadísticas para Poisson
             const getStats = (matches, isHome) => {
                 if(matches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
@@ -358,7 +355,8 @@
                 container.innerHTML = '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
                 return;
             }
-            matches.reverse().forEach(m => {
+            // Los mostramos en el orden en que aparecen (Primeros del Sheet arriba)
+            matches.forEach(m => {
                 container.innerHTML += `
                     <div class="history-item">
                         <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
