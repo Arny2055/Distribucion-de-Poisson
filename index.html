@@ -318,7 +318,6 @@
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            // LÓGICA: Tomar los PRIMEROS 10 (.slice(0, 10)) de la base de datos para la liga seleccionada
             const homeMatches = database.filter(r => r.league === league && r.home === local).slice(0, 10);
             document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
             renderHistory('history-home', homeMatches, true);
@@ -355,7 +354,6 @@
                 container.innerHTML = '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
                 return;
             }
-            // Los mostramos en el orden en que aparecen (Primeros del Sheet arriba)
             matches.forEach(m => {
                 container.innerHTML += `
                     <div class="history-item">
@@ -397,13 +395,15 @@
             updateMarketUI('res_ft25', 'val_ft25', over25);
             updateMarketUI('res_btts', 'val_btts', btts);
             
+            // --- MERCADOS FILTRADOS PARA LA TABLA ---
             renderTable([
                 { name: 'OVER 0.5 HT', p: over05HT },
-                { name: 'OVER 1.5 FT', p: 1 - (probsH[0]*probsA[0] + probsH[1]*probsA[0] + probsH[0]*probsA[1]) },
                 { name: 'OVER 2.5 FT', p: over25 },
+                { name: 'UNDER 2.5 FT', p: 1 - over25 },
                 { name: 'BTTS YES', p: btts },
-                { name: 'GANA LOCAL', p: matrixData.filter(x => parseInt(x.score[0]) > parseInt(x.score[2])).reduce((a, b) => a + b.p, 0) }
+                { name: 'BTTS NO', p: 1 - btts }
             ]);
+
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
         }
