@@ -100,13 +100,13 @@
                 </select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local</span>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local (Home Stats)</span>
                 <select id="home_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
                     <option value="">Liga primero</option>
                 </select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante</span>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante (Away Stats)</span>
                 <select id="away_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
                     <option value="">Liga primero</option>
                 </select>
@@ -125,7 +125,7 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-slate-400">Local: GF Favor / GC Contra</label>
+                            <label class="text-[9px] uppercase font-bold text-slate-400">Local Casa: GF Favor / GC Contra</label>
                             <div class="grid grid-cols-2 gap-2">
                                 <input type="number" id="h_gf" step="0.01" placeholder="GF" class="p-3 rounded-lg text-center">
                                 <input type="number" id="h_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
@@ -133,7 +133,7 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-slate-400">Visita: GF Favor / GC Contra</label>
+                            <label class="text-[9px] uppercase font-bold text-slate-400">Visita Fuera: GF Favor / GC Contra</label>
                             <div class="grid grid-cols-2 gap-2">
                                 <input type="number" id="a_gf" step="0.01" placeholder="GF" class="p-3 rounded-lg text-center">
                                 <input type="number" id="a_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
@@ -203,8 +203,6 @@
         const STORAGE_KEY = 'betags_pre_match';
         const SHEET_ID = '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO';
 
-        // --- AUTOMATIZACIÓN GOOGLE SHEETS ---
-
         async function syncSheet() {
             const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
             try {
@@ -224,26 +222,16 @@
                 const lSel = document.getElementById('league_select');
                 lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                                  leagues.map(l => `<option value="${l}">${l}</option>`).join('');
-            } catch (e) {
-                console.error("Sheet Sync Error", e);
-            }
+            } catch (e) { console.error("Sheet Sync Error", e); }
         }
 
         function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
             const hSel = document.getElementById('home_select');
             const aSel = document.getElementById('away_select');
-            
-            // Obtener todos los equipos únicos de esa liga (de columnas home y away)
             const leagueMatches = database.filter(r => r.league === league);
-            const teams = [...new Set([
-                ...leagueMatches.map(m => m.home),
-                ...leagueMatches.map(m => m.away)
-            ])].sort();
-
-            const options = '<option value="">-- EQUIPO --</option>' + 
-                            teams.map(t => `<option value="${t}">${t}</option>`).join('');
-            
+            const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
+            const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
             aSel.innerHTML = options;
         }
@@ -251,25 +239,30 @@
         function loadStatsIndependent() {
             const local = document.getElementById('home_select').value;
             const visita = document.getElementById('away_select').value;
-            
             if(!local || !visita) return;
 
             document.getElementById('league_name').value = document.getElementById('league_select').value;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            const getStats = (team) => {
-                const matches = database.filter(r => r.home === team || r.away === team).slice(-10);
-                if(matches.length === 0) return { fav: 0, con: 0 };
+            // MEJORA: LÓGICA DE POSICIÓN (Casa vs Fuera)
+            const getHomeStats = (team) => {
+                const homeMatches = database.filter(r => r.home === team).slice(-10); // Solo partidos en casa
+                if(homeMatches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
-                matches.forEach(m => {
-                    if(m.home === team) { gf += m.gl; gc += m.gv; }
-                    else { gf += m.gv; gc += m.gl; }
-                });
-                return { fav: (gf / matches.length).toFixed(2), con: (gc / matches.length).toFixed(2) };
+                homeMatches.forEach(m => { gf += m.gl; gc += m.gv; });
+                return { fav: (gf / homeMatches.length).toFixed(2), con: (gc / homeMatches.length).toFixed(2) };
             };
 
-            const hStats = getStats(local);
-            const aStats = getStats(visita);
+            const getAwayStats = (team) => {
+                const awayMatches = database.filter(r => r.away === team).slice(-10); // Solo partidos fuera
+                if(awayMatches.length === 0) return { fav: 0, con: 0 };
+                let gf = 0, gc = 0;
+                awayMatches.forEach(m => { gf += m.gv; gc += m.gl; });
+                return { fav: (gf / awayMatches.length).toFixed(2), con: (gc / awayMatches.length).toFixed(2) };
+            };
+
+            const hStats = getHomeStats(local);
+            const aStats = getAwayStats(visita);
 
             document.getElementById('h_gf').value = hStats.fav;
             document.getElementById('h_gc').value = hStats.con;
@@ -280,7 +273,6 @@
         }
 
         // --- LÓGICA CORE POISSON ---
-
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
         function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
@@ -289,15 +281,11 @@
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
-
             if (h_gf === 0 || a_gf === 0) return;
-
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
-
             const probsH = Array.from({length: 7}, (_, i) => poisson(i, lambdaH));
             const probsA = Array.from({length: 7}, (_, i) => poisson(i, lambdaA));
-
             let over25 = 0, btts = 0, matrixData = [];
             for(let h=0; h<7; h++) {
                 for(let a=0; a<7; a++) {
@@ -307,14 +295,11 @@
                     matrixData.push({ score: `${h}-${a}`, p: p });
                 }
             }
-
             const lambdaHT = (lambdaH + lambdaA) * 0.44; 
             const over05HT = 1 - Math.exp(-lambdaHT);
-
             updateMarketUI('res_ht05', 'val_ht05', over05HT);
             updateMarketUI('res_ft25', 'val_ft25', over25);
             updateMarketUI('res_btts', 'val_btts', btts);
-
             renderTable([
                 { name: 'OVER 0.5 HT', p: over05HT },
                 { name: 'OVER 1.5 FT', p: 1 - (probsH[0]*probsA[0] + probsH[1]*probsA[0] + probsH[0]*probsA[1]) },
@@ -322,7 +307,6 @@
                 { name: 'BTTS YES', p: btts },
                 { name: 'GANA LOCAL', p: matrixData.filter(x => parseInt(x.score[0]) > parseInt(x.score[2])).reduce((a, b) => a + b.p, 0) }
             ]);
-
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
         }
@@ -337,19 +321,14 @@
             body.innerHTML = '';
             markets.forEach((m, i) => {
                 const fair = (1/m.p).toFixed(2);
-                body.innerHTML += `
-                    <tr class="market-row" id="row_${i}">
-                        <td class="p-4 font-bold text-slate-300">${m.name}</td>
-                        <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
-                        <td class="p-4 text-slate-500 font-mono">${fair}</td>
-                        <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcEdge(this, ${m.p}, 'edge_${i}')" id="odd_${i}"></td>
-                        <td class="p-4 font-black" id="edge_${i}">--</td>
-                        <td class="p-4 text-center">
-                            <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all">
-                                <i class="fa-solid fa-share"></i> ROI
-                            </button>
-                        </td>
-                    </tr>`;
+                body.innerHTML += `<tr class="market-row" id="row_${i}">
+                    <td class="p-4 font-bold text-slate-300">${m.name}</td>
+                    <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
+                    <td class="p-4 text-slate-500 font-mono">${fair}</td>
+                    <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcEdge(this, ${m.p}, 'edge_${i}')" id="odd_${i}"></td>
+                    <td class="p-4 font-black" id="edge_${i}">--</td>
+                    <td class="p-4 text-center"><button onclick="sendToROI(${index}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all"><i class="fa-solid fa-share"></i> ROI</button></td>
+                </tr>`;
             });
         }
 
@@ -368,69 +347,32 @@
             const event = document.getElementById('event_name').value || 'Evento';
             const odd = parseFloat(document.getElementById(`odd_${index}`).value);
             const edgeText = document.getElementById(`edge_${index}`).innerText;
-
             if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida.");
-
-            const newBet = {
-                id: Date.now(),
-                date: new Date().toISOString().split('T')[0],
-                teams: `${league}: ${event}`,
-                market: market,
-                prob: prob,
-                odd: odd,
-                edge: edgeText,
-                stake: 1.0,
-                status: 'pending',
-                profit: 0
-            };
-
+            const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: edgeText, stake: 1.0, status: 'pending', profit: 0 };
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             bets.unshift(newBet);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
-
             const btn = document.querySelector(`#row_${index} button`);
             btn.innerHTML = '<i class="fa-solid fa-check"></i> OK';
             btn.classList.replace('bg-cyan-600', 'bg-green-500');
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI';
-                btn.classList.replace('bg-green-500', 'bg-cyan-600');
-            }, 2000);
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; btn.classList.replace('bg-green-500', 'bg-cyan-600'); }, 2000);
         }
 
         function renderMatrix(data) {
             const container = document.getElementById('score-matrix');
             container.innerHTML = '';
             data.sort((a,b) => b.p - a.p).slice(0, 15).forEach(item => {
-                container.innerHTML += `
-                    <div class="bg-black/40 border border-white/5 p-2 rounded text-center">
-                        <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
-                        <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
-                    </div>`;
+                container.innerHTML += `<div class="bg-black/40 border border-white/5 p-2 rounded text-center">
+                    <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
+                    <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
+                </div>`;
             });
         }
 
         function renderChart(h, a) {
             const ctx = document.getElementById('distChart').getContext('2d');
             if(chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: [0,1,2,3,4,5,6],
-                    datasets: [
-                        { label: 'Local', data: h, backgroundColor: '#00f2ff' },
-                        { label: 'Visita', data: a, backgroundColor: '#00ff88' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { display: false },
-                        x: { grid: { display: false }, ticks: { color: '#475569' } }
-                    }
-                }
-            });
+            chart = new Chart(ctx, { type: 'bar', data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'Local', data: h, backgroundColor: '#00f2ff' }, { label: 'Visita', data: a, backgroundColor: '#00ff88' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } } });
         }
 
         window.onload = syncSheet;
