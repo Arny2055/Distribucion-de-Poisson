@@ -79,6 +79,15 @@
             align-items: center;
             gap: 4px;
         }
+
+        .sample-badge {
+            font-size: 8px;
+            background: #1e293b;
+            color: var(--sl-accent);
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -112,13 +121,19 @@
                 </select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local (Home Stats)</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local</span>
+                    <span id="home_sample" class="sample-badge">N = 0</span>
+                </div>
                 <select id="home_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
                     <option value="">Liga primero</option>
                 </select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante (Away Stats)</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante</span>
+                    <span id="away_sample" class="sample-badge">N = 0</span>
+                </div>
                 <select id="away_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
                     <option value="">Liga primero</option>
                 </select>
@@ -235,7 +250,6 @@
                 lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                                  leagues.map(l => `<option value="${l}">${l}</option>`).join('');
                 
-                // Reset de contador al cargar
                 document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
             } catch (e) { console.error("Sheet Sync Error", e); }
         }
@@ -254,40 +268,50 @@
             }
 
             const leagueMatches = database.filter(r => r.league === league);
-            
-            // Actualizar indicador visual
             counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${leagueMatches.length} Partidos`;
-            counter.classList.add('text-cyan-400');
-            setTimeout(() => counter.classList.remove('text-cyan-400'), 1000);
 
             const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
             const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
             aSel.innerHTML = options;
+            
+            // Reset sample indicators
+            document.getElementById('home_sample').innerText = 'N = 0';
+            document.getElementById('away_sample').innerText = 'N = 0';
         }
 
         function loadStatsIndependent() {
+            const league = document.getElementById('league_select').value;
             const local = document.getElementById('home_select').value;
             const visita = document.getElementById('away_select').value;
+            
             if(!local || !visita) return;
 
-            document.getElementById('league_name').value = document.getElementById('league_select').value;
+            document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
+            // Cálculo para LOCAL en CASA
             const getHomeStats = (team) => {
-                const homeMatches = database.filter(r => r.home === team).slice(-10);
-                if(homeMatches.length === 0) return { fav: 0, con: 0 };
+                const homeMatches = database.filter(r => r.league === league && r.home === team).slice(-10);
+                const n = homeMatches.length;
+                document.getElementById('home_sample').innerText = `N = ${n}`;
+                
+                if(n === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
                 homeMatches.forEach(m => { gf += m.gl; gc += m.gv; });
-                return { fav: (gf / homeMatches.length).toFixed(2), con: (gc / homeMatches.length).toFixed(2) };
+                return { fav: (gf / n).toFixed(2), con: (gc / n).toFixed(2) };
             };
 
+            // Cálculo para VISITANTE fuera de CASA
             const getAwayStats = (team) => {
-                const awayMatches = database.filter(r => r.away === team).slice(-10);
-                if(awayMatches.length === 0) return { fav: 0, con: 0 };
+                const awayMatches = database.filter(r => r.league === league && r.away === team).slice(-10);
+                const n = awayMatches.length;
+                document.getElementById('away_sample').innerText = `N = ${n}`;
+                
+                if(n === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
                 awayMatches.forEach(m => { gf += m.gv; gc += m.gl; });
-                return { fav: (gf / awayMatches.length).toFixed(2), con: (gc / awayMatches.length).toFixed(2) };
+                return { fav: (gf / n).toFixed(2), con: (gc / n).toFixed(2) };
             };
 
             const hStats = getHomeStats(local);
