@@ -64,7 +64,6 @@
             font-size: 10px;
         }
 
-        /* Estilo para los selectores de automatización */
         .auto-select {
             font-size: 11px;
             font-weight: bold;
@@ -93,23 +92,28 @@
     </nav>
 
     <main class="container mx-auto p-4 max-w-6xl">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Filtrar por Liga</span>
-                <select id="league_select" onchange="filterMatches()" class="p-2 rounded text-xs auto-select">
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Elegir Liga</span>
+                <select id="league_select" onchange="filterTeamsByLeague()" class="p-2 rounded text-xs auto-select">
                     <option value="">Cargando ligas...</option>
                 </select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Seleccionar Evento Próximo</span>
-                <select id="match_select" onchange="autoLoadMatch()" class="p-2 rounded text-xs auto-select">
-                    <option value="">Selecciona una liga primero</option>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local</span>
+                <select id="home_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
+                    <option value="">Liga primero</option>
+                </select>
+            </div>
+            <div class="scorelab-card p-3 flex flex-col gap-2">
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante</span>
+                <select id="away_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
+                    <option value="">Liga primero</option>
                 </select>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
             <div class="lg:col-span-4 space-y-4">
                 <div class="scorelab-card p-5">
                     <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest"><i class="fa-solid fa-database mr-2"></i>Data Entry</h2>
@@ -181,8 +185,7 @@
                                 <th class="p-4 text-center">Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="market-body" class="text-sm">
-                            </tbody>
+                        <tbody id="market-body" class="text-sm"></tbody>
                     </table>
                 </div>
 
@@ -221,34 +224,42 @@
                 const lSel = document.getElementById('league_select');
                 lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                                  leagues.map(l => `<option value="${l}">${l}</option>`).join('');
-                
-                console.log("Database Sync OK");
             } catch (e) {
                 console.error("Sheet Sync Error", e);
             }
         }
 
-        function filterMatches() {
+        function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
-            const mSel = document.getElementById('match_select');
-            const matches = database.filter(r => r.league === league);
+            const hSel = document.getElementById('home_select');
+            const aSel = document.getElementById('away_select');
             
-            // Creamos pares de equipos únicos para seleccionar
-            mSel.innerHTML = '<option value="">-- ELIGE PARTIDO --</option>' +
-                             matches.map(m => `<option value="${m.home}|${m.away}">${m.home} vs ${m.away}</option>`).join('');
+            // Obtener todos los equipos únicos de esa liga (de columnas home y away)
+            const leagueMatches = database.filter(r => r.league === league);
+            const teams = [...new Set([
+                ...leagueMatches.map(m => m.home),
+                ...leagueMatches.map(m => m.away)
+            ])].sort();
+
+            const options = '<option value="">-- EQUIPO --</option>' + 
+                            teams.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            hSel.innerHTML = options;
+            aSel.innerHTML = options;
         }
 
-        function autoLoadMatch() {
-            const val = document.getElementById('match_select').value;
-            if(!val) return;
-            const [local, visita] = val.split('|');
+        function loadStatsIndependent() {
+            const local = document.getElementById('home_select').value;
+            const visita = document.getElementById('away_select').value;
             
+            if(!local || !visita) return;
+
             document.getElementById('league_name').value = document.getElementById('league_select').value;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
             const getStats = (team) => {
-                // Filtramos los últimos 10 donde participó el equipo
                 const matches = database.filter(r => r.home === team || r.away === team).slice(-10);
+                if(matches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
                 matches.forEach(m => {
                     if(m.home === team) { gf += m.gl; gc += m.gv; }
@@ -287,10 +298,7 @@
             const probsH = Array.from({length: 7}, (_, i) => poisson(i, lambdaH));
             const probsA = Array.from({length: 7}, (_, i) => poisson(i, lambdaA));
 
-            let over25 = 0;
-            let btts = 0;
-            let matrixData = [];
-
+            let over25 = 0, btts = 0, matrixData = [];
             for(let h=0; h<7; h++) {
                 for(let a=0; a<7; a++) {
                     let p = probsH[h] * probsA[a];
@@ -341,8 +349,7 @@
                                 <i class="fa-solid fa-share"></i> ROI
                             </button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
         }
 
@@ -362,7 +369,7 @@
             const odd = parseFloat(document.getElementById(`odd_${index}`).value);
             const edgeText = document.getElementById(`edge_${index}`).innerText;
 
-            if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida para enviar.");
+            if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida.");
 
             const newBet = {
                 id: Date.now(),
@@ -382,11 +389,10 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
 
             const btn = document.querySelector(`#row_${index} button`);
-            const originalContent = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> OK';
             btn.classList.replace('bg-cyan-600', 'bg-green-500');
             setTimeout(() => {
-                btn.innerHTML = originalContent;
+                btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI';
                 btn.classList.replace('bg-green-500', 'bg-cyan-600');
             }, 2000);
         }
@@ -399,8 +405,7 @@
                     <div class="bg-black/40 border border-white/5 p-2 rounded text-center">
                         <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
                         <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
@@ -428,7 +433,6 @@
             });
         }
 
-        // Auto-sincronizar al cargar
         window.onload = syncSheet;
     </script>
 </body>
