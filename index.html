@@ -111,6 +111,16 @@
             70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
             100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
         }
+
+        /* Config Panel */
+        #config_panel {
+            display: none;
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            z-index: 100;
+            width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -124,11 +134,15 @@
                 <div class="flex flex-col">
                     <span class="text-[8px] font-bold text-slate-500 uppercase ml-1">Mercado Automatizado</span>
                     <select id="market_auto_select" onchange="syncSheet()" class="text-[10px] bg-slate-900 border-none rounded px-2 py-1 text-cyan-400 font-bold">
-                        <option value="over25">OVER 2.5</option>
-                        <option value="under25">UNDER 2.5</option>
-                        <option value="btts">BTTS YES/NO</option>
+                        <option value="over25">OVER 2.5 FT</option>
+                        <option value="under25">UNDER 2.5 FT</option>
+                        <option value="btts_yes">BTTS YES</option>
+                        <option value="btts_no">BTTS NO</option>
                     </select>
                 </div>
+                <button onclick="toggleConfig()" class="text-[10px] font-black bg-slate-800 text-slate-300 border border-white/10 px-3 py-1 rounded hover:bg-slate-700 transition-all">
+                    <i class="fa-solid fa-gear mr-1"></i> IDS
+                </button>
                 <button onclick="syncSheet()" class="text-[10px] font-black bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded hover:bg-cyan-600/40 transition-all">
                     <i class="fa-solid fa-rotate mr-1"></i> SYNC AUTOMATION
                 </button>
@@ -137,14 +151,37 @@
         </div>
     </nav>
 
+    <div id="config_panel" class="scorelab-card p-4 border-cyan-500/50 shadow-2xl">
+        <h3 class="text-[10px] font-black text-cyan-400 uppercase mb-3"><i class="fa-solid fa-database mr-1"></i> Configurar IDs de Google Sheets</h3>
+        <div class="space-y-3">
+            <div>
+                <label class="text-[8px] uppercase text-slate-500 font-bold">Over 2.5 FT ID</label>
+                <input type="text" id="id_over25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
+            </div>
+            <div>
+                <label class="text-[8px] uppercase text-slate-500 font-bold">Under 2.5 FT ID</label>
+                <input type="text" id="id_under25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
+            </div>
+            <div>
+                <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS YES ID</label>
+                <input type="text" id="id_btts_yes" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
+            </div>
+            <div>
+                <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS NO ID</label>
+                <input type="text" id="id_btts_no" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
+            </div>
+            <button onclick="saveIDs()" class="w-full btn-primary py-2 rounded text-[10px]">Guardar Configuración</button>
+        </div>
+    </div>
+
     <main class="container mx-auto p-4 max-w-6xl">
         <div class="scorelab-card p-3 mb-6 overflow-x-auto">
             <div class="flex justify-between items-center mb-2 px-2">
                 <span class="text-[10px] font-black text-cyan-500 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Próximos Partidos (Auto-Scanner)</span>
-                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">ID: 1BfAX...</span>
+                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">ID: --</span>
             </div>
             <div id="auto_matches_list" class="flex gap-3 pb-2 min-w-max">
-                <p class="text-xs text-slate-600 p-4">Cargando partidos automatizados...</p>
+                <p class="text-xs text-slate-600 p-4">Sincroniza para cargar partidos...</p>
             </div>
         </div>
 
@@ -280,27 +317,62 @@
     <script>
         let chart;
         let database = [];
-        let autoMatches = []; // Almacena partidos del scanner
+        let autoMatches = []; 
         const STORAGE_KEY = 'betags_pre_match';
+        const IDS_KEY = 'betags_sheet_ids';
         
-        // IDs de los Sheets configurables
-        const SHEET_IDS = {
+        // IDs por defecto (se sobreescriben con localStorage)
+        let SHEET_IDS = {
             over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6',
-            under25: 'ID_DE_TU_EXCEL_UNDER_25', // Sustituir cuando lo tengas
-            btts: 'ID_DE_TU_EXCEL_BTTS'        // Sustituir cuando lo tengas
+            under25: '',
+            btts_yes: '',
+            btts_no: ''
         };
 
-        // El ID principal para las estadísticas (H2H) se mantiene igual
         const STATS_SHEET_ID = '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO';
+
+        // Gestión de IDs en LocalStorage
+        function loadSavedIDs() {
+            const saved = localStorage.getItem(IDS_KEY);
+            if(saved) {
+                SHEET_IDS = JSON.parse(saved);
+                document.getElementById('id_over25').value = SHEET_IDS.over25 || '';
+                document.getElementById('id_under25').value = SHEET_IDS.under25 || '';
+                document.getElementById('id_btts_yes').value = SHEET_IDS.btts_yes || '';
+                document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
+            }
+        }
+
+        function saveIDs() {
+            SHEET_IDS.over25 = document.getElementById('id_over25').value.trim();
+            SHEET_IDS.under25 = document.getElementById('id_under25').value.trim();
+            SHEET_IDS.btts_yes = document.getElementById('id_btts_yes').value.trim();
+            SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
+            
+            localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
+            alert("✅ IDs guardados correctamente.");
+            toggleConfig();
+            syncSheet();
+        }
+
+        function toggleConfig() {
+            const panel = document.getElementById('config_panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
 
         async function syncSheet() {
             const marketType = document.getElementById('market_auto_select').value;
             const currentSheetID = SHEET_IDS[marketType];
             
+            if(!currentSheetID) {
+                alert("⚠️ No hay ID configurado para este mercado. Haz clic en el botón 'IDS'.");
+                return;
+            }
+
             document.getElementById('scan_status').innerText = `ID: ${currentSheetID.substring(0, 8)}...`;
             
             try {
-                // 1. CARGAR ESTADÍSTICAS HISTÓRICAS (Para Poisson)
+                // 1. CARGAR ESTADÍSTICAS H2H
                 const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
                 const statsRes = await fetch(statsUrl);
                 const statsText = await statsRes.text();
@@ -314,13 +386,12 @@
                     gv: parseFloat(row.c[5]?.v || 0)
                 })).filter(r => r.league);
 
-                // 2. CARGAR PRÓXIMOS PARTIDOS DEL MERCADO SELECCIONADO
+                // 2. CARGAR PRÓXIMOS PARTIDOS
                 const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
                 const autoRes = await fetch(autoUrl);
                 const autoText = await autoRes.text();
                 const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
 
-                // Mapeo según formato: Fecha, Liga, Local, Visitante, Cuota
                 autoMatches = autoJson.table.rows.map(row => ({
                     fecha: row.c[0]?.f || row.c[0]?.v,
                     liga: row.c[1]?.v,
@@ -335,7 +406,7 @@
                 document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
             } catch (e) { 
                 console.error("Sheet Sync Error", e); 
-                alert("Error al sincronizar con Google Sheets. Verifica los IDs y permisos.");
+                alert("Error al sincronizar. Verifica el ID del Excel.");
             }
         }
 
@@ -344,7 +415,7 @@
             container.innerHTML = '';
             
             if (autoMatches.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-600 p-4">No hay partidos próximos encontrados.</p>';
+                container.innerHTML = '<p class="text-xs text-slate-600 p-4">No hay partidos en este sheet.</p>';
                 return;
             }
 
@@ -367,31 +438,24 @@
 
         function selectAutoMatch(idx) {
             const match = autoMatches[idx];
-            
-            // 1. Establecer Liga
             const lSel = document.getElementById('league_select');
             lSel.value = match.liga;
             filterTeamsByLeague();
 
-            // 2. Establecer Equipos
             document.getElementById('home_select').value = match.home;
             document.getElementById('away_select').value = match.away;
             
-            // 3. Ejecutar Análisis
             loadStatsIndependent();
 
-            // 4. Inyectar la cuota del Excel en el mercado correspondiente
-            // Buscamos el mercado basado en la selección
             const marketType = document.getElementById('market_auto_select').value;
-            let targetIdx = 1; // Default Over 2.5
+            let targetIdx = 1; // Over 2.5
             if(marketType === 'under25') targetIdx = 2;
-            if(marketType === 'btts') targetIdx = 3;
+            if(marketType.startsWith('btts')) targetIdx = 3;
 
             setTimeout(() => {
                 const oddInput = document.getElementById(`odd_${targetIdx}`);
                 if(oddInput) {
                     oddInput.value = match.odd;
-                    // Forzar el cálculo de delta/diferencia
                     const event = new Event('input');
                     oddInput.dispatchEvent(event);
                 }
@@ -425,11 +489,6 @@
             const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
             aSel.innerHTML = options;
-            
-            document.getElementById('home_sample').innerText = 'N = 0';
-            document.getElementById('away_sample').innerText = 'N = 0';
-            document.getElementById('history-home').innerHTML = '';
-            document.getElementById('history-away').innerHTML = '';
         }
 
         function loadStatsIndependent() {
@@ -575,7 +634,7 @@
             const event = document.getElementById('event_name').value || 'Evento';
             const odd = parseFloat(document.getElementById(`odd_${index}`).value);
             const diffText = document.getElementById(`diff_${index}`).innerText;
-            if(!odd || odd <= 1) return alert("⚠️ Ingresa una cuota válida.");
+            if(!odd || odd <= 1) return alert("⚠️ Cuota no válida.");
             
             const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: diffText, stake: 1.0, status: 'pending', profit: 0 };
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -583,12 +642,12 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
             
             const btn = document.querySelector(`#row_${index} button`);
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> OK';
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
             btn.classList.replace('bg-cyan-600', 'bg-green-500');
             setTimeout(() => { 
                 btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; 
                 btn.classList.replace('bg-green-500', 'bg-cyan-600'); 
-            }, 2000);
+            }, 1000);
         }
 
         function renderMatrix(data) {
@@ -626,7 +685,10 @@
             });
         }
 
-        window.onload = syncSheet;
+        window.onload = () => {
+            loadSavedIDs();
+            syncSheet();
+        };
     </script>
 </body>
 </html>
