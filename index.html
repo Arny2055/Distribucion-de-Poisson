@@ -100,6 +100,17 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
         }
+
+        /* Estilo para el scanner de automatización */
+        .scanner-active {
+            border: 1px solid var(--sl-accent);
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
+        }
     </style>
 </head>
 <body>
@@ -110,18 +121,33 @@
                 <h1 class="text-xl font-black tracking-tighter uppercase">BETA<span class="text-cyan-400">GS</span> <span class="text-[10px] text-slate-500 font-normal">v4.0 Poisson</span></h1>
             </div>
             <div class="flex items-center gap-4">
+                <div class="flex flex-col">
+                    <span class="text-[8px] font-bold text-slate-500 uppercase ml-1">Mercado Automatizado</span>
+                    <select id="market_auto_select" onchange="syncSheet()" class="text-[10px] bg-slate-900 border-none rounded px-2 py-1 text-cyan-400 font-bold">
+                        <option value="over25">OVER 2.5</option>
+                        <option value="under25">UNDER 2.5</option>
+                        <option value="btts">BTTS YES/NO</option>
+                    </select>
+                </div>
                 <button onclick="syncSheet()" class="text-[10px] font-black bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded hover:bg-cyan-600/40 transition-all">
-                    <i class="fa-solid fa-rotate mr-1"></i> SYNC SHEETS
+                    <i class="fa-solid fa-rotate mr-1"></i> SYNC AUTOMATION
                 </button>
                 <a href="roi.html" class="text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors"><i class="fa-solid fa-chart-pie mr-1"></i> ROI Panel</a>
-                <div class="text-[10px] font-mono text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-white/5">
-                    ENGINE: DIXON-COLES HYBRID
-                </div>
             </div>
         </div>
     </nav>
 
     <main class="container mx-auto p-4 max-w-6xl">
+        <div class="scorelab-card p-3 mb-6 overflow-x-auto">
+            <div class="flex justify-between items-center mb-2 px-2">
+                <span class="text-[10px] font-black text-cyan-500 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Próximos Partidos (Auto-Scanner)</span>
+                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">ID: 1BfAX...</span>
+            </div>
+            <div id="auto_matches_list" class="flex gap-3 pb-2 min-w-max">
+                <p class="text-xs text-slate-600 p-4">Cargando partidos automatizados...</p>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="scorelab-card p-3 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
@@ -254,17 +280,33 @@
     <script>
         let chart;
         let database = [];
+        let autoMatches = []; // Almacena partidos del scanner
         const STORAGE_KEY = 'betags_pre_match';
-        const SHEET_ID = '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO';
+        
+        // IDs de los Sheets configurables
+        const SHEET_IDS = {
+            over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6',
+            under25: 'ID_DE_TU_EXCEL_UNDER_25', // Sustituir cuando lo tengas
+            btts: 'ID_DE_TU_EXCEL_BTTS'        // Sustituir cuando lo tengas
+        };
+
+        // El ID principal para las estadísticas (H2H) se mantiene igual
+        const STATS_SHEET_ID = '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO';
 
         async function syncSheet() {
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+            const marketType = document.getElementById('market_auto_select').value;
+            const currentSheetID = SHEET_IDS[marketType];
+            
+            document.getElementById('scan_status').innerText = `ID: ${currentSheetID.substring(0, 8)}...`;
+            
             try {
-                const response = await fetch(url);
-                const text = await response.text();
-                const json = JSON.parse(text.substr(47).slice(0, -2));
+                // 1. CARGAR ESTADÍSTICAS HISTÓRICAS (Para Poisson)
+                const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
+                const statsRes = await fetch(statsUrl);
+                const statsText = await statsRes.text();
+                const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
                 
-                database = json.table.rows.map(row => ({
+                database = statsJson.table.rows.map(row => ({
                     league: row.c[0]?.v,
                     home: row.c[2]?.v,
                     away: row.c[3]?.v,
@@ -272,13 +314,95 @@
                     gv: parseFloat(row.c[5]?.v || 0)
                 })).filter(r => r.league);
 
-                const leagues = [...new Set(database.map(r => r.league))];
-                const lSel = document.getElementById('league_select');
-                lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
-                                 leagues.map(l => `<option value="${l}">${l}</option>`).join('');
+                // 2. CARGAR PRÓXIMOS PARTIDOS DEL MERCADO SELECCIONADO
+                const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
+                const autoRes = await fetch(autoUrl);
+                const autoText = await autoRes.text();
+                const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
+
+                // Mapeo según formato: Fecha, Liga, Local, Visitante, Cuota
+                autoMatches = autoJson.table.rows.map(row => ({
+                    fecha: row.c[0]?.f || row.c[0]?.v,
+                    liga: row.c[1]?.v,
+                    home: row.c[2]?.v,
+                    away: row.c[3]?.v,
+                    odd: row.c[4]?.v
+                })).filter(m => m.home);
+
+                renderAutoMatches();
+                updateLeagueSelect();
                 
                 document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
-            } catch (e) { console.error("Sheet Sync Error", e); }
+            } catch (e) { 
+                console.error("Sheet Sync Error", e); 
+                alert("Error al sincronizar con Google Sheets. Verifica los IDs y permisos.");
+            }
+        }
+
+        function renderAutoMatches() {
+            const container = document.getElementById('auto_matches_list');
+            container.innerHTML = '';
+            
+            if (autoMatches.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-600 p-4">No hay partidos próximos encontrados.</p>';
+                return;
+            }
+
+            autoMatches.forEach((m, idx) => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[200px] cursor-pointer hover:border-cyan-500 transition-all";
+                div.onclick = () => selectAutoMatch(idx);
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[8px] text-slate-500 font-bold uppercase">${m.liga}</span>
+                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
+                    </div>
+                    <div class="text-[11px] font-black text-white truncate">${m.home}</div>
+                    <div class="text-[11px] font-black text-white truncate">${m.away}</div>
+                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectAutoMatch(idx) {
+            const match = autoMatches[idx];
+            
+            // 1. Establecer Liga
+            const lSel = document.getElementById('league_select');
+            lSel.value = match.liga;
+            filterTeamsByLeague();
+
+            // 2. Establecer Equipos
+            document.getElementById('home_select').value = match.home;
+            document.getElementById('away_select').value = match.away;
+            
+            // 3. Ejecutar Análisis
+            loadStatsIndependent();
+
+            // 4. Inyectar la cuota del Excel en el mercado correspondiente
+            // Buscamos el mercado basado en la selección
+            const marketType = document.getElementById('market_auto_select').value;
+            let targetIdx = 1; // Default Over 2.5
+            if(marketType === 'under25') targetIdx = 2;
+            if(marketType === 'btts') targetIdx = 3;
+
+            setTimeout(() => {
+                const oddInput = document.getElementById(`odd_${targetIdx}`);
+                if(oddInput) {
+                    oddInput.value = match.odd;
+                    // Forzar el cálculo de delta/diferencia
+                    const event = new Event('input');
+                    oddInput.dispatchEvent(event);
+                }
+            }, 500);
+        }
+
+        function updateLeagueSelect() {
+            const leagues = [...new Set(database.map(r => r.league))];
+            const lSel = document.getElementById('league_select');
+            lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
+                             leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
         function filterTeamsByLeague() {
