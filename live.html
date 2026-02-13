@@ -221,6 +221,7 @@
                             <p class="text-[10px] text-slate-500 uppercase mb-1">Configuración actual:</p>
                             <code id="display_fraction" class="text-[10px] text-cyan-400 block">50% del Kelly Sugerido</code>
                             <code id="display_max_stake" class="text-[10px] text-yellow-500 block">Límite: 5% por apuesta</code>
+                            <code class="text-[10px] text-green-400 block">Filtro: Probabilidad Poisson >= 60%</code>
                         </div>
                     </div>
                 </div>
@@ -406,7 +407,9 @@
                 const mInfo = marketData.find(m => m.home === targetMatch.home && m.away === targetMatch.away) || { odd: 2.00 };
                 const odd = mInfo.odd;
                 const bookieProb = (1 / odd) * 100;
-                const hasValue = prob >= (bookieProb + userMargin);
+                
+                // VALIDACIÓN: Margen de valor + Filtro del 60% Poisson solicitado
+                const hasValue = (prob >= (bookieProb + userMargin)) && (prob >= 60);
 
                 let profitCash = 0;
                 let stakePercent = 0;
@@ -456,7 +459,7 @@
                         <td class="p-3 text-slate-500 text-[10px]">${targetMatch.date}</td>
                         <td class="p-3 font-bold text-white">${targetMatch.home} vs ${targetMatch.away}</td>
                         <td class="p-3">
-                            <span class="text-cyan-400 font-bold">${prob.toFixed(1)}%</span>
+                            <span class="text-cyan-400 font-bold ${prob >= 60 ? 'underline' : ''}">${prob.toFixed(1)}%</span>
                             <div class="text-[8px] text-slate-500">Casa: ${bookieProb.toFixed(1)}%</div>
                         </td>
                         <td class="p-3 font-bold text-yellow-500">${hasValue ? (stakePercent * 100).toFixed(1) + '%' : '-'}</td>
