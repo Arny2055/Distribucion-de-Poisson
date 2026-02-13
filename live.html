@@ -105,6 +105,21 @@
                     <span id="margin_label" class="text-xs font-black text-white w-8">5%</span>
                 </div>
             </div>
+            
+            <div class="bg-yellow-500/10 p-2 rounded border border-yellow-500/20 mb-2">
+                <label class="text-[8px] text-yellow-500 font-bold uppercase block mb-1">Criterio de Kelly (Fracción)</label>
+                <div class="flex items-center gap-2">
+                    <input type="range" id="kelly_fraction_range" min="0.1" max="1" step="0.1" value="0.5" oninput="updateKellyLabel(this.value)" class="flex-1">
+                    <span id="kelly_label" class="text-xs font-black text-white w-8">0.5</span>
+                </div>
+                <p class="text-[7px] text-slate-400 mt-1">Recomendado: 0.2 (20%) para mayor seguridad.</p>
+            </div>
+
+            <div>
+                <label class="text-[8px] text-slate-400 uppercase">Bankroll Inicial</label>
+                <input type="number" id="initial_bankroll" class="w-full p-2 text-[10px] rounded" value="1000">
+            </div>
+
             <hr class="border-white/5">
             <div>
                 <label class="text-[8px] text-slate-400 uppercase">Google Sheet ID - Over 2.5</label>
@@ -147,24 +162,28 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-8 space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="scorelab-card p-4 border-l-2 border-cyan-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Apuestas (Value ≥ <span class="val-display">5</span>%)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Apuestas</p>
                         <h3 id="bt_total" class="text-2xl font-black">0</h3>
                     </div>
                     <div class="scorelab-card p-4 border-l-2 border-green-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Win Rate (Efectivas)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Win Rate</p>
                         <h3 id="bt_winrate" class="text-2xl font-black">0%</h3>
                     </div>
                     <div class="scorelab-card p-4 border-l-2 border-yellow-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Profit Acumulado</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Profit (Unidades)</p>
                         <h3 id="bt_profit" class="text-2xl font-black">0.00</h3>
+                    </div>
+                    <div class="scorelab-card p-4 border-l-2 border-purple-500">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Balance Final</p>
+                        <h3 id="bt_balance" class="text-2xl font-black">0.00</h3>
                     </div>
                 </div>
 
                 <div class="scorelab-card overflow-hidden">
                     <div class="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Filtro de Valor: Predicción vs Casa (Min +<span class="val-display">5</span>%)</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Backtest con Kelly Dinámico aplicado</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
@@ -174,10 +193,10 @@
                                     <th class="p-3">Fecha</th>
                                     <th class="p-3">Partido</th>
                                     <th class="p-3">Poisson vs Casa</th>
-                                    <th class="p-3 text-center">Res.</th>
+                                    <th class="p-3">Stake %</th>
                                     <th class="p-3">Cuota</th>
                                     <th class="p-3">Estado</th>
-                                    <th class="p-3">Profit</th>
+                                    <th class="p-3">Profit Cash</th>
                                 </tr>
                             </thead>
                             <tbody id="backtest_body"></tbody>
@@ -188,12 +207,12 @@
 
             <div class="lg:col-span-4 space-y-4">
                 <div class="scorelab-card p-5">
-                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Lógica de Valor Dinámica</h2>
+                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Gestión de Banca</h2>
                     <div id="team_info" class="text-sm space-y-3">
-                        <p class="text-slate-400 italic text-[11px]">El sistema solo apuesta si la probabilidad Poisson es mayor o igual a la probabilidad de la cuota + <span class="val-display font-bold text-white">5</span>%.</p>
+                        <p class="text-slate-400 italic text-[11px]">Criterio de Kelly calcula el stake óptimo: <code class="text-white">((P*B)-Q)/B</code>, donde P es probabilidad, B es cuota-1 y Q es probabilidad de perder.</p>
                         <div class="p-3 bg-black/30 rounded border border-white/5">
-                            <p class="text-[10px] text-slate-500 uppercase mb-1">Fórmula de validación:</p>
-                            <code class="text-[10px] text-cyan-400">Poisson % ≥ (1/Cuota * 100) + <span class="val-display">5</span>%</code>
+                            <p class="text-[10px] text-slate-500 uppercase mb-1">Fracción aplicada:</p>
+                            <code id="display_fraction" class="text-[10px] text-cyan-400">50% del Kelly Sugerido</code>
                         </div>
                     </div>
                 </div>
@@ -212,7 +231,7 @@
         const IDS_KEY = 'betags_sheet_ids_v2';
         
         let SHEET_IDS = JSON.parse(localStorage.getItem(IDS_KEY)) || {
-            over25: '', under25: '', btts_yes: '', btts_no: '', margin: 5
+            over25: '', under25: '', btts_yes: '', btts_no: '', margin: 5, kelly: 0.5, bank: 1000
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -224,12 +243,25 @@
                 document.getElementById('value_margin_range').value = SHEET_IDS.margin;
                 updateMarginLabel(SHEET_IDS.margin);
             }
+            if(SHEET_IDS.kelly) {
+                document.getElementById('kelly_fraction_range').value = SHEET_IDS.kelly;
+                updateKellyLabel(SHEET_IDS.kelly);
+            }
+            if(SHEET_IDS.bank) {
+                document.getElementById('initial_bankroll').value = SHEET_IDS.bank;
+            }
         });
 
         function updateMarginLabel(val) {
             document.getElementById('margin_label').innerText = val + '%';
             document.querySelectorAll('.val-display').forEach(el => el.innerText = val);
             SHEET_IDS.margin = parseInt(val);
+        }
+
+        function updateKellyLabel(val) {
+            document.getElementById('kelly_label').innerText = val;
+            document.getElementById('display_fraction').innerText = (val * 100) + '% del Kelly Sugerido';
+            SHEET_IDS.kelly = parseFloat(val);
         }
 
         function toggleConfig() {
@@ -243,11 +275,13 @@
             SHEET_IDS.btts_yes = document.getElementById('id_btts_yes').value;
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value;
             SHEET_IDS.margin = parseInt(document.getElementById('value_margin_range').value);
+            SHEET_IDS.kelly = parseFloat(document.getElementById('kelly_fraction_range').value);
+            SHEET_IDS.bank = parseFloat(document.getElementById('initial_bankroll').value);
             
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             toggleConfig();
             syncSheet();
-            runBacktest(); // Forzar recalculó tras guardar
+            runBacktest();
         }
 
         async function syncSheet() {
@@ -311,6 +345,8 @@
             const position = document.getElementById('position_select').value;
             const marketType = document.getElementById('market_auto_select').value;
             const userMargin = SHEET_IDS.margin || 5;
+            const kellyFraction = SHEET_IDS.kelly || 0.5;
+            let currentBankroll = SHEET_IDS.bank || 1000;
 
             if (!team || team.includes('--')) return;
 
@@ -323,7 +359,7 @@
 
             let wins = 0;
             let betsPlaced = 0;
-            let totalProfit = 0;
+            let totalProfitUnits = 0;
             let chartData = [];
             let analyzedCount = 0;
 
@@ -350,32 +386,49 @@
 
                 const mInfo = marketData.find(m => m.home === targetMatch.home && m.away === targetMatch.away) || { odd: 2.00 };
                 const odd = mInfo.odd;
-                
                 const bookieProb = (1 / odd) * 100;
                 const hasValue = prob >= (bookieProb + userMargin);
 
+                let profitCash = 0;
+                let stakePercent = 0;
                 let isWin = false;
-                let profit = 0;
                 let statusText = "NO BET";
                 let statusClass = "backtest-nobet";
 
                 if (hasValue) {
+                    // Cálculo de Kelly: ((p * b) - q) / b
+                    let p = prob / 100;
+                    let b = odd - 1;
+                    let q = 1 - p;
+                    let kellyFull = ((p * b) - q) / b;
+                    
+                    // Aplicar fracción y asegurar que no sea negativo
+                    stakePercent = Math.max(0, kellyFull * kellyFraction);
+                    let stakeAmount = currentBankroll * stakePercent;
+
                     const totalG = targetMatch.gl + targetMatch.gv;
                     if (marketType === 'over25') isWin = totalG > 2.5;
                     if (marketType === 'under25') isWin = totalG < 2.5;
                     if (marketType === 'btts_yes') isWin = targetMatch.gl > 0 && targetMatch.gv > 0;
                     if (marketType === 'btts_no') isWin = !(targetMatch.gl > 0 && targetMatch.gv > 0);
 
-                    profit = isWin ? (odd - 1) : -1;
-                    if (isWin) wins++;
-                    totalProfit += profit;
+                    if (isWin) {
+                        profitCash = stakeAmount * (odd - 1);
+                        totalProfitUnits += (odd - 1);
+                        wins++;
+                    } else {
+                        profitCash = -stakeAmount;
+                        totalProfitUnits -= 1;
+                    }
+
+                    currentBankroll += profitCash;
                     betsPlaced++;
                     statusText = isWin ? 'WIN' : 'LOSS';
                     statusClass = isWin ? 'backtest-win' : 'backtest-loss';
                 }
 
                 analyzedCount++;
-                chartData.push(totalProfit.toFixed(2));
+                chartData.push(currentBankroll.toFixed(2));
 
                 tbody.innerHTML += `
                     <tr class="border-b border-white/5 ${hasValue ? 'bg-cyan-500/5' : 'opacity-40'} hover:bg-white/5">
@@ -386,11 +439,11 @@
                             <span class="text-cyan-400 font-bold">${prob.toFixed(1)}%</span>
                             <div class="text-[8px] text-slate-500">Casa: ${bookieProb.toFixed(1)}%</div>
                         </td>
-                        <td class="p-3 text-center text-white font-bold">${targetMatch.gl} - ${targetMatch.gv}</td>
+                        <td class="p-3 font-bold text-yellow-500">${hasValue ? (stakePercent * 100).toFixed(1) + '%' : '-'}</td>
                         <td class="p-3 font-mono text-cyan-400">${odd.toFixed(2)}</td>
                         <td class="p-3 ${statusClass}">${statusText}</td>
-                        <td class="p-3 font-black ${profit > 0 ? 'profit-positive' : profit < 0 ? 'profit-negative' : 'text-slate-600'}">
-                            ${profit > 0 ? '+' : ''}${profit === 0 ? '0.00' : profit.toFixed(2)}
+                        <td class="p-3 font-black ${profitCash > 0 ? 'profit-positive' : profitCash < 0 ? 'profit-negative' : 'text-slate-600'}">
+                            ${profitCash > 0 ? '+' : ''}${profitCash === 0 ? '0.00' : profitCash.toFixed(2)}
                         </td>
                     </tr>
                 `;
@@ -398,8 +451,9 @@
 
             document.getElementById('bt_total').innerText = betsPlaced;
             document.getElementById('bt_winrate').innerText = betsPlaced > 0 ? ((wins / betsPlaced) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('bt_profit').innerText = totalProfit.toFixed(2);
-            document.getElementById('bt_profit').className = `text-2xl font-black ${totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}`;
+            document.getElementById('bt_profit').innerText = totalProfitUnits.toFixed(2);
+            document.getElementById('bt_balance').innerText = currentBankroll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('bt_balance').className = `text-2xl font-black ${currentBankroll >= (SHEET_IDS.bank || 1000) ? 'profit-positive' : 'profit-negative'}`;
 
             updateChart(chartData);
         }
@@ -412,7 +466,7 @@
                 data: {
                     labels: data.map((_, i) => i + 1),
                     datasets: [{
-                        label: 'Profit',
+                        label: 'Balance de Banca',
                         data: data,
                         borderColor: '#00f2ff',
                         backgroundColor: 'rgba(0, 242, 255, 0.1)',
