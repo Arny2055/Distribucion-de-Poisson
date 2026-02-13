@@ -15,6 +15,7 @@
             --sl-green: #00ff88;
             --sl-yellow: #f0db4f;
             --sl-border: #1e222d;
+            --sl-gold: #ffcc00;
         }
         
         body { 
@@ -101,6 +102,30 @@
             font-size: 11px;
         }
 
+        /* Value Alertas */
+        .card-value-high {
+            border: 1px solid var(--sl-gold) !important;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+            position: relative;
+        }
+
+        .card-value-mid {
+            border: 1px solid var(--sl-green) !important;
+        }
+
+        .badge-value-hit {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: var(--sl-gold);
+            color: black;
+            font-size: 8px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
         /* Estilo para el scanner de automatización */
         .scanner-active {
             border: 1px solid var(--sl-accent);
@@ -121,19 +146,6 @@
             z-index: 100;
             width: 300px;
         }
-
-        /* Market Badges en Scanner */
-        .m-badge {
-            font-size: 7px;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-weight: 900;
-            text-transform: uppercase;
-        }
-        .mb-over05 { background: #0077ff; color: white; }
-        .mb-over25 { background: #00ff88; color: black; }
-        .mb-under25 { background: #f0db4f; color: black; }
-        .mb-btts { background: #ff0077; color: white; }
     </style>
 </head>
 <body>
@@ -141,11 +153,11 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="w-3 h-8 bg-cyan-500 rounded-full animate-pulse"></div>
-                <h1 class="text-xl font-black tracking-tighter uppercase">BETA<span class="text-cyan-400">GS</span> <span class="text-[10px] text-slate-500 font-normal">v4.0 Poisson</span></h1>
+                <h1 class="text-xl font-black tracking-tighter uppercase">BETA<span class="text-cyan-400">GS</span> <span class="text-[10px] text-slate-500 font-normal">v4.5 PRO</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex flex-col">
-                    <span class="text-[8px] font-bold text-slate-500 uppercase ml-1">Vista Rápida</span>
+                    <span class="text-[8px] font-bold text-slate-500 uppercase ml-1">Scanner Mercado</span>
                     <select id="market_auto_select" onchange="syncSheet()" class="text-[10px] bg-slate-900 border-none rounded px-2 py-1 text-cyan-400 font-bold">
                         <option value="over05ht">OVER 0.5 HT</option>
                         <option value="over25">OVER 2.5 FT</option>
@@ -157,8 +169,8 @@
                 <button onclick="toggleConfig()" class="text-[10px] font-black bg-slate-800 text-slate-300 border border-white/10 px-3 py-1 rounded hover:bg-slate-700 transition-all">
                     <i class="fa-solid fa-gear mr-1"></i> IDS
                 </button>
-                <button onclick="syncAllMarkets()" class="text-[10px] font-black bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded hover:bg-cyan-600/40 transition-all animate-pulse">
-                    <i class="fa-solid fa-bolt-lightning mr-1"></i> RADAR TOTAL
+                <button onclick="syncAllMarkets()" class="text-[10px] font-black bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded hover:bg-cyan-600/40 transition-all">
+                    <i class="fa-solid fa-satellite-dish mr-1"></i> RADAR VALUE
                 </button>
                 <a href="roi.html" class="text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors"><i class="fa-solid fa-chart-pie mr-1"></i> ROI Panel</a>
             </div>
@@ -195,11 +207,11 @@
     <main class="container mx-auto p-4 max-w-6xl">
         <div class="scorelab-card p-3 mb-6 overflow-x-auto">
             <div class="flex justify-between items-center mb-2 px-2">
-                <span class="text-[10px] font-black text-cyan-500 uppercase tracking-widest"><i class="fa-solid fa-satellite-dish mr-1"></i> Radar Multitarea (Todos los Mercados)</span>
-                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">Modo: Multitasking</span>
+                <span class="text-[10px] font-black text-cyan-500 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Radar de Próximos Partidos</span>
+                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">Detección de Value Activa</span>
             </div>
-            <div id="auto_matches_list" class="flex gap-3 pb-2 min-w-max">
-                <p class="text-xs text-slate-600 p-4 italic">Usa RADAR TOTAL para analizar todo simultáneamente...</p>
+            <div id="auto_matches_list" class="flex gap-3 pb-4 min-w-max">
+                <p class="text-xs text-slate-600 p-4">Sincroniza para detectar oportunidades...</p>
             </div>
         </div>
 
@@ -371,6 +383,7 @@
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             alert("✅ IDs guardados correctamente.");
             toggleConfig();
+            syncSheet();
         }
 
         function toggleConfig() {
@@ -378,76 +391,124 @@
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
-        // CARGA HISTÓRICA DE BASE DE DATOS
-        async function fetchStatsDB() {
-            const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
-            const statsRes = await fetch(statsUrl);
-            const statsText = await statsRes.text();
-            const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-            database = statsJson.table.rows.map(row => ({
-                league: row.c[0]?.v,
-                home: row.c[2]?.v,
-                away: row.c[3]?.v,
-                gl: parseFloat(row.c[4]?.v || 0),
-                gv: parseFloat(row.c[5]?.v || 0)
-            })).filter(r => r.league);
-            updateLeagueSelect();
+        async function syncSheet() {
+            const marketType = document.getElementById('market_auto_select').value;
+            const currentSheetID = SHEET_IDS[marketType];
+            
+            if(!currentSheetID) {
+                alert("⚠️ No hay ID configurado para este mercado.");
+                return;
+            }
+
+            try {
+                // 1. Cargar estadísticas si la base de datos está vacía
+                if(database.length === 0) {
+                    const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
+                    const statsRes = await fetch(statsUrl);
+                    const statsText = await statsRes.text();
+                    const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
+                    database = statsJson.table.rows.map(row => ({
+                        league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
+                        gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
+                    })).filter(r => r.league);
+                }
+
+                // 2. Cargar partidos actuales
+                const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
+                const autoRes = await fetch(autoUrl);
+                const autoText = await autoRes.text();
+                const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
+
+                autoMatches = autoJson.table.rows.map(row => {
+                    const matchData = {
+                        fecha: row.c[0]?.f || row.c[0]?.v,
+                        liga: row.c[1]?.v,
+                        home: row.c[2]?.v,
+                        away: row.c[3]?.v,
+                        odd: parseFloat(row.c[4]?.v)
+                    };
+                    // Cálculo de Value en el scanner
+                    matchData.valueEdge = detectValue(matchData, marketType);
+                    return matchData;
+                }).filter(m => m.home);
+
+                renderAutoMatches();
+                updateLeagueSelect();
+                document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
+            } catch (e) { 
+                console.error("Sheet Sync Error", e); 
+            }
         }
 
-        // --- SCANNER MULTITAREA ---
-        async function syncAllMarkets() {
-            await fetchStatsDB();
-            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
-            autoMatches = [];
-            document.getElementById('auto_matches_list').innerHTML = '<p class="text-xs text-cyan-400 p-4 animate-bounce">📡 ESCANEANDO TODOS LOS MERCADOS...</p>';
+        // --- SISTEMA DE VALUE ALERT ---
+        function detectValue(match, marketType) {
+            const hStats = getTeamStats(match.liga, match.home, true);
+            const aStats = getTeamStats(match.liga, match.away, false);
+            
+            if(hStats.count === 0 || aStats.count === 0) return 0;
 
-            const fetchPromises = markets.map(async (mType) => {
-                const id = SHEET_IDS[mType];
-                if(!id) return;
-                const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
+            const lambdaH = (hStats.fav + aStats.con) / 2;
+            const lambdaA = (aStats.fav + hStats.con) / 2;
+            
+            let probPoisson = 0;
+            if(marketType === 'over25' || marketType === 'under25') {
+                for(let h=0; h<7; h++) {
+                    for(let a=0; a<7; a++) {
+                        if (h + a > 2.5) probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
+                    }
+                }
+                if(marketType === 'under25') probPoisson = 1 - probPoisson;
+            } else if(marketType.startsWith('btts')) {
+                for(let h=1; h<7; h++) {
+                    for(let a=1; a<7; a++) {
+                        probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
+                    }
+                }
+                if(marketType === 'btts_no') probPoisson = 1 - probPoisson;
+            } else if(marketType === 'over05ht') {
+                const lambdaHT = (lambdaH + lambdaA) * 0.44;
+                probPoisson = 1 - Math.exp(-lambdaHT);
+            }
+
+            const probHouse = 1 / match.odd;
+            return (probPoisson - probHouse) * 100; // Retorna el % de ventaja
+        }
+
+        function getTeamStats(league, team, isHome) {
+            const matches = database.filter(r => r.league === league && (isHome ? r.home === team : r.away === team)).slice(0,10);
+            if(matches.length === 0) return { fav:0, con:0, count:0 };
+            let gf = 0, gc = 0;
+            matches.forEach(m => {
+                gf += isHome ? m.gl : m.gv;
+                gc += isHome ? m.gv : m.gl;
+            });
+            return { fav: gf/matches.length, con: gc/matches.length, count: matches.length };
+        }
+
+        async function syncAllMarkets() {
+            // Sincronización multitarea simplificada para el radar total
+            alert("Radar Total Iniciado. Escaneando todos los mercados...");
+            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
+            let allResults = [];
+            
+            for(let m of markets) {
+                if(!SHEET_IDS[m]) continue;
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_IDS[m]}/gviz/tq?tqx=out:json`;
                 const res = await fetch(url);
                 const text = await res.text();
                 const json = JSON.parse(text.substr(47).slice(0, -2));
-                return json.table.rows.map(row => ({
-                    fecha: row.c[0]?.f || row.c[0]?.v,
-                    liga: row.c[1]?.v,
-                    home: row.c[2]?.v,
-                    away: row.c[3]?.v,
-                    odd: row.c[4]?.v,
-                    marketOrigin: mType
-                })).filter(r => r.home);
-            });
-
-            const results = await Promise.allSettled(fetchPromises);
-            results.forEach(res => {
-                if(res.status === 'fulfilled' && res.value) {
-                    autoMatches = [...autoMatches, ...res.value];
-                }
-            });
-
-            renderAutoMatches();
-        }
-
-        // CARGA INDIVIDUAL (MANTIENE LA ESENCIA)
-        async function syncSheet() {
-            await fetchStatsDB();
-            const marketType = document.getElementById('market_auto_select').value;
-            const id = SHEET_IDS[marketType];
-            if(!id) return alert("Configura el ID primero");
-
-            const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
-            const res = await fetch(url);
-            const text = await res.text();
-            const json = JSON.parse(text.substr(47).slice(0, -2));
-            autoMatches = json.table.rows.map(row => ({
-                fecha: row.c[0]?.f || row.c[0]?.v,
-                liga: row.c[1]?.v,
-                home: row.c[2]?.v,
-                away: row.c[3]?.v,
-                odd: row.c[4]?.v,
-                marketOrigin: marketType
-            })).filter(r => r.home);
-
+                const results = json.table.rows.map(row => {
+                    const matchData = {
+                        fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
+                        home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
+                        marketLabel: m.toUpperCase().replace('_', ' ')
+                    };
+                    matchData.valueEdge = detectValue(matchData, m);
+                    return matchData;
+                }).filter(r => r.home);
+                allResults = [...allResults, ...results];
+            }
+            autoMatches = allResults.sort((a,b) => b.valueEdge - a.valueEdge);
             renderAutoMatches();
         }
 
@@ -455,31 +516,30 @@
             const container = document.getElementById('auto_matches_list');
             container.innerHTML = '';
             
-            if (autoMatches.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-600 p-4">No se encontraron partidos.</p>';
-                return;
-            }
-
             autoMatches.forEach((m, idx) => {
                 const div = document.createElement('div');
-                div.className = "bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[200px] cursor-pointer hover:border-cyan-500 transition-all";
-                div.onclick = () => selectAutoMatch(idx);
-                
-                // Color según mercado
-                let mClass = "mb-over25";
-                let mName = m.marketOrigin.toUpperCase();
-                if(m.marketOrigin === 'over05ht') mClass = "mb-over05";
-                if(m.marketOrigin === 'under25') mClass = "mb-under25";
-                if(m.marketOrigin.startsWith('btts')) mClass = "mb-btts";
+                let valueClass = "";
+                let badge = "";
 
+                if(m.valueEdge > 10) {
+                    valueClass = "card-value-high";
+                    badge = `<span class="badge-value-hit">VALUE 🔥 +${m.valueEdge.toFixed(1)}%</span>`;
+                } else if(m.valueEdge > 5) {
+                    valueClass = "card-value-mid";
+                    badge = `<span class="badge-value-hit" style="background:#00ff88">VALUE +${m.valueEdge.toFixed(1)}%</span>`;
+                }
+
+                div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
+                div.onclick = () => selectAutoMatch(idx);
                 div.innerHTML = `
+                    ${badge}
                     <div class="flex justify-between items-start mb-1">
-                        <span class="m-badge ${mClass}">${mName}</span>
+                        <span class="text-[8px] text-slate-500 font-bold uppercase">${m.marketLabel || m.liga}</span>
                         <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
                     </div>
                     <div class="text-[11px] font-black text-white truncate">${m.home}</div>
                     <div class="text-[11px] font-black text-white truncate">${m.away}</div>
-                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.liga} | ${m.fecha}</div>
+                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>
                 `;
                 container.appendChild(div);
             });
@@ -496,13 +556,12 @@
             
             loadStatsIndependent();
 
-            // Identificar qué fila de la tabla llenar
-            let targetIdx = 1; // Default Over 2.5
-            if(match.marketOrigin === 'over05ht') targetIdx = 0;
-            if(match.marketOrigin === 'over25') targetIdx = 1;
-            if(match.marketOrigin === 'under25') targetIdx = 2;
-            if(match.marketOrigin === 'btts_yes') targetIdx = 3;
-            if(match.marketOrigin === 'btts_no') targetIdx = 4;
+            // Sincronizar cuota en tabla
+            const marketType = document.getElementById('market_auto_select').value;
+            let targetIdx = 1;
+            if(marketType === 'over05ht') targetIdx = 0;
+            if(marketType === 'under25') targetIdx = 2;
+            if(marketType.startsWith('btts')) targetIdx = 3;
 
             setTimeout(() => {
                 const oddInput = document.getElementById(`odd_${targetIdx}`);
@@ -739,7 +798,7 @@
 
         window.onload = () => {
             loadSavedIDs();
-            fetchStatsDB();
+            syncSheet();
         };
     </script>
 </body>
