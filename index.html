@@ -321,7 +321,6 @@
         const STORAGE_KEY = 'betags_pre_match';
         const IDS_KEY = 'betags_sheet_ids';
         
-        // IDs por defecto (se sobreescriben con localStorage)
         let SHEET_IDS = {
             over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6',
             under25: '',
@@ -331,7 +330,6 @@
 
         const STATS_SHEET_ID = '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO';
 
-        // Gestión de IDs en LocalStorage
         function loadSavedIDs() {
             const saved = localStorage.getItem(IDS_KEY);
             if(saved) {
@@ -372,7 +370,6 @@
             document.getElementById('scan_status').innerText = `ID: ${currentSheetID.substring(0, 8)}...`;
             
             try {
-                // 1. CARGAR ESTADÍSTICAS H2H
                 const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
                 const statsRes = await fetch(statsUrl);
                 const statsText = await statsRes.text();
@@ -386,7 +383,6 @@
                     gv: parseFloat(row.c[5]?.v || 0)
                 })).filter(r => r.league);
 
-                // 2. CARGAR PRÓXIMOS PARTIDOS
                 const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
                 const autoRes = await fetch(autoUrl);
                 const autoText = await autoRes.text();
@@ -448,9 +444,12 @@
             loadStatsIndependent();
 
             const marketType = document.getElementById('market_auto_select').value;
-            let targetIdx = 1; // Over 2.5
+            let targetIdx = 1; // Default Over 2.5
+            
+            // CORRECCIÓN DE ÍNDICES PARA BTTS YES/NO
             if(marketType === 'under25') targetIdx = 2;
-            if(marketType.startsWith('btts')) targetIdx = 3;
+            if(marketType === 'btts_yes') targetIdx = 3;
+            if(marketType === 'btts_no') targetIdx = 4;
 
             setTimeout(() => {
                 const oddInput = document.getElementById(`odd_${targetIdx}`);
