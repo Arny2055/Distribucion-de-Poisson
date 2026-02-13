@@ -199,10 +199,12 @@
                 const statsRes = await fetch(statsUrl);
                 const statsText = await statsRes.text();
                 const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
+                
                 database = statsJson.table.rows.map((row, index) => ({
                     id: index,
                     league: row.c[0]?.v,
-                    date: row.c[1]?.f || row.c[1]?.v,
+                    // CORRECCIÓN: Aseguramos que la fecha se lea como texto o valor real de Google
+                    date: row.c[1]?.f || (row.c[1]?.v ? String(row.c[1].v) : "N/A"),
                     home: row.c[2]?.v,
                     away: row.c[3]?.v,
                     gl: parseFloat(row.c[4]?.v || 0),
@@ -217,7 +219,7 @@
                     const mText = await mRes.text();
                     const mJson = JSON.parse(mText.substr(47).slice(0, -2));
                     marketData = mJson.table.rows.map(row => ({
-                        date: row.c[0]?.f || row.c[0]?.v,
+                        date: row.c[0]?.f || (row.c[0]?.v ? String(row.c[0].v) : "N/A"),
                         league: row.c[1]?.v,
                         home: row.c[2]?.v,
                         away: row.c[3]?.v,
@@ -230,14 +232,14 @@
         }
 
         function updateLeagueSelect() {
-            const leagues = [...new Set(database.map(r => r.league))].sort();
+            const leagues = [...new Set(database.map(r => r.league))].filter(l => l).sort();
             const sel = document.getElementById('league_select');
             sel.innerHTML = '<option>-- SELECCIONAR --</option>' + leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
         function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
-            const teams = [...new Set(database.filter(r => r.league === league).map(r => r.home))].sort();
+            const teams = [...new Set(database.filter(r => r.league === league).map(r => r.home))].filter(t => t).sort();
             const sel = document.getElementById('team_select');
             sel.innerHTML = '<option>-- SELECCIONAR EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
         }
@@ -250,17 +252,14 @@
 
             if (!team || team.includes('--')) return;
 
-            // FILTRADO CORRECTO: 
-            // 1. Buscamos partidos donde el equipo sea LOCAL o VISITANTE según elección.
-            // 2. IMPORTANTE: En el Excel, los partidos suelen estar del más nuevo (arriba) al más viejo (abajo).
-            // Para comparar ASCENDENTE (el que sigue), necesitamos procesar la lista tal cual viene.
+            // FILTRADO ROBUSTO:
+            // Filtramos sin importar el año, solo liga y equipo en su posición elegida.
             const filteredMatches = database.filter(r => 
                 r.league === league && (position === 'home' ? r.home === team : r.away === team)
             );
 
-            // "Toma ese partido y de ahí cuenta para abajo 10":
-            // Tomamos los primeros 11 registros para tener 10 comparaciones (i vs i-1 o i vs i+1).
-            // Como quieres ascendente, comparamos el partido actual (i) con el que se jugó después (i-1 en el array si el excel es descendente).
+            // Tomamos una muestra de hasta 21 registros para asegurar que tenemos suficientes comparaciones.
+            // (Aumentado de 11 a 21 por si quieres una muestra mayor, puedes bajarlo a 11 si prefieres solo 10 apuestas).
             const sample = filteredMatches.slice(0, 11);
 
             const tbody = document.getElementById('backtest_body');
@@ -271,11 +270,11 @@
             let chartData = [];
             let count = 0;
 
+            // Bucle corregido para recorrer toda la muestra disponible en el array.
             for (let i = sample.length - 1; i > 0; i--) {
-                const baseMatch = sample[i];      // Partido anterior (para referencia)
-                const targetMatch = sample[i - 1]; // Partido siguiente/ascendente (donde evaluamos la apuesta)
+                const baseMatch = sample[i];      
+                const targetMatch = sample[i - 1]; 
                 
-                // Buscar cuota en el Excel de cuotas
                 const marketInfo = marketData.find(m => 
                     m.home === targetMatch.home && m.away === targetMatch.away
                 ) || { odd: 1.85 };
