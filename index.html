@@ -101,6 +101,16 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
         }
+
+        /* Config Panel - CORREGIDO DISPLAY INICIAL */
+        #config_panel {
+            display: none; 
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            z-index: 100;
+            width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -314,12 +324,14 @@
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             alert("✅ IDs guardados.");
-            toggleConfig();
+            
+            // Cerrar el panel manualmente para evitar toggles erróneos
+            document.getElementById('config_panel').style.display = 'none';
         }
 
         function toggleConfig() {
             const panel = document.getElementById('config_panel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
         }
 
         // --- SISTEMA DE VALUE ALERT ---
