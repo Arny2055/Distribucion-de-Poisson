@@ -195,7 +195,6 @@
             const currentSheetID = SHEET_IDS[marketType];
             
             try {
-                // 1. Cargar Base de Datos Histórica (Stats)
                 const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
                 const statsRes = await fetch(statsUrl);
                 const statsText = await statsRes.text();
@@ -203,6 +202,7 @@
                 database = statsJson.table.rows.map((row, index) => ({
                     id: index,
                     league: row.c[0]?.v,
+                    date: row.c[1]?.f || row.c[1]?.v,
                     home: row.c[2]?.v,
                     away: row.c[3]?.v,
                     gl: parseFloat(row.c[4]?.v || 0),
@@ -211,7 +211,6 @@
                     gv_ht: parseFloat(row.c[7]?.v || 0)
                 }));
 
-                // 2. Cargar Datos del Mercado (Cuotas del Excel de IDs)
                 if (currentSheetID) {
                     const marketUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
                     const mRes = await fetch(marketUrl);
@@ -246,20 +245,23 @@
         function runBacktest() {
             const league = document.getElementById('league_select').value;
             const team = document.getElementById('team_select').value;
-            const position = document.getElementById('position_select').value; // 'home' o 'away'
+            const position = document.getElementById('position_select').value;
             const marketType = document.getElementById('market_auto_select').value;
 
             if (!team || team.includes('--')) return;
 
-            // 1. Filtrar partidos del equipo en la posición elegida
-            // Usamos el índice original para mantener el orden del Excel (Descendente)
-            const teamMatches = database.filter(r => 
+            // FILTRADO CORRECTO: 
+            // 1. Buscamos partidos donde el equipo sea LOCAL o VISITANTE según elección.
+            // 2. IMPORTANTE: En el Excel, los partidos suelen estar del más nuevo (arriba) al más viejo (abajo).
+            // Para comparar ASCENDENTE (el que sigue), necesitamos procesar la lista tal cual viene.
+            const filteredMatches = database.filter(r => 
                 r.league === league && (position === 'home' ? r.home === team : r.away === team)
-            ).reverse(); // Invertimos para que el más nuevo sea el último en proceso pero fácil de recorrer
+            );
 
-            // Tomamos los últimos 10 según el orden del excel
-            // El usuario quiere: "Cuenta para abajo 10" (los 10 más recientes del archivo)
-            const sample = teamMatches.slice(-11); // Tomamos 11 para tener margen de comparación ascendente
+            // "Toma ese partido y de ahí cuenta para abajo 10":
+            // Tomamos los primeros 11 registros para tener 10 comparaciones (i vs i-1 o i vs i+1).
+            // Como quieres ascendente, comparamos el partido actual (i) con el que se jugó después (i-1 en el array si el excel es descendente).
+            const sample = filteredMatches.slice(0, 11);
 
             const tbody = document.getElementById('backtest_body');
             tbody.innerHTML = '';
@@ -267,19 +269,20 @@
             let wins = 0;
             let totalProfit = 0;
             let chartData = [];
+            let count = 0;
 
-            // 2. Lógica de Backtesting Ascendente
-            // Recorremos los 10 partidos y comparamos con el que sigue arriba (index + 1)
-            for (let i = 0; i < Math.min(10, sample.length - 1); i++) {
-                const currentMatch = sample[i];
-                const targetMatch = sample[i + 1]; // El partido que sigue arriba en el excel
+            for (let i = sample.length - 1; i > 0; i--) {
+                const baseMatch = sample[i];      // Partido anterior (para referencia)
+                const targetMatch = sample[i - 1]; // Partido siguiente/ascendente (donde evaluamos la apuesta)
                 
-                // Buscar la cuota en marketData para el targetMatch
-                const marketInfo = marketData.find(m => m.home === targetMatch.home && m.away === targetMatch.away) || { odd: 1.85 };
+                // Buscar cuota en el Excel de cuotas
+                const marketInfo = marketData.find(m => 
+                    m.home === targetMatch.home && m.away === targetMatch.away
+                ) || { odd: 1.85 };
+                
                 const odd = marketInfo.odd;
-
-                // Determinar si se ganó según mercado
                 let isWin = false;
+                
                 const totalG = targetMatch.gl + targetMatch.gv;
                 const totalHT = targetMatch.gl_ht + targetMatch.gv_ht;
 
@@ -291,23 +294,25 @@
                 if (isWin) wins++;
                 totalProfit += profit;
                 chartData.push(totalProfit);
+                count++;
 
-                // Renderizar Fila
                 tbody.innerHTML += `
-                    <tr class="border-b border-white/5">
-                        <td class="p-3 text-slate-500">${currentMatch.home} vs ${currentMatch.away}</td>
-                        <td class="p-3 font-bold text-white">${targetMatch.home} vs ${targetMatch.away} <br> <span class="text-[10px] text-cyan-500">RES: ${targetMatch.gl}-${targetMatch.gv}</span></td>
-                        <td class="p-3 font-mono">${isWin ? '✅' : '❌'}</td>
-                        <td class="p-3">${odd.toFixed(2)}</td>
-                        <td class="p-3 ${isWin ? 'backtest-win' : 'backtest-loss'}">${isWin ? 'WIN' : 'LOSS'}</td>
-                        <td class="p-3 ${profit > 0 ? 'profit-positive' : 'profit-negative'}">${profit > 0 ? '+' : ''}${profit.toFixed(2)}</td>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="p-3 text-slate-500 text-[10px]">${baseMatch.date}</td>
+                        <td class="p-3 font-bold text-white">
+                            ${targetMatch.home} vs ${targetMatch.away}
+                            <div class="text-[9px] text-cyan-500 font-mono">FT: ${targetMatch.gl}-${targetMatch.gv} | HT: ${targetMatch.gl_ht}-${targetMatch.gv_ht}</div>
+                        </td>
+                        <td class="p-3 text-center">${isWin ? '✅' : '❌'}</td>
+                        <td class="p-3 font-mono text-cyan-400">${odd.toFixed(2)}</td>
+                        <td class="p-3 ${isWin ? 'backtest-win' : 'backtest-loss'}">${isWin ? 'GANADO' : 'PERDIDO'}</td>
+                        <td class="p-3 font-black ${profit > 0 ? 'profit-positive' : 'profit-negative'}">${profit > 0 ? '+' : ''}${profit.toFixed(2)}</td>
                     </tr>
                 `;
             }
 
-            // Actualizar Widgets
-            document.getElementById('bt_total').innerText = Math.min(10, sample.length - 1);
-            document.getElementById('bt_winrate').innerText = ((wins / Math.min(10, sample.length - 1)) * 100).toFixed(1) + '%';
+            document.getElementById('bt_total').innerText = count;
+            document.getElementById('bt_winrate').innerText = count > 0 ? ((wins / count) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('bt_profit').innerText = totalProfit.toFixed(2);
             document.getElementById('bt_profit').className = `text-2xl font-black ${totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}`;
 
@@ -327,7 +332,9 @@
                         borderColor: '#00f2ff',
                         backgroundColor: 'rgba(0, 242, 255, 0.1)',
                         fill: true,
-                        tension: 0.4
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#00f2ff'
                     }]
                 },
                 options: {
@@ -335,7 +342,7 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { grid: { color: '#1e222d' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
                         x: { display: false }
                     }
                 }
