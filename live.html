@@ -112,7 +112,14 @@
                     <input type="range" id="kelly_fraction_range" min="0.1" max="1" step="0.1" value="0.5" oninput="updateKellyLabel(this.value)" class="flex-1">
                     <span id="kelly_label" class="text-xs font-black text-white w-8">0.5</span>
                 </div>
-                <p class="text-[7px] text-slate-400 mt-1">Recomendado: 0.2 (20%) para mayor seguridad.</p>
+                <div class="mt-2 pt-2 border-t border-yellow-500/10">
+                    <label class="text-[8px] text-yellow-500 font-bold uppercase block mb-1">Stake Máximo Permitido (%)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="max_stake_range" min="1" max="20" step="1" value="5" oninput="updateStakeLabel(this.value)" class="flex-1">
+                        <span id="stake_limit_label" class="text-xs font-black text-white w-8">5%</span>
+                    </div>
+                </div>
+                <p class="text-[7px] text-slate-400 mt-1">El Stake Máximo limita el Kelly para evitar sobre-exposición.</p>
             </div>
 
             <div>
@@ -209,10 +216,11 @@
                 <div class="scorelab-card p-5">
                     <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Gestión de Banca</h2>
                     <div id="team_info" class="text-sm space-y-3">
-                        <p class="text-slate-400 italic text-[11px]">Criterio de Kelly calcula el stake óptimo: <code class="text-white">((P*B)-Q)/B</code>, donde P es probabilidad, B es cuota-1 y Q es probabilidad de perder.</p>
+                        <p class="text-slate-400 italic text-[11px]">Criterio de Kelly calcula el stake óptimo: <code class="text-white">((P*B)-Q)/B</code>, limitado por el tope máximo seleccionado.</p>
                         <div class="p-3 bg-black/30 rounded border border-white/5">
-                            <p class="text-[10px] text-slate-500 uppercase mb-1">Fracción aplicada:</p>
-                            <code id="display_fraction" class="text-[10px] text-cyan-400">50% del Kelly Sugerido</code>
+                            <p class="text-[10px] text-slate-500 uppercase mb-1">Configuración actual:</p>
+                            <code id="display_fraction" class="text-[10px] text-cyan-400 block">50% del Kelly Sugerido</code>
+                            <code id="display_max_stake" class="text-[10px] text-yellow-500 block">Límite: 5% por apuesta</code>
                         </div>
                     </div>
                 </div>
@@ -231,7 +239,7 @@
         const IDS_KEY = 'betags_sheet_ids_v2';
         
         let SHEET_IDS = JSON.parse(localStorage.getItem(IDS_KEY)) || {
-            over25: '', under25: '', btts_yes: '', btts_no: '', margin: 5, kelly: 0.5, bank: 1000
+            over25: '', under25: '', btts_yes: '', btts_no: '', margin: 5, kelly: 0.5, bank: 1000, maxStake: 5
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -247,6 +255,10 @@
                 document.getElementById('kelly_fraction_range').value = SHEET_IDS.kelly;
                 updateKellyLabel(SHEET_IDS.kelly);
             }
+            if(SHEET_IDS.maxStake) {
+                document.getElementById('max_stake_range').value = SHEET_IDS.maxStake;
+                updateStakeLabel(SHEET_IDS.maxStake);
+            }
             if(SHEET_IDS.bank) {
                 document.getElementById('initial_bankroll').value = SHEET_IDS.bank;
             }
@@ -254,7 +266,6 @@
 
         function updateMarginLabel(val) {
             document.getElementById('margin_label').innerText = val + '%';
-            document.querySelectorAll('.val-display').forEach(el => el.innerText = val);
             SHEET_IDS.margin = parseInt(val);
         }
 
@@ -262,6 +273,12 @@
             document.getElementById('kelly_label').innerText = val;
             document.getElementById('display_fraction').innerText = (val * 100) + '% del Kelly Sugerido';
             SHEET_IDS.kelly = parseFloat(val);
+        }
+
+        function updateStakeLabel(val) {
+            document.getElementById('stake_limit_label').innerText = val + '%';
+            document.getElementById('display_max_stake').innerText = 'Límite: ' + val + '% por apuesta';
+            SHEET_IDS.maxStake = parseInt(val);
         }
 
         function toggleConfig() {
@@ -276,6 +293,7 @@
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value;
             SHEET_IDS.margin = parseInt(document.getElementById('value_margin_range').value);
             SHEET_IDS.kelly = parseFloat(document.getElementById('kelly_fraction_range').value);
+            SHEET_IDS.maxStake = parseInt(document.getElementById('max_stake_range').value);
             SHEET_IDS.bank = parseFloat(document.getElementById('initial_bankroll').value);
             
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
@@ -346,6 +364,7 @@
             const marketType = document.getElementById('market_auto_select').value;
             const userMargin = SHEET_IDS.margin || 5;
             const kellyFraction = SHEET_IDS.kelly || 0.5;
+            const maxStakeLimit = (SHEET_IDS.maxStake || 5) / 100;
             let currentBankroll = SHEET_IDS.bank || 1000;
 
             if (!team || team.includes('--')) return;
@@ -396,14 +415,15 @@
                 let statusClass = "backtest-nobet";
 
                 if (hasValue) {
-                    // Cálculo de Kelly: ((p * b) - q) / b
                     let p = prob / 100;
                     let b = odd - 1;
                     let q = 1 - p;
                     let kellyFull = ((p * b) - q) / b;
                     
-                    // Aplicar fracción y asegurar que no sea negativo
-                    stakePercent = Math.max(0, kellyFull * kellyFraction);
+                    // Cálculo dinámico + Limitación de Stake
+                    let suggestedStake = Math.max(0, kellyFull * kellyFraction);
+                    stakePercent = Math.min(suggestedStake, maxStakeLimit);
+                    
                     let stakeAmount = currentBankroll * stakePercent;
 
                     const totalG = targetMatch.gl + targetMatch.gv;
@@ -414,11 +434,11 @@
 
                     if (isWin) {
                         profitCash = stakeAmount * (odd - 1);
-                        totalProfitUnits += (odd - 1);
+                        totalProfitUnits += (stakePercent * 100) * (odd - 1);
                         wins++;
                     } else {
                         profitCash = -stakeAmount;
-                        totalProfitUnits -= 1;
+                        totalProfitUnits -= (stakePercent * 100);
                     }
 
                     currentBankroll += profitCash;
@@ -451,7 +471,7 @@
 
             document.getElementById('bt_total').innerText = betsPlaced;
             document.getElementById('bt_winrate').innerText = betsPlaced > 0 ? ((wins / betsPlaced) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('bt_profit').innerText = totalProfitUnits.toFixed(2);
+            document.getElementById('bt_profit').innerText = (totalProfitUnits / 100).toFixed(2);
             document.getElementById('bt_balance').innerText = currentBankroll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('bt_balance').className = `text-2xl font-black ${currentBankroll >= (SHEET_IDS.bank || 1000) ? 'profit-positive' : 'profit-negative'}`;
 
