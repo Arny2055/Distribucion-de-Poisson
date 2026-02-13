@@ -132,22 +132,25 @@
 
                 <div class="scorelab-card overflow-hidden">
                     <div class="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Historial de Backtesting (Ascendente)</span>
-                        <span class="text-[9px] text-slate-500 italic">Comparando vs partido superior</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Historial de Backtesting (Cronológico)</span>
+                        <span class="text-[9px] text-slate-500 italic">Analizando desde el primer partido de la liga</span>
                     </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-black/40 text-[9px] uppercase text-slate-500">
-                            <tr>
-                                <th class="p-3">Fecha Base</th>
-                                <th class="p-3">Partido Analizado (Target)</th>
-                                <th class="p-3">Resultado</th>
-                                <th class="p-3">Cuota</th>
-                                <th class="p-3">Estado</th>
-                                <th class="p-3">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="backtest_body"></tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-black/40 text-[9px] uppercase text-slate-500">
+                                <tr>
+                                    <th class="p-3">#</th>
+                                    <th class="p-3">Fecha</th>
+                                    <th class="p-3">Partido Analizado (Target)</th>
+                                    <th class="p-3 text-center">Res.</th>
+                                    <th class="p-3">Cuota</th>
+                                    <th class="p-3">Estado</th>
+                                    <th class="p-3">Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backtest_body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -155,7 +158,7 @@
                 <div class="scorelab-card p-5">
                     <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Resumen de Datos</h2>
                     <div id="team_info" class="text-sm space-y-2">
-                        <p class="text-slate-400 italic">Selecciona un equipo para iniciar el escaneo descendente de los últimos 10 partidos.</p>
+                        <p class="text-slate-400 italic">Selecciona un equipo para iniciar el escaneo completo desde el inicio de los tiempos registrados.</p>
                     </div>
                 </div>
                 <div class="scorelab-card p-5 h-64">
@@ -200,11 +203,11 @@
                 const statsText = await statsRes.text();
                 const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
                 
+                // Procesar base de datos completa
                 database = statsJson.table.rows.map((row, index) => ({
                     id: index,
                     league: row.c[0]?.v,
-                    // CORRECCIÓN: Aseguramos que la fecha se lea como texto o valor real de Google
-                    date: row.c[1]?.f || (row.c[1]?.v ? String(row.c[1].v) : "N/A"),
+                    date: row.c[1]?.f || row.c[1]?.v,
                     home: row.c[2]?.v,
                     away: row.c[3]?.v,
                     gl: parseFloat(row.c[4]?.v || 0),
@@ -219,7 +222,7 @@
                     const mText = await mRes.text();
                     const mJson = JSON.parse(mText.substr(47).slice(0, -2));
                     marketData = mJson.table.rows.map(row => ({
-                        date: row.c[0]?.f || (row.c[0]?.v ? String(row.c[0].v) : "N/A"),
+                        date: row.c[0]?.f || row.c[0]?.v,
                         league: row.c[1]?.v,
                         home: row.c[2]?.v,
                         away: row.c[3]?.v,
@@ -232,14 +235,14 @@
         }
 
         function updateLeagueSelect() {
-            const leagues = [...new Set(database.map(r => r.league))].filter(l => l).sort();
+            const leagues = [...new Set(database.map(r => r.league))].sort();
             const sel = document.getElementById('league_select');
             sel.innerHTML = '<option>-- SELECCIONAR --</option>' + leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
         function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
-            const teams = [...new Set(database.filter(r => r.league === league).map(r => r.home))].filter(t => t).sort();
+            const teams = [...new Set(database.filter(r => r.league === league).map(r => r.home))].sort();
             const sel = document.getElementById('team_select');
             sel.innerHTML = '<option>-- SELECCIONAR EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
         }
@@ -252,15 +255,14 @@
 
             if (!team || team.includes('--')) return;
 
-            // FILTRADO ROBUSTO:
-            // Filtramos sin importar el año, solo liga y equipo en su posición elegida.
-            const filteredMatches = database.filter(r => 
+            // FILTRADO: Buscamos todos los partidos de la liga y el equipo, sin límite de cantidad.
+            let matches = database.filter(r => 
                 r.league === league && (position === 'home' ? r.home === team : r.away === team)
             );
 
-            // Tomamos una muestra de hasta 21 registros para asegurar que tenemos suficientes comparaciones.
-            // (Aumentado de 11 a 21 por si quieres una muestra mayor, puedes bajarlo a 11 si prefieres solo 10 apuestas).
-            const sample = filteredMatches.slice(0, 11);
+            // IMPORTANTE: Invertimos el orden para que vaya del partido 1 (el más antiguo en el Excel)
+            // hasta el último (el más reciente). Esto permite ver el profit acumulado correctamente.
+            matches = matches.reverse();
 
             const tbody = document.getElementById('backtest_body');
             tbody.innerHTML = '';
@@ -270,11 +272,8 @@
             let chartData = [];
             let count = 0;
 
-            // Bucle corregido para recorrer toda la muestra disponible en el array.
-            for (let i = sample.length - 1; i > 0; i--) {
-                const baseMatch = sample[i];      
-                const targetMatch = sample[i - 1]; 
-                
+            matches.forEach((targetMatch, index) => {
+                // Buscar cuota en el Excel de cuotas o usar default
                 const marketInfo = marketData.find(m => 
                     m.home === targetMatch.home && m.away === targetMatch.away
                 ) || { odd: 1.85 };
@@ -292,12 +291,13 @@
                 const profit = isWin ? (odd - 1) : -1;
                 if (isWin) wins++;
                 totalProfit += profit;
-                chartData.push(totalProfit);
+                chartData.push(totalProfit.toFixed(2));
                 count++;
 
                 tbody.innerHTML += `
                     <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td class="p-3 text-slate-500 text-[10px]">${baseMatch.date}</td>
+                        <td class="p-3 text-slate-500 font-mono">${index + 1}</td>
+                        <td class="p-3 text-slate-500 text-[10px]">${targetMatch.date}</td>
                         <td class="p-3 font-bold text-white">
                             ${targetMatch.home} vs ${targetMatch.away}
                             <div class="text-[9px] text-cyan-500 font-mono">FT: ${targetMatch.gl}-${targetMatch.gv} | HT: ${targetMatch.gl_ht}-${targetMatch.gv_ht}</div>
@@ -308,7 +308,7 @@
                         <td class="p-3 font-black ${profit > 0 ? 'profit-positive' : 'profit-negative'}">${profit > 0 ? '+' : ''}${profit.toFixed(2)}</td>
                     </tr>
                 `;
-            }
+            });
 
             document.getElementById('bt_total').innerText = count;
             document.getElementById('bt_winrate').innerText = count > 0 ? ((wins / count) * 100).toFixed(1) + '%' : '0%';
@@ -332,7 +332,7 @@
                         backgroundColor: 'rgba(0, 242, 255, 0.1)',
                         fill: true,
                         tension: 0.3,
-                        pointRadius: 4,
+                        pointRadius: 2,
                         pointBackgroundColor: '#00f2ff'
                     }]
                 },
