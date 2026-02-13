@@ -47,6 +47,7 @@
 
         .backtest-win { color: var(--sl-green); font-weight: bold; }
         .backtest-loss { color: var(--sl-red); font-weight: bold; }
+        .backtest-nobet { color: #64748b; font-weight: bold; font-style: italic; }
         
         .profit-positive { color: var(--sl-green); text-shadow: 0 0 10px rgba(0,255,136,0.3); }
         .profit-negative { color: var(--sl-red); text-shadow: 0 0 10px rgba(255,77,77,0.3); }
@@ -140,11 +141,11 @@
             <div class="lg:col-span-8 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="scorelab-card p-4 border-l-2 border-cyan-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Muestra con Poisson (10)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Apuestas Realizadas (Value ≥ 5%)</p>
                         <h3 id="bt_total" class="text-2xl font-black">0</h3>
                     </div>
                     <div class="scorelab-card p-4 border-l-2 border-green-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Win Rate Global</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">Win Rate (Efectivas)</p>
                         <h3 id="bt_winrate" class="text-2xl font-black">0%</h3>
                     </div>
                     <div class="scorelab-card p-4 border-l-2 border-yellow-500">
@@ -155,7 +156,7 @@
 
                 <div class="scorelab-card overflow-hidden">
                     <div class="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Backtesting: Últimos 10 Partidos Móviles + Poisson</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Filtro de Valor: Predicción vs Casa (Min +5%)</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
@@ -164,7 +165,7 @@
                                     <th class="p-3">#</th>
                                     <th class="p-3">Fecha</th>
                                     <th class="p-3">Partido</th>
-                                    <th class="p-3">Poisson (10 Prev)</th>
+                                    <th class="p-3">Poisson vs Casa</th>
                                     <th class="p-3 text-center">Res.</th>
                                     <th class="p-3">Cuota</th>
                                     <th class="p-3">Estado</th>
@@ -179,9 +180,10 @@
 
             <div class="lg:col-span-4 space-y-4">
                 <div class="scorelab-card p-5">
-                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Información de Ventana</h2>
+                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Lógica de Valor Automática</h2>
                     <div id="team_info" class="text-sm space-y-3">
-                        <p class="text-slate-400 italic">El sistema analiza cada partido usando el promedio de goles de los 10 encuentros inmediatamente anteriores a esa fecha.</p>
+                        <p class="text-slate-400 italic text-[11px]">El sistema solo ejecuta la apuesta si la probabilidad calculada por Poisson supera a la probabilidad implícita de la cuota en al menos un 5%.</p>
+                        <p class="text-cyan-400 font-bold text-[10px]">Ejemplo: Si la cuota es 2.00 (50%), solo apostamos si Poisson dice ≥ 55%.</p>
                     </div>
                 </div>
                 <div class="scorelab-card p-5 h-64">
@@ -202,7 +204,6 @@
             over25: '', under25: '', btts_yes: '', btts_no: ''
         };
 
-        // Cargar valores iniciales en inputs
         document.addEventListener('DOMContentLoaded', () => {
             Object.keys(SHEET_IDS).forEach(key => {
                 const el = document.getElementById(`id_${key}`);
@@ -275,7 +276,6 @@
             sel.innerHTML = '<option>-- SELECCIONAR EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
         }
 
-        // Función de Poisson simplificada para Backtesting
         function getPoissonProb(lambda, x) {
             const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
             return (Math.exp(-lambda) * Math.pow(lambda, x)) / factorial(x);
@@ -289,7 +289,6 @@
 
             if (!team || team.includes('--')) return;
 
-            // Filtramos todos los partidos de ese equipo en esa liga (Histórico completo)
             let allMatches = database.filter(r => 
                 r.league === league && (position === 'home' ? r.home === team : r.away === team)
             );
@@ -298,19 +297,16 @@
             tbody.innerHTML = '';
 
             let wins = 0;
+            let betsPlaced = 0;
             let totalProfit = 0;
             let chartData = [];
             let analyzedCount = 0;
 
-            // Empezamos desde el partido 11 para tener 10 previos
             for (let i = 10; i < allMatches.length; i++) {
                 const targetMatch = allMatches[i];
                 const last10 = allMatches.slice(i - 10, i);
-                
-                // Cálculo de Promedios (Poisson Lambda)
                 const avgG = last10.reduce((acc, m) => acc + (m.gl + m.gv), 0) / 10;
                 
-                // Probabilidades Poisson para el mercado seleccionado
                 let prob = 0;
                 if (marketType.includes('over25')) {
                     const p0 = getPoissonProb(avgG, 0);
@@ -323,48 +319,61 @@
                     const p2 = getPoissonProb(avgG, 2);
                     prob = (p0 + p1 + p2) * 100;
                 } else {
-                    // Simplificación para BTTS basada en promedio de la muestra
                     const bttsCount = last10.filter(m => m.gl > 0 && m.gv > 0).length;
                     prob = (bttsCount / 10) * 100;
                 }
 
-                // Buscar cuota en los datos cargados
                 const mInfo = marketData.find(m => m.home === targetMatch.home && m.away === targetMatch.away) || { odd: 2.00 };
                 const odd = mInfo.odd;
                 
-                // Resultado Real
-                let isWin = false;
-                const totalG = targetMatch.gl + targetMatch.gv;
-                if (marketType === 'over25') isWin = totalG > 2.5;
-                if (marketType === 'under25') isWin = totalG < 2.5;
-                if (marketType === 'btts_yes') isWin = targetMatch.gl > 0 && targetMatch.gv > 0;
-                if (marketType === 'btts_no') isWin = !(targetMatch.gl > 0 && targetMatch.gv > 0);
+                // LÓGICA DE VALOR: ¿La predicción es >= 5% respecto a la cuota?
+                const bookieProb = (1 / odd) * 100;
+                const hasValue = prob >= (bookieProb + 5);
 
-                const profit = isWin ? (odd - 1) : -1;
-                if (isWin) wins++;
-                totalProfit += profit;
+                let isWin = false;
+                let profit = 0;
+                let statusText = "NO BET";
+                let statusClass = "backtest-nobet";
+
+                if (hasValue) {
+                    const totalG = targetMatch.gl + targetMatch.gv;
+                    if (marketType === 'over25') isWin = totalG > 2.5;
+                    if (marketType === 'under25') isWin = totalG < 2.5;
+                    if (marketType === 'btts_yes') isWin = targetMatch.gl > 0 && targetMatch.gv > 0;
+                    if (marketType === 'btts_no') isWin = !(targetMatch.gl > 0 && targetMatch.gv > 0);
+
+                    profit = isWin ? (odd - 1) : -1;
+                    if (isWin) wins++;
+                    totalProfit += profit;
+                    betsPlaced++;
+                    statusText = isWin ? 'WIN' : 'LOSS';
+                    statusClass = isWin ? 'backtest-win' : 'backtest-loss';
+                }
+
                 analyzedCount++;
                 chartData.push(totalProfit.toFixed(2));
 
                 tbody.innerHTML += `
-                    <tr class="border-b border-white/5 hover:bg-white/5">
+                    <tr class="border-b border-white/5 ${hasValue ? 'bg-cyan-500/5' : 'opacity-40'} hover:bg-white/5">
                         <td class="p-3 text-slate-500 font-mono">${analyzedCount}</td>
                         <td class="p-3 text-slate-500 text-[10px]">${targetMatch.date}</td>
                         <td class="p-3 font-bold text-white">${targetMatch.home} vs ${targetMatch.away}</td>
                         <td class="p-3">
                             <span class="text-cyan-400 font-bold">${prob.toFixed(1)}%</span>
-                            <div class="text-[8px] text-slate-500">Lambda: ${avgG.toFixed(2)}</div>
+                            <div class="text-[8px] text-slate-500">Casa: ${bookieProb.toFixed(1)}%</div>
                         </td>
                         <td class="p-3 text-center text-white font-bold">${targetMatch.gl} - ${targetMatch.gv}</td>
                         <td class="p-3 font-mono text-cyan-400">${odd.toFixed(2)}</td>
-                        <td class="p-3 ${isWin ? 'backtest-win' : 'backtest-loss'}">${isWin ? 'WIN' : 'LOSS'}</td>
-                        <td class="p-3 font-black ${profit > 0 ? 'profit-positive' : 'profit-negative'}">${profit > 0 ? '+' : ''}${profit.toFixed(2)}</td>
+                        <td class="p-3 ${statusClass}">${statusText}</td>
+                        <td class="p-3 font-black ${profit > 0 ? 'profit-positive' : profit < 0 ? 'profit-negative' : 'text-slate-600'}">
+                            ${profit > 0 ? '+' : ''}${profit === 0 ? '0.00' : profit.toFixed(2)}
+                        </td>
                     </tr>
                 `;
             }
 
-            document.getElementById('bt_total').innerText = analyzedCount;
-            document.getElementById('bt_winrate').innerText = analyzedCount > 0 ? ((wins / analyzedCount) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('bt_total').innerText = betsPlaced;
+            document.getElementById('bt_winrate').innerText = betsPlaced > 0 ? ((wins / betsPlaced) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('bt_profit').innerText = totalProfit.toFixed(2);
             document.getElementById('bt_profit').className = `text-2xl font-black ${totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}`;
 
