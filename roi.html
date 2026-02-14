@@ -50,6 +50,17 @@
         .row-pending { background: rgba(251, 191, 36, 0.1) !important; border-left: 4px solid var(--bet-yellow); }
         .row-pending td { color: var(--bet-yellow) !important; font-weight: 500; }
         
+        /* NUEVO: Animación de Destello para Ligas Rentables */
+        @keyframes glowing-profitable {
+            0% { box-shadow: inset 0 0 5px rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); }
+            50% { box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.2); }
+            100% { box-shadow: inset 0 0 5px rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); }
+        }
+        .profitable-alert {
+            animation: glowing-profitable 2s infinite ease-in-out;
+            border-left: 4px solid #10b981 !important;
+        }
+
         .btn-action { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 9px; transition: all 0.2s; }
         .btn-action:hover { transform: translateY(-1px); filter: brightness(1.2); }
         .btn-win { background: #059669; color: white; }
@@ -247,6 +258,25 @@
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
+        // NUEVO: Función para analizar ligas rentables dinámicamente
+        function getProfitableClusters() {
+            const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
+            const clusters = {};
+
+            resolved.forEach(b => {
+                // Intentamos extraer el nombre de la liga si está en el campo teams (ej: "LALIGA: Real Madrid vs...")
+                const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
+                const key = `${league}|${b.market}`;
+                
+                if (!clusters[key]) clusters[key] = { profit: 0, count: 0 };
+                clusters[key].profit += (Number(b.profit) || 0);
+                clusters[key].count += 1;
+            });
+
+            // Retornamos solo los que tienen profit positivo y al menos 2 apuestas de historial
+            return Object.keys(clusters).filter(k => clusters[k].profit > 0 && clusters[k].count >= 2);
+        }
+
         function toggleFilters() {
             const container = document.getElementById('filter-container');
             const icon = document.getElementById('filter-chevron');
@@ -358,12 +388,23 @@
                 return;
             }
 
+            // NUEVO: Obtener ligas ganadoras para el destello dinámico
+            const profitableKeys = getProfitableClusters();
+
             const displayData = [...data].sort((a, b) => (new Date(b.date) - new Date(a.date)) || (b.id - a.id));
             
             displayData.forEach(b => {
                 const tr = document.createElement('tr');
                 const status = b.status || 'pending';
-                tr.className = `row-${status}`;
+                
+                // NUEVO: Lógica de destello dinámico
+                const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
+                const currentKey = `${league}|${b.market}`;
+                const isProfitableCluster = profitableKeys.includes(currentKey);
+                
+                // Si está pendiente Y pertenece a una liga/mercado rentable, aplicamos el destello
+                const profitableClass = (status === 'pending' && isProfitableCluster) ? 'profitable-alert' : '';
+                tr.className = `row-${status} ${profitableClass}`;
                 
                 const probNum = (Number(b.prob) * 100) || 0;
                 const probDisp = probNum.toFixed(1) + "%";
@@ -379,6 +420,7 @@
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
                         <div class="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">${b.date || ''}</div>
+                        ${profitableClass ? '<span class="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse">LIGA RENTABLE 🔥</span>' : ''}
                     </td>
                     <td class="font-bold text-emerald-500">${b.market || '-'}</td>
                     <td class="text-slate-400">${probDisp}</td>
