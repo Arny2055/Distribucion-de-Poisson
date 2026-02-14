@@ -258,20 +258,30 @@
 
         function getProfitableClusters() {
             const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
-            const clusters = {};
+            const leagueStats = {};
+            const marketStats = {};
 
             resolved.forEach(b => {
                 const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
-                // ANALIZAMOS LIGA + MERCADO
-                const key = `${league}|${b.market}`;
-                
-                if (!clusters[key]) clusters[key] = { profit: 0, count: 0 };
-                clusters[key].profit += (Number(b.profit) || 0);
-                clusters[key].count += 1;
+                const market = b.market || 'Unknown';
+                const profit = Number(b.profit) || 0;
+
+                // Estadísticas por Liga
+                if (!leagueStats[league]) leagueStats[league] = { profit: 0, count: 0 };
+                leagueStats[league].profit += profit;
+                leagueStats[league].count += 1;
+
+                // Estadísticas por Mercado
+                if (!marketStats[market]) marketStats[market] = { profit: 0, count: 0 };
+                marketStats[market].profit += profit;
+                marketStats[market].count += 1;
             });
 
-            // Se considera cluster rentable si el profit es positivo con al menos 2 picks de muestra
-            return Object.keys(clusters).filter(k => clusters[k].profit > 0 && clusters[k].count >= 2);
+            // Retornamos dos listas: ligas rentables y mercados rentables
+            const profitableLeagues = Object.keys(leagueStats).filter(l => leagueStats[l].profit > 0 && leagueStats[l].count >= 2);
+            const profitableMarkets = Object.keys(marketStats).filter(m => marketStats[m].profit > 0 && marketStats[m].count >= 2);
+
+            return { leagues: profitableLeagues, markets: profitableMarkets };
         }
 
         function toggleFilters() {
@@ -385,20 +395,29 @@
                 return;
             }
 
-            const profitableKeys = getProfitableClusters();
+            const clusters = getProfitableClusters();
             const displayData = [...data].sort((a, b) => (new Date(b.date) - new Date(a.date)) || (b.id - a.id));
             
             displayData.forEach(b => {
                 const tr = document.createElement('tr');
                 const status = b.status || 'pending';
                 const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
-                // REVISAMOS SI EL CLUSTER LIGA+MERCADO ES RENTABLE
-                const currentKey = `${league}|${b.market}`;
-                const isProfitableCluster = profitableKeys.includes(currentKey);
+                const market = b.market || 'Unknown';
+
+                // ANALIZAMOS SI ES RENTABLE POR LIGA O POR MERCADO INDEPENDIENTEMENTE
+                const isProfitableLeague = clusters.leagues.includes(league);
+                const isProfitableMarket = clusters.markets.includes(market);
                 
-                const profitableClass = (status === 'pending' && isProfitableCluster) ? 'profitable-alert' : '';
+                const profitableClass = (status === 'pending' && (isProfitableLeague || isProfitableMarket)) ? 'profitable-alert' : '';
                 tr.className = `row-${status} ${profitableClass}`;
                 
+                let tag = '';
+                if (status === 'pending') {
+                    if (isProfitableLeague && isProfitableMarket) tag = 'COMBO TOP 🔥';
+                    else if (isProfitableLeague) tag = 'LIGA TOP 🔥';
+                    else if (isProfitableMarket) tag = 'MERCADO TOP 🔥';
+                }
+
                 const probNum = (Number(b.prob) * 100) || 0;
                 const probDisp = probNum.toFixed(1) + "%";
                 const fairDisp = b.fair_odd ? Number(b.fair_odd).toFixed(2) : (b.prob ? (1/Number(b.prob)).toFixed(2) : "0.00");
@@ -412,7 +431,7 @@
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
                         <div class="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">${b.date || ''}</div>
-                        ${profitableClass ? '<span class="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse">MERCADO RENTABLE 🔥</span>' : ''}
+                        ${tag ? `<span class="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase">${tag}</span>` : ''}
                     </td>
                     <td class="font-bold text-emerald-500">${b.market || '-'}</td>
                     <td class="text-slate-400">${probDisp}</td>
@@ -503,7 +522,7 @@
             }
             const BACKTEST_KEY = 'betags_backtesting';
             let existingBacktest = JSON.parse(localStorage.getItem(BACKTEST_KEY)) || [];
-            const newBets = resolvedBets.filter(rb => !existingBacktest.some(eb => eb.id === rb.id));
+            const newBets = resolvedBets.filter(rb => !existingBacktest.some(eb => rb.id === rb.id));
             if (newBets.length === 0) {
                 alert("Todas las apuestas ya están en Backtesting.");
                 return;
