@@ -221,7 +221,7 @@
                                 <span id="league_bets_count" class="text-[10px] text-white font-bold">0</span>
                             </div>
                         </div>
-                        <p class="text-slate-400 italic text-[11px]">El profit de liga suma el resultado de cada equipo analizado de forma independiente.</p>
+                        <p class="text-slate-400 italic text-[11px]">El profit de liga suma el resultado de cada partido único analizado bajo el modelo Poisson.</p>
                     </div>
                 </div>
                 <div class="scorelab-card p-5 h-64">
@@ -275,6 +275,11 @@
         async function syncSheet() {
             const marketType = document.getElementById('market_auto_select').value;
             const currentSheetID = SHEET_IDS[marketType];
+            
+            // Limpiar datos previos de liga para evitar errores visuales
+            document.getElementById('league_profit_total').innerText = "0.00";
+            document.getElementById('league_bets_count').innerText = "0";
+
             try {
                 const statsUrl = `https://docs.google.com/spreadsheets/d/${STATS_SHEET_ID}/gviz/tq?tqx=out:json`;
                 const statsRes = await fetch(statsUrl);
@@ -321,78 +326,67 @@
             return (Math.exp(-lambda) * Math.pow(lambda, x)) / factorial(x);
         }
 
-        // --- NUEVA FUNCIÓN: BACKTESTING DE TODA LA LIGA ---
+        // --- CORRECCIÓN: BACKTESTING DE TODA LA LIGA (SIN DUPLICADOS) ---
         function runLeagueWideBacktest() {
-            filterTeamsByLeague(); // Actualiza el select de equipos
+            filterTeamsByLeague(); 
             const league = document.getElementById('league_select').value;
             if (!league || league.includes('--')) return;
 
-            const teams = [...new Set(database.filter(r => r.league === league).map(r => r.home))];
+            const leagueMatches = database.filter(r => r.league === league);
+            const teams = [...new Set(leagueMatches.map(r => r.home))];
+            
+            const marketType = document.getElementById('market_auto_select').value;
+            const userMargin = SHEET_IDS.margin || 5;
+            const kellyFraction = SHEET_IDS.kelly || 0.5;
+            const maxStakeLimit = (SHEET_IDS.maxStake || 5) / 100;
+            
             let totalLeagueProfitUnits = 0;
             let totalLeagueBets = 0;
 
-            teams.forEach(t => {
-                const resLocal = calculateSilentProfit(league, t, 'home');
-                const resVisita = calculateSilentProfit(league, t, 'away');
-                totalLeagueProfitUnits += (resLocal.profitUnits + resVisita.profitUnits);
-                totalLeagueBets += (resLocal.bets + resVisita.bets);
+            // Analizamos cada partido de la liga una sola vez
+            leagueMatches.forEach(match => {
+                // Obtenemos historial previo de Local y Visitante para el cálculo de Poisson
+                const historyHome = database.filter(r => r.league === league && r.home === match.home && r.date < match.date).slice(-10);
+                const historyAway = database.filter(r => r.league === league && r.away === match.away && r.date < match.date).slice(-10);
+
+                if (historyHome.length >= 5 && historyAway.length >= 5) {
+                    const avgG = (historyHome.reduce((a,b)=>a+(b.gl+b.gv),0)/historyHome.length + historyAway.reduce((a,b)=>a+(b.gl+b.gv),0)/historyAway.length) / 2;
+                    
+                    let prob = 0;
+                    if (marketType.includes('over25')) prob = (1 - (getPoissonProb(avgG, 0) + getPoissonProb(avgG, 1) + getPoissonProb(avgG, 2))) * 100;
+                    else if (marketType.includes('under25')) prob = (getPoissonProb(avgG, 0) + getPoissonProb(avgG, 1) + getPoissonProb(avgG, 2)) * 100;
+                    else if (marketType === 'btts_yes') {
+                        const bHome = historyHome.filter(m => m.gl > 0 && m.gv > 0).length / historyHome.length;
+                        const bAway = historyAway.filter(m => m.gl > 0 && m.gv > 0).length / historyAway.length;
+                        prob = ((bHome + bAway) / 2) * 100;
+                    }
+
+                    const mInfo = marketData.find(m => m.home === match.home && m.away === match.away) || { odd: 2.00 };
+                    const bookieProb = (1 / mInfo.odd) * 100;
+
+                    if (prob >= (bookieProb + userMargin) && prob >= 60) {
+                        let kelly = (((prob/100) * (mInfo.odd - 1)) - (1 - prob/100)) / (mInfo.odd - 1);
+                        let stake = Math.min(Math.max(0, kelly * kellyFraction), maxStakeLimit);
+                        
+                        let win = false;
+                        const tg = match.gl + match.gv;
+                        if (marketType === 'over25') win = tg > 2.5;
+                        if (marketType === 'under25') win = tg < 2.5;
+                        if (marketType === 'btts_yes') win = match.gl > 0 && match.gv > 0;
+                        if (marketType === 'btts_no') win = !(match.gl > 0 && match.gv > 0);
+
+                        totalLeagueProfitUnits += win ? (stake * 100 * (mInfo.odd - 1)) : -(stake * 100);
+                        totalLeagueBets++;
+                    }
+                }
             });
 
             document.getElementById('league_profit_total').innerText = (totalLeagueProfitUnits / 100).toFixed(2);
             document.getElementById('league_teams_count').innerText = teams.length;
             document.getElementById('league_bets_count').innerText = totalLeagueBets;
             
-            // Si hay un equipo seleccionado, actualizar su vista individual
-            runBacktest();
-        }
-
-        // Función auxiliar para calcular profit sin renderizar en tabla
-        function calculateSilentProfit(league, team, position) {
-            const marketType = document.getElementById('market_auto_select').value;
-            const userMargin = SHEET_IDS.margin || 5;
-            const kellyFraction = SHEET_IDS.kelly || 0.5;
-            const maxStakeLimit = (SHEET_IDS.maxStake || 5) / 100;
-            
-            let pUnits = 0;
-            let bCount = 0;
-
-            let matches = database.filter(r => r.league === league && (position === 'home' ? r.home === team : r.away === team));
-            
-            for (let i = 10; i < matches.length; i++) {
-                const target = matches[i];
-                const last10 = matches.slice(i - 10, i);
-                const avgG = last10.reduce((acc, m) => acc + (m.gl + m.gv), 0) / 10;
-                
-                let prob = 0;
-                if (marketType.includes('over25')) {
-                    prob = (1 - (getPoissonProb(avgG, 0) + getPoissonProb(avgG, 1) + getPoissonProb(avgG, 2))) * 100;
-                } else if (marketType.includes('under25')) {
-                    prob = (getPoissonProb(avgG, 0) + getPoissonProb(avgG, 1) + getPoissonProb(avgG, 2)) * 100;
-                } else if (marketType === 'btts_yes') {
-                    prob = (last10.filter(m => m.gl > 0 && m.gv > 0).length / 10) * 100;
-                } else {
-                    prob = (last10.filter(m => !(m.gl > 0 && m.gv > 0)).length / 10) * 100;
-                }
-
-                const mInfo = marketData.find(m => m.home === target.home && m.away === target.away) || { odd: 2.00 };
-                const bookieProb = (1 / mInfo.odd) * 100;
-                
-                if (prob >= (bookieProb + userMargin) && prob >= 60) {
-                    let kelly = (((prob/100) * (mInfo.odd - 1)) - (1 - prob/100)) / (mInfo.odd - 1);
-                    let stake = Math.min(Math.max(0, kelly * kellyFraction), maxStakeLimit);
-                    
-                    let win = false;
-                    const tg = target.gl + target.gv;
-                    if (marketType === 'over25') win = tg > 2.5;
-                    if (marketType === 'under25') win = tg < 2.5;
-                    if (marketType === 'btts_yes') win = target.gl > 0 && target.gv > 0;
-                    if (marketType === 'btts_no') win = !(target.gl > 0 && target.gv > 0);
-
-                    pUnits += win ? (stake * 100 * (mInfo.odd - 1)) : -(stake * 100);
-                    bCount++;
-                }
-            }
-            return { profitUnits: pUnits, bets: bCount };
+            // Reiniciar vista individual
+            document.getElementById('backtest_body').innerHTML = '';
         }
 
         function runBacktest() {
