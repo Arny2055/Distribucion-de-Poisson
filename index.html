@@ -144,7 +144,7 @@
             top: 70px;
             right: 20px;
             z-index: 100;
-            width: 300px;
+            width: 320px;
             max-height: 85vh;
             overflow-y: auto;
         }
@@ -224,10 +224,12 @@
                     <div>
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Top Ligas Europeas ID</label>
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
+                        <input type="text" id="filter_stats_top" class="w-full mt-1 p-2 text-[9px] rounded italic" placeholder="Ligas (Ej: SPAIN 1, ENGLAND 1)...">
                     </div>
                     <div>
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Todas las Ligas ID</label>
                         <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
+                        <input type="text" id="filter_stats_all" class="w-full mt-1 p-2 text-[9px] rounded italic" placeholder="Ligas (Ej: MEXICO 1, USA 1)...">
                     </div>
                     <div class="flex flex-col gap-1 mt-1">
                         <label class="text-[7px] uppercase text-slate-500 font-bold">Usar Base de Datos:</label>
@@ -421,12 +423,13 @@
             under25: '',
             btts_yes: '',
             btts_no: '',
-            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', // Default anterior
+            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO',
             stats_all: '',
+            filter_stats_top: '',
+            filter_stats_all: '',
             active_stats: 'top'
         };
 
-        // --- Función para actualizar el Indicador Visual ---
         function updateStatus(state, message) {
             const led = document.getElementById('status_led');
             const txt = document.getElementById('status_text');
@@ -448,6 +451,8 @@
                 document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
                 document.getElementById('id_stats_top').value = SHEET_IDS.stats_top || '';
                 document.getElementById('id_stats_all').value = SHEET_IDS.stats_all || '';
+                document.getElementById('filter_stats_top').value = SHEET_IDS.filter_stats_top || '';
+                document.getElementById('filter_stats_all').value = SHEET_IDS.filter_stats_all || '';
                 document.getElementById('active_stats_id').value = SHEET_IDS.active_stats || 'top';
             }
         }
@@ -460,13 +465,14 @@
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
             SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
+            SHEET_IDS.filter_stats_top = document.getElementById('filter_stats_top').value.trim();
+            SHEET_IDS.filter_stats_all = document.getElementById('filter_stats_all').value.trim();
             SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
             
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
-            alert("✅ IDs y Bases de Datos guardados.");
+            alert("✅ Configuración guardada.");
             toggleConfig();
             
-            // Forzar recarga de base de datos al cambiar IDs
             database = []; 
             syncSheet();
         }
@@ -482,9 +488,10 @@
             const currentSheetID = SHEET_IDS[marketType];
             
             const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
+            const activeFilter = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.filter_stats_top : SHEET_IDS.filter_stats_all;
 
             if(!activeStatsID) {
-                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats) en el botón IDS.");
+                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats).");
                 updateStatus('standby', 'Sin Base de Datos');
                 return;
             }
@@ -495,15 +502,25 @@
                     const statsRes = await fetch(statsUrl);
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-                    database = statsJson.table.rows.map(row => ({
+                    
+                    let rawData = statsJson.table.rows.map(row => ({
                         league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
                         gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
                     })).filter(r => r.league);
+
+                    // --- LÓGICA DE FILTRADO POR LIGAS ---
+                    if (activeFilter) {
+                        const allowedLeagues = activeFilter.split(',').map(l => l.trim().toUpperCase());
+                        database = rawData.filter(r => allowedLeagues.includes(r.league.toUpperCase()));
+                    } else {
+                        database = rawData;
+                    }
                 }
 
                 if(!currentSheetID) {
-                    console.warn("No hay ID de mercado configurado para " + marketType);
                     updateStatus('active', 'DB Lista / Sin Mercado');
+                    renderAutoMatches();
+                    updateLeagueSelect();
                     return;
                 }
 
@@ -657,7 +674,6 @@
             document.getElementById('home_select').value = match.home;
             document.getElementById('away_select').value = match.away;
             
-            // Resaltar visualmente qué selectores están en uso
             document.querySelectorAll('.auto-select').forEach(s => s.classList.add('active-selection-ring'));
             setTimeout(() => {
                 document.querySelectorAll('.auto-select').forEach(s => s.classList.remove('active-selection-ring'));
@@ -685,7 +701,7 @@
         }
 
         function updateLeagueSelect() {
-            const leagues = [...new Set(database.map(r => r.league))];
+            const leagues = [...new Set(database.map(r => r.league))].sort();
             const lSel = document.getElementById('league_select');
             lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                              leagues.map(l => `<option value="${l}">${l}</option>`).join('');
