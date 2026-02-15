@@ -148,14 +148,46 @@
             max-height: 85vh;
             overflow-y: auto;
         }
+
+        /* --- NUEVOS INDICADORES VISUALES --- */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .led-puck {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #475569;
+            transition: all 0.3s;
+        }
+        .led-active { background: var(--sl-green); box-shadow: 0 0 8px var(--sl-green); }
+        .led-loading { background: var(--sl-yellow); animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        .active-selection-ring {
+            border-color: var(--sl-accent) !important;
+            box-shadow: 0 0 5px rgba(0, 242, 255, 0.3) !important;
+        }
     </style>
 </head>
 <body>
     <nav class="p-4 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-3 h-8 bg-cyan-500 rounded-full animate-pulse"></div>
-                <h1 class="text-xl font-black tracking-tighter uppercase">BETA<span class="text-cyan-400">GS</span> <span class="text-[10px] text-slate-500 font-normal">v4.5 PRO</span></h1>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-8 bg-cyan-500 rounded-full animate-pulse"></div>
+                    <h1 class="text-xl font-black tracking-tighter uppercase">BETA<span class="text-cyan-400">GS</span> <span class="text-[10px] text-slate-500 font-normal">v4.5 PRO</span></h1>
+                </div>
+                <div class="status-indicator ml-2">
+                    <div id="status_led" class="led-puck"></div>
+                    <span id="status_text" class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Standby</span>
+                </div>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex flex-col">
@@ -391,6 +423,17 @@
             active_stats: 'top'
         };
 
+        // --- Función para actualizar el Indicador Visual ---
+        function updateStatus(state, message) {
+            const led = document.getElementById('status_led');
+            const txt = document.getElementById('status_text');
+            led.className = 'led-puck';
+            txt.innerText = message;
+            
+            if(state === 'loading') led.classList.add('led-loading');
+            if(state === 'active') led.classList.add('led-active');
+        }
+
         function loadSavedIDs() {
             const saved = localStorage.getItem(IDS_KEY);
             if(saved) {
@@ -431,19 +474,19 @@
         }
 
         async function syncSheet() {
+            updateStatus('loading', 'Sincronizando...');
             const marketType = document.getElementById('market_auto_select').value;
             const currentSheetID = SHEET_IDS[marketType];
             
-            // Obtener el ID de stats activo
             const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
 
             if(!activeStatsID) {
                 alert("⚠️ Por favor configura el ID de la Base de Datos (Stats) en el botón IDS.");
+                updateStatus('standby', 'Sin Base de Datos');
                 return;
             }
 
             try {
-                // Cargar base de datos solo si está vacía
                 if(database.length === 0) {
                     const statsUrl = `https://docs.google.com/spreadsheets/d/${activeStatsID}/gviz/tq?tqx=out:json`;
                     const statsRes = await fetch(statsUrl);
@@ -457,6 +500,7 @@
 
                 if(!currentSheetID) {
                     console.warn("No hay ID de mercado configurado para " + marketType);
+                    updateStatus('active', 'DB Lista / Sin Mercado');
                     return;
                 }
 
@@ -481,8 +525,10 @@
                 renderAutoMatches();
                 updateLeagueSelect();
                 document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
+                updateStatus('active', 'Sistema Online');
             } catch (e) { 
                 console.error("Sheet Sync Error", e); 
+                updateStatus('standby', 'Error de Sync');
             }
         }
 
@@ -531,7 +577,7 @@
         }
 
         async function syncAllMarkets() {
-            alert("Radar Total Iniciado. Escaneando todos los mercados...");
+            updateStatus('loading', 'Escaneando Radar...');
             const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
             let allResults = [];
             
@@ -557,6 +603,7 @@
             }
             autoMatches = allResults.sort((a,b) => b.valueEdge - a.valueEdge);
             renderAutoMatches();
+            updateStatus('active', 'Radar Actualizado');
         }
 
         function renderAutoMatches() {
@@ -607,6 +654,12 @@
             document.getElementById('home_select').value = match.home;
             document.getElementById('away_select').value = match.away;
             
+            // Resaltar visualmente qué selectores están en uso
+            document.querySelectorAll('.auto-select').forEach(s => s.classList.add('active-selection-ring'));
+            setTimeout(() => {
+                document.querySelectorAll('.auto-select').forEach(s => s.classList.remove('active-selection-ring'));
+            }, 2000);
+
             loadStatsIndependent();
 
             let targetIdx = -1;
@@ -716,12 +769,16 @@
         function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
         function calculate() {
+            updateStatus('loading', 'Calculando...');
             const h_gf = parseFloat(document.getElementById('h_gf').value) || 0;
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
             
-            if (h_gf === 0 || a_gf === 0) return;
+            if (h_gf === 0 || a_gf === 0) {
+                updateStatus('active', 'Esperando datos...');
+                return;
+            }
             
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
@@ -754,6 +811,7 @@
 
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
+            updateStatus('active', 'Análisis Completo');
         }
 
         function updateMarketUI(resId, valId, p) {
