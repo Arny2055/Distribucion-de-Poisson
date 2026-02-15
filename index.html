@@ -174,6 +174,26 @@
             border-color: var(--sl-accent) !important;
             box-shadow: 0 0 5px rgba(0, 242, 255, 0.3) !important;
         }
+
+        /* Estilos Filtro de Ligas */
+        .league-filter-box {
+            background: #05070a;
+            border: 1px solid var(--sl-border);
+            max-height: 150px;
+            overflow-y: auto;
+            border-radius: 6px;
+            padding: 5px;
+        }
+        .league-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px;
+            font-size: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+        .league-item:hover { background: rgba(255,255,255,0.05); }
+        .league-item input { width: 12px !important; height: 12px !important; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -224,20 +244,26 @@
                     <div>
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Top Ligas Europeas ID</label>
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
-                        <input type="text" id="filter_stats_top" class="w-full mt-1 p-2 text-[9px] rounded italic" placeholder="Ligas (Ej: SPAIN 1, ENGLAND 1)...">
                     </div>
                     <div>
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Todas las Ligas ID</label>
                         <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
-                        <input type="text" id="filter_stats_all" class="w-full mt-1 p-2 text-[9px] rounded italic" placeholder="Ligas (Ej: MEXICO 1, USA 1)...">
                     </div>
                     <div class="flex flex-col gap-1 mt-1">
                         <label class="text-[7px] uppercase text-slate-500 font-bold">Usar Base de Datos:</label>
-                        <select id="active_stats_id" class="text-[10px] p-1 rounded">
+                        <select id="active_stats_id" onchange="database=[]; syncSheet();" class="text-[10px] p-1 rounded">
                             <option value="top">Top Ligas Europeas</option>
                             <option value="all">Todas las Ligas</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            <div class="bg-black/20 p-2 rounded border border-white/5">
+                <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Filtro de Ligas Activas</p>
+                <p class="text-[7px] text-slate-500 mb-2 uppercase">Si no marcas ninguna, se usan todas por defecto</p>
+                <div id="league_filter_container" class="league-filter-box">
+                    <p class="text-[9px] text-slate-600 p-2 italic text-center">Cargando ligas de la DB...</p>
                 </div>
             </div>
 
@@ -414,6 +440,7 @@
         let chart;
         let database = [];
         let autoMatches = []; 
+        let selectedLeagues = []; // MEJORA: Almacena ligas seleccionadas
         const STORAGE_KEY = 'betags_pre_match';
         const IDS_KEY = 'betags_sheet_ids';
         
@@ -423,10 +450,8 @@
             under25: '',
             btts_yes: '',
             btts_no: '',
-            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO',
+            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', 
             stats_all: '',
-            filter_stats_top: '',
-            filter_stats_all: '',
             active_stats: 'top'
         };
 
@@ -451,8 +476,6 @@
                 document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
                 document.getElementById('id_stats_top').value = SHEET_IDS.stats_top || '';
                 document.getElementById('id_stats_all').value = SHEET_IDS.stats_all || '';
-                document.getElementById('filter_stats_top').value = SHEET_IDS.filter_stats_top || '';
-                document.getElementById('filter_stats_all').value = SHEET_IDS.filter_stats_all || '';
                 document.getElementById('active_stats_id').value = SHEET_IDS.active_stats || 'top';
             }
         }
@@ -465,8 +488,6 @@
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
             SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
-            SHEET_IDS.filter_stats_top = document.getElementById('filter_stats_top').value.trim();
-            SHEET_IDS.filter_stats_all = document.getElementById('filter_stats_all').value.trim();
             SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
             
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
@@ -482,16 +503,40 @@
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
+        // MEJORA: Función para crear la caja de selección de ligas
+        function renderLeagueCheckboxes() {
+            const container = document.getElementById('league_filter_container');
+            const leagues = [...new Set(database.map(r => r.league))].sort();
+            
+            if(leagues.length === 0) {
+                container.innerHTML = '<p class="text-[9px] text-slate-600 p-2 italic text-center">No hay datos</p>';
+                return;
+            }
+
+            container.innerHTML = leagues.map(liga => `
+                <div class="league-item">
+                    <input type="checkbox" value="${liga}" onchange="updateSelectedLeagues()" ${selectedLeagues.includes(liga) ? 'checked' : ''}>
+                    <span class="truncate">${liga}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateSelectedLeagues() {
+            const checkboxes = document.querySelectorAll('#league_filter_container input[type="checkbox"]');
+            selectedLeagues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            // Al cambiar el filtro, actualizamos los selectores principales y el radar
+            updateLeagueSelect();
+            renderAutoMatches(); 
+        }
+
         async function syncSheet() {
             updateStatus('loading', 'Sincronizando...');
             const marketType = document.getElementById('market_auto_select').value;
             const currentSheetID = SHEET_IDS[marketType];
-            
             const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
-            const activeFilter = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.filter_stats_top : SHEET_IDS.filter_stats_all;
 
             if(!activeStatsID) {
-                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats).");
+                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats) en el botón IDS.");
                 updateStatus('standby', 'Sin Base de Datos');
                 return;
             }
@@ -502,24 +547,16 @@
                     const statsRes = await fetch(statsUrl);
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-                    
-                    let rawData = statsJson.table.rows.map(row => ({
+                    database = statsJson.table.rows.map(row => ({
                         league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
                         gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
                     })).filter(r => r.league);
-
-                    // --- LÓGICA DE FILTRADO POR LIGAS ---
-                    if (activeFilter) {
-                        const allowedLeagues = activeFilter.split(',').map(l => l.trim().toUpperCase());
-                        database = rawData.filter(r => allowedLeagues.includes(r.league.toUpperCase()));
-                    } else {
-                        database = rawData;
-                    }
+                    
+                    renderLeagueCheckboxes(); // Actualizar checkboxes al cargar DB
                 }
 
                 if(!currentSheetID) {
                     updateStatus('active', 'DB Lista / Sin Mercado');
-                    renderAutoMatches();
                     updateLeagueSelect();
                     return;
                 }
@@ -630,12 +667,18 @@
             const container = document.getElementById('auto_matches_list');
             container.innerHTML = '';
             
-            if(autoMatches.length === 0) {
+            // MEJORA: Filtrar radar por ligas seleccionadas (si hay alguna)
+            let filteredMatches = autoMatches;
+            if(selectedLeagues.length > 0) {
+                filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
+            }
+
+            if(filteredMatches.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-600 p-4">Sin datos en el radar...</p>';
                 return;
             }
 
-            autoMatches.forEach((m, idx) => {
+            filteredMatches.forEach((m, idx) => {
                 const div = document.createElement('div');
                 let valueClass = "";
                 let badge = "";
@@ -649,7 +692,7 @@
                 }
 
                 div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
-                div.onclick = () => selectAutoMatch(idx);
+                div.onclick = () => selectAutoMatch(m); // Pasamos el objeto directamente
                 div.innerHTML = `
                     ${badge}
                     <div class="flex justify-between items-start mb-1">
@@ -664,9 +707,7 @@
             });
         }
 
-        function selectAutoMatch(idx) {
-            const match = autoMatches[idx];
-            
+        function selectAutoMatch(match) {
             const lSel = document.getElementById('league_select');
             lSel.value = match.liga;
             filterTeamsByLeague();
@@ -701,7 +742,12 @@
         }
 
         function updateLeagueSelect() {
-            const leagues = [...new Set(database.map(r => r.league))].sort();
+            // MEJORA: El selector principal ahora respeta el filtro de ligas activas
+            let leagues = [...new Set(database.map(r => r.league))];
+            if(selectedLeagues.length > 0) {
+                leagues = leagues.filter(l => selectedLeagues.includes(l));
+            }
+
             const lSel = document.getElementById('league_select');
             lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                              leagues.map(l => `<option value="${l}">${l}</option>`).join('');
