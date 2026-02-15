@@ -245,14 +245,14 @@
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Top Ligas Europeas ID</label>
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
                     </div>
-                    <div>
+                    <div style="display: none;">
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Todas las Ligas ID</label>
                         <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
                     </div>
-                    <div class="flex flex-col gap-1 mt-1">
+                    <div class="flex flex-col gap-1 mt-1" style="display: none;">
                         <label class="text-[7px] uppercase text-slate-500 font-bold">Usar Base de Datos:</label>
                         <select id="active_stats_id" onchange="database=[]; syncSheet();" class="text-[10px] p-1 rounded">
-                            <option value="top">Top Ligas Europeas</option>
+                            <option value="top" selected>Top Ligas Europeas</option>
                             <option value="all">Todas las Ligas</option>
                         </select>
                     </div>
@@ -440,7 +440,7 @@
         let chart;
         let database = [];
         let autoMatches = []; 
-        let selectedLeagues = []; // MEJORA: Almacena ligas seleccionadas
+        let selectedLeagues = []; 
         const STORAGE_KEY = 'betags_pre_match';
         const IDS_KEY = 'betags_sheet_ids';
         
@@ -503,7 +503,6 @@
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
-        // MEJORA: Función para crear la caja de selección de ligas
         function renderLeagueCheckboxes() {
             const container = document.getElementById('league_filter_container');
             const leagues = [...new Set(database.map(r => r.league))].sort();
@@ -524,7 +523,6 @@
         function updateSelectedLeagues() {
             const checkboxes = document.querySelectorAll('#league_filter_container input[type="checkbox"]');
             selectedLeagues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            // Al cambiar el filtro, actualizamos los selectores principales y el radar
             updateLeagueSelect();
             renderAutoMatches(); 
         }
@@ -552,7 +550,7 @@
                         gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
                     })).filter(r => r.league);
                     
-                    renderLeagueCheckboxes(); // Actualizar checkboxes al cargar DB
+                    renderLeagueCheckboxes();
                 }
 
                 if(!currentSheetID) {
@@ -667,7 +665,6 @@
             const container = document.getElementById('auto_matches_list');
             container.innerHTML = '';
             
-            // MEJORA: Filtrar radar por ligas seleccionadas (si hay alguna)
             let filteredMatches = autoMatches;
             if(selectedLeagues.length > 0) {
                 filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
@@ -692,7 +689,7 @@
                 }
 
                 div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
-                div.onclick = () => selectAutoMatch(m); // Pasamos el objeto directamente
+                div.onclick = () => selectAutoMatch(m);
                 div.innerHTML = `
                     ${badge}
                     <div class="flex justify-between items-start mb-1">
@@ -742,7 +739,6 @@
         }
 
         function updateLeagueSelect() {
-            // MEJORA: El selector principal ahora respeta el filtro de ligas activas
             let leagues = [...new Set(database.map(r => r.league))];
             if(selectedLeagues.length > 0) {
                 leagues = leagues.filter(l => selectedLeagues.includes(l));
