@@ -294,8 +294,8 @@
                 marketStats[market].count += 1;
             });
 
-            const profitableLeagues = Object.keys(leagueStats).filter(l => leagueStats[l].profit > 1 && leagueStats[l].count >= 10);
-            const profitableMarkets = Object.keys(marketStats).filter(m => marketStats[m].profit > 1 && marketStats[m].count >= 10);
+            const profitableLeagues = Object.keys(leagueStats).filter(l => leagueStats[l].profit > 1 && leagueStats[l].count >= 5);
+            const profitableMarkets = Object.keys(marketStats).filter(m => marketStats[m].profit > 1 && marketStats[m].count >= 5);
 
             return { leagues: profitableLeagues, markets: profitableMarkets };
         }
