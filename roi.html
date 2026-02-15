@@ -14,6 +14,7 @@
             --deep-black: #020617; 
             --card-bg: #0f172a;    
             --border-color: rgba(255, 255, 255, 0.05);
+            --neon-blue: #00f2ff;
         }
         
         body { 
@@ -54,6 +55,22 @@
             50% { box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.2); }
             100% { box-shadow: inset 0 0 5px rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); }
         }
+
+        /* EFECTO AZUL BRILLANTE PARA EL COMBO TOP */
+        @keyframes blue-flash {
+            0% { box-shadow: 0 0 5px var(--neon-blue); opacity: 0.8; }
+            50% { box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-blue); opacity: 1; }
+            100% { box-shadow: 0 0 5px var(--neon-blue); opacity: 0.8; }
+        }
+
+        .combo-top-flash {
+            background: #00e5ff !important;
+            color: #000 !important;
+            animation: blue-flash 1.5s infinite ease-in-out;
+            border: none;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
         .profitable-alert {
             animation: glowing-profitable 2s infinite ease-in-out;
             border-left: 4px solid #10b981 !important;
@@ -403,8 +420,12 @@
                 tr.className = `row-${status} ${profitableClass}`;
                 
                 let tag = '';
+                let isComboTop = false;
                 if (status === 'pending') {
-                    if (isProfitableLeague && isProfitableMarket) tag = 'COMBO TOP 🔥';
+                    if (isProfitableLeague && isProfitableMarket) {
+                        tag = 'COMBO TOP 🔥';
+                        isComboTop = true;
+                    }
                     else if (isProfitableLeague) tag = 'LIGA TOP 🔥';
                     else if (isProfitableMarket) tag = 'MERCADO TOP 🔥';
                 }
@@ -416,11 +437,16 @@
                 const houseProb = oddNum > 0 ? (1 / oddNum) * 100 : 0;
                 const valCol = probNum - houseProb;
 
+                // Clase especial para el tag si es Combo Top
+                const tagClass = isComboTop 
+                    ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
+                    : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
+
                 tr.innerHTML = `
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
                         <div class="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">${b.date || ''}</div>
-                        ${tag ? `<span class="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase">${tag}</span>` : ''}
+                        ${tag ? `<span class="${tagClass}">${tag}</span>` : ''}
                     </td>
                     <td class="font-bold text-emerald-500">${b.market || '-'}</td>
                     <td class="text-slate-400">${probNum.toFixed(1)}%</td>
