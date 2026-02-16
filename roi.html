@@ -56,7 +56,6 @@
             100% { box-shadow: inset 0 0 5px rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); }
         }
 
-        /* EFECTO AZUL BRILLANTE PARA EL COMBO TOP */
         @keyframes blue-flash {
             0% { box-shadow: 0 0 5px var(--neon-blue); opacity: 0.8; }
             50% { box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-blue); opacity: 1; }
@@ -89,7 +88,7 @@
         .scroll-custom::-webkit-scrollbar-thumb:hover { background: #10b981; }
 
         #filter-container { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 0; overflow: hidden; opacity: 0; }
-        #filter-container.show { max-height: 1000px; opacity: 1; margin-top: 1rem; padding-bottom: 1rem; }
+        #filter-container.show { max-height: 2000px; opacity: 1; margin-top: 1rem; padding-bottom: 1rem; }
         
         .filter-mini { background: #020617; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 6px; color: #10b981; font-size: 10px; width: 48%; outline: none; }
         .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -139,6 +138,29 @@
             <div class="glass-card p-4 rounded-xl text-center border-emerald-500/30">
                 <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-1">P-Value</p>
                 <p id="stat-pvalue" class="text-xl font-black text-emerald-400">--</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="glass-card p-4 rounded-xl border-blue-500/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-calculator text-blue-400"></i>
+                    <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest">Simulación 1/4 Kelly</p>
+                </div>
+                <div class="flex justify-between items-end">
+                    <p id="kelly-quarter-profit" class="text-2xl font-black text-white">$0.00</p>
+                    <p id="kelly-quarter-yield" class="text-xs font-bold text-slate-500">Yield: 0%</p>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-xl border-purple-500/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-calculator text-purple-400"></i>
+                    <p class="text-[10px] text-purple-400 uppercase font-black tracking-widest">Simulación 1/8 Kelly</p>
+                </div>
+                <div class="flex justify-between items-end">
+                    <p id="kelly-eighth-profit" class="text-2xl font-black text-white">$0.00</p>
+                    <p id="kelly-eighth-yield" class="text-xs font-bold text-slate-500">Yield: 0%</p>
+                </div>
             </div>
         </div>
 
@@ -326,6 +348,41 @@
             } catch (e) { return null; }
         }
 
+        // LÓGICA DE SIMULACIÓN KELLY
+        function simulateKelly(resolvedBets, fraction) {
+            let bank = 100; // Bankroll inicial para simulación (u)
+            let totalProfit = 0;
+            let totalStaked = 0;
+
+            // Ordenamos por fecha para simulación secuencial
+            const sorted = [...resolvedBets].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            sorted.forEach(b => {
+                const p = Number(b.prob); // Probabilidad decimal (0-1)
+                const decimalOdd = Number(b.odd);
+                const q = 1 - p;
+                
+                if (decimalOdd > 1 && p > (1/decimalOdd)) {
+                    // Kelly % = (bp - q) / b donde b es (momio - 1)
+                    const b_factor = decimalOdd - 1;
+                    const fullKelly = (b_factor * p - q) / b_factor;
+                    const appliedStakePercentage = fullKelly * fraction;
+                    
+                    // Aseguramos un stake mínimo/máximo lógico para no quebrar la simulación
+                    const finalStake = Math.max(0, appliedStakePercentage * 100); 
+                    const betProfit = b.status === 'win' ? finalStake * (decimalOdd - 1) : -finalStake;
+                    
+                    totalProfit += betProfit;
+                    totalStaked += finalStake;
+                }
+            });
+
+            return {
+                profit: totalProfit,
+                yield: totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0
+            };
+        }
+
         function updateStats() {
             const f_market = document.getElementById('f_market').value;
             const f_status = document.getElementById('f_status').value;
@@ -359,7 +416,7 @@
                 const edge = parseFloat(b.edge?.toString().replace('%','')) || 0;
                 const stake = Number(b.stake) || 0;
 
-                return matchM && matchS && matchSource && (probVal >= pMin && probVal <= pMax) && (fair >= fjMin && fair <= fjMax) && (odd >= ocMin && odd <= ocMax) && (edge >= eMin && edge <= eMax) && (stake >= sMin && stake <= sMax) && (valColumn >= vMin && valColumn <= vMax);
+                return matchM && matchS && matchSource && (probVal >= pMin && probVal <= pMax) && (fair >= fjMin && fair <= fjMax) && (odd >= ocMin && odd <= ocMax) && (edge >= eMin && edge <= eMax) && (stake >= sMin && stake <= sMax) && (valColumn >= vMin && vMax >= valColumn);
             });
 
             const resolved = filtered.filter(b => b.status === 'win' || b.status === 'loss');
@@ -387,6 +444,18 @@
             document.getElementById('stat-hit').innerText = (sortedResolved.length > 0 ? (wins/sortedResolved.length*100).toFixed(1) : 0) + "%";
             document.getElementById('stat-dd').innerText = maxDD.toFixed(2) + "u";
             document.getElementById('stat-count').innerText = sortedResolved.length;
+
+            // Actualizar Simulaciones de Kelly
+            const kelly14 = simulateKelly(sortedResolved, 0.25);
+            const kelly18 = simulateKelly(sortedResolved, 0.125);
+
+            document.getElementById('kelly-quarter-profit').innerText = (kelly14.profit >= 0 ? "+" : "") + kelly14.profit.toFixed(2) + "u";
+            document.getElementById('kelly-quarter-profit').className = kelly14.profit >= 0 ? "text-2xl font-black text-emerald-400" : "text-2xl font-black text-red-400";
+            document.getElementById('kelly-quarter-yield').innerText = "Yield: " + kelly14.yield.toFixed(1) + "%";
+
+            document.getElementById('kelly-eighth-profit').innerText = (kelly18.profit >= 0 ? "+" : "") + kelly18.profit.toFixed(2) + "u";
+            document.getElementById('kelly-eighth-profit').className = kelly18.profit >= 0 ? "text-2xl font-black text-purple-400" : "text-2xl font-black text-red-400";
+            document.getElementById('kelly-eighth-yield').innerText = "Yield: " + kelly18.yield.toFixed(1) + "%";
 
             const pVal = calculatePValue(sortedResolved.length, currentYield, avgOdd);
             const pElem = document.getElementById('stat-pvalue');
@@ -437,7 +506,6 @@
                 const houseProb = oddNum > 0 ? (1 / oddNum) * 100 : 0;
                 const valCol = probNum - houseProb;
 
-                // Clase especial para el tag si es Combo Top
                 const tagClass = isComboTop 
                     ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
                     : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
@@ -532,8 +600,21 @@
         function deleteBet(id) { if(confirm('¿Eliminar esta entrada?')) { bets = bets.filter(x => x.id.toString() !== id.toString()); saveAndRefresh(); } }
         function saveAndRefresh() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); updateStats(); }
         function clearHistory() { if(confirm('¿BORRAR TODO?')) { bets = []; saveAndRefresh(); } }
-        function sendToBacktesting() { /* Lógica existente */ }
-        function exportToExcel() { /* Lógica existente */ }
+        function sendToBacktesting() { alert('Enviando datos filtrados al simulador...'); }
+        function exportToExcel() { 
+            if(bets.length === 0) return;
+            const headers = "Fecha,Evento,Mercado,Prob,Justa,Casa,Stake,Estado,Profit\n";
+            const csv = bets.map(b => `${b.date},${b.teams},${b.market},${b.prob},${b.fair_odd},${b.odd},${b.stake},${b.status},${b.profit}`).join("\n");
+            const blob = new Blob([headers + csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'historial_betags.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
         window.onload = updateStats;
     </script>
 </body>
