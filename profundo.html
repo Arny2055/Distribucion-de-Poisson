@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETAGS - Deep Analysis Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --sl-dark: #05070a;
+            --sl-card: #0f1219;
+            --sl-accent: #8b5cf6;
+            --sl-border: #1e222d;
+        }
+        body { background-color: var(--sl-dark); color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .market-card { background: var(--sl-card); border: 1px solid var(--sl-border); border-radius: 12px; padding: 15px; }
+        .value-text { color: #00ff88; font-weight: 800; }
+        .grid-markets { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .header-gradient { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border-bottom: 2px solid #8b5cf6; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <header class="header-gradient p-6 rounded-xl mb-8 flex justify-between items-center">
+        <div>
+            <h1 id="match_title" class="text-2xl font-black uppercase tracking-tighter">Cargando Partido...</h1>
+            <p id="league_badge" class="text-purple-400 font-bold text-xs tracking-widest uppercase mt-1">---</p>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] text-slate-500 font-bold uppercase block">Poisson Depth Engine</span>
+            <span class="text-white font-mono text-xl" id="avg_display">0.00 | 0.00</span>
+        </div>
+    </header>
+
+    <div class="grid-markets">
+        <div class="market-card border-l-4 border-purple-500">
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Resultado Final (1X2)</h3>
+            <div id="m_1x2" class="space-y-2"></div>
+            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Doble Oportunidad</h3>
+            <div id="m_dc" class="space-y-2"></div>
+        </div>
+
+        <div class="market-card border-l-4 border-cyan-500">
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Draw No Bet (Empate no Acción)</h3>
+            <div id="m_dnb" class="space-y-2"></div>
+            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Ambos Equipos Anotan</h3>
+            <div id="m_btts" class="space-y-2"></div>
+        </div>
+
+        <div class="market-card border-l-4 border-yellow-500">
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Totales (Over/Under)</h3>
+            <div id="m_ou_ft" class="space-y-1 text-sm"></div>
+        </div>
+
+        <div class="market-card border-l-4 border-red-500">
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Local</h3>
+            <div id="m_ou_h" class="space-y-2 mb-4"></div>
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Visitante</h3>
+            <div id="m_ou_a" class="space-y-2"></div>
+        </div>
+
+        <div class="market-card border-l-4 border-blue-500">
+            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Exacto / Rangos de Goles</h3>
+            <div id="m_ranges" class="space-y-2"></div>
+            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Goles del Local (Rangos)</h3>
+            <div id="m_h_ranges" class="space-y-2"></div>
+            <h3 class="text-xs font-black text-slate-500 uppercase mt-4 mb-4">Goles del Visitante (Rangos)</h3>
+            <div id="m_a_ranges" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
+        function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
+
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const rawData = urlParams.get('d');
+            if(!rawData) return;
+
+            const data = JSON.parse(atob(rawData));
+            document.getElementById('match_title').innerText = `${data.local} vs ${data.visitante}`;
+            document.getElementById('league_badge').innerText = data.liga;
+            document.getElementById('avg_display').innerText = `${data.h_gf} | ${data.a_gf}`;
+
+            const lambdaH = (parseFloat(data.h_gf) + parseFloat(data.a_gc)) / 2;
+            const lambdaA = (parseFloat(data.a_gf) + parseFloat(data.h_gc)) / 2;
+
+            calculateAll(lambdaH, lambdaA);
+        }
+
+        function calculateAll(lH, lA) {
+            const maxG = 8;
+            let matrix = [];
+            for(let h=0; h<maxG; h++) {
+                matrix[h] = [];
+                for(let a=0; a<maxG; a++) {
+                    matrix[h][a] = poisson(h, lH) * poisson(a, lA);
+                }
+            }
+
+            // 1X2
+            let p1 = 0, pX = 0, p2 = 0;
+            for(let h=0; h<maxG; h++) {
+                for(let a=0; a<maxG; a++) {
+                    if(h > a) p1 += matrix[h][a];
+                    else if(h === a) pX += matrix[h][a];
+                    else p2 += matrix[h][a];
+                }
+            }
+
+            renderMarket('m_1x2', [
+                {lab: 'Local (1)', p: p1}, {lab: 'Empate (X)', p: pX}, {lab: 'Visita (2)', p: p2}
+            ]);
+
+            // Doble Oportunidad
+            renderMarket('m_dc', [
+                {lab: '1X', p: p1 + pX}, {lab: 'X2', p: pX + p2}, {lab: '12', p: p1 + p2}
+            ]);
+
+            // DNB
+            const pDNB1 = p1 / (p1 + p2);
+            renderMarket('m_dnb', [
+                {lab: 'DNB Local', p: pDNB1}, {lab: 'DNB Visita', p: 1 - pDNB1}
+            ]);
+
+            // BTTS
+            let bttsY = 0;
+            for(let h=1; h<maxG; h++) {
+                for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
+            }
+            renderMarket('m_btts', [{lab: 'Si', p: bttsY}, {lab: 'No', p: 1 - bttsY}]);
+
+            // Over Under General
+            const ouLvels = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
+            let ouData = [];
+            ouLvels.forEach(val => {
+                let overP = 0;
+                for(let h=0; h<maxG; h++) {
+                    for(let a=0; a<maxG; a++) if(h+a > val) overP += matrix[h][a];
+                }
+                ouData.push({lab: `Over ${val}`, p: overP});
+                ouData.push({lab: `Under ${val}`, p: 1 - overP});
+            });
+            renderMarket('m_ou_ft', ouData);
+
+            // Over Under Individual
+            const indivLevels = [0.5, 1.5, 2.5];
+            let hOu = [], aOu = [];
+            indivLevels.forEach(val => {
+                let hOver = 0, aOver = 0;
+                for(let i=0; i<maxG; i++) {
+                    if(i > val) {
+                        hOver += poisson(i, lH);
+                        aOver += poisson(i, lA);
+                    }
+                }
+                hOu.push({lab: `Local Over ${val}`, p: hOver});
+                aOu.push({lab: `Visita Over ${val}`, p: aOver});
+            });
+            renderMarket('m_ou_h', hOu);
+            renderMarket('m_ou_a', aOu);
+
+            // Rangos Goles Totales
+            let r01 = 0, r23 = 0, r4p = 0;
+            for(let h=0; h<maxG; h++) {
+                for(let a=0; a<maxG; a++) {
+                    let sum = h+a;
+                    if(sum <= 1) r01 += matrix[h][a];
+                    else if(sum <= 3) r23 += matrix[h][a];
+                    else r4p += matrix[h][a];
+                }
+            }
+            renderMarket('m_ranges', [{lab: '0-1 Goles', p: r01}, {lab: '2-3 Goles', p: r23}, {lab: '4+ Goles', p: r4p}]);
+
+            // Rangos Individuales
+            const getIndivRange = (lambda) => {
+                let r0 = poisson(0, lambda);
+                let r12 = poisson(1, lambda) + poisson(2, lambda);
+                let r3p = 1 - (r0 + r12);
+                return [{lab: '0 Goles', p: r0}, {lab: '1-2 Goles', p: r12}, {lab: '3+ Goles', p: r3p}];
+            };
+            renderMarket('m_h_ranges', getIndivRange(lH));
+            renderMarket('m_a_ranges', getIndivRange(lA));
+        }
+
+        function renderMarket(id, items) {
+            const container = document.getElementById(id);
+            container.innerHTML = items.map(i => `
+                <div class="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase">${i.lab}</span>
+                    <div class="text-right">
+                        <span class="text-sm font-black text-white">${(i.p*100).toFixed(1)}%</span>
+                        <span class="text-[10px] text-purple-400 ml-2 font-mono">@${(1/i.p).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
