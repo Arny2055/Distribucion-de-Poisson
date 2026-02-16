@@ -49,21 +49,41 @@
         .market-row { border-bottom: 1px solid var(--sl-border); transition: background 0.3s; }
         .market-row:hover { background: rgba(255,255,255,0.02); }
 
+        /* --- BOTONES REDISEÑADOS --- */
         .btn-primary {
-            background: linear-gradient(135deg, #00f2ff 0%, #0077ff 100%);
-            color: black;
-            font-weight: 900;
+            background: #0ea5e9;
+            color: #000;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(0, 242, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #00f2ff;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+            transform: translateY(-1px);
         }
 
         .btn-depth {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-            color: white;
-            font-weight: 900;
+            background: #1e293b;
+            color: #94a3b8;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
         }
+
+        .btn-depth:hover {
+            background: #334155;
+            color: #fff;
+            border-color: #6366f1;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+            transform: translateY(-1px);
+        }
+        /* -------------------------- */
 
         .badge-value {
             background: rgba(0, 255, 136, 0.1);
@@ -372,11 +392,11 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2">
-                             <button onclick="calculate()" class="btn-primary py-4 rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform mt-2">
+                        <div class="grid grid-cols-2 gap-3 mt-2">
+                             <button onclick="calculate()" class="btn-primary py-3 rounded-lg active:scale-95 text-[11px]">
                                 Analizar
                             </button>
-                            <button onclick="goToDeepAnalysis()" class="btn-depth py-4 rounded-xl shadow-lg shadow-Slate-900/20 active:scale-95 transition-transform mt-2">
+                            <button onclick="goToDeepAnalysis()" class="btn-depth py-3 rounded-lg active:scale-95 text-[11px]">
                                 <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Profundo
                             </button>
                         </div>
@@ -888,7 +908,6 @@
             updateStatus('active', 'Análisis Completo');
         }
 
-        // NUEVA FUNCIÓN PARA ANÁLISIS PROFUNDO
         function goToDeepAnalysis() {
             const data = {
                 liga: document.getElementById('league_name').value,
@@ -900,7 +919,6 @@
                 a_gc: document.getElementById('a_gc').value
             };
 
-            // Convertimos data a Base64 para pasarla por URL de forma limpia
             const encodedData = btoa(JSON.stringify(data));
             window.open(`profundo.html?d=${encodedData}`, '_blank');
         }
