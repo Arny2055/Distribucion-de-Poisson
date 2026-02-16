@@ -6,68 +6,204 @@
     <title>BETAGS - Deep Analysis Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --sl-dark: #05070a;
-            --sl-card: #0f1219;
-            --sl-accent: #8b5cf6;
-            --sl-border: #1e222d;
+            --bg-main: #06090f;
+            --bg-card: #11161f;
+            --accent: #d9fe00; /* Amarillo verdoso tipo BetAgs */
+            --accent-muted: rgba(217, 254, 0, 0.1);
+            --border: #1e2633;
+            --text-secondary: #94a3b8;
         }
-        body { background-color: var(--sl-dark); color: #e2e8f0; font-family: 'Inter', sans-serif; }
-        .market-card { background: var(--sl-card); border: 1px solid var(--sl-border); border-radius: 12px; padding: 15px; }
-        .value-text { color: #00ff88; font-weight: 800; }
-        .grid-markets { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .header-gradient { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border-bottom: 2px solid #8b5cf6; }
+        
+        body { 
+            background-color: var(--bg-main); 
+            color: #ffffff; 
+            font-family: 'Barlow Condensed', sans-serif;
+            background-image: radial-gradient(circle at 50% 0%, #1a2333 0%, #06090f 70%);
+        }
+
+        .bet-header {
+            background: linear-gradient(180deg, #161d29 0%, #0b0f17 100%);
+            border-bottom: 3px solid var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .market-card { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border); 
+            border-radius: 4px; /* Bordes más rectos, estilo industrial */
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .market-card:hover {
+            border-color: #334155;
+            transform: translateY(-2px);
+        }
+
+        .market-title {
+            background: rgba(255,255,255,0.03);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .odds-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            transition: background 0.2s;
+        }
+
+        .odds-row:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .odds-row:last-child { border-bottom: none; }
+
+        .label-bet {
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .value-perc {
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+
+        .value-odd {
+            background: var(--accent);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-weight: 900;
+            font-size: 0.8rem;
+            margin-left: 8px;
+            min-width: 45px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .grid-markets { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+            gap: 20px; 
+        }
+
+        .badge-live {
+            background: #ff004c;
+            color: white;
+            padding: 2px 8px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            border-radius: 2px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Scrollbar Custom */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <header class="header-gradient p-6 rounded-xl mb-8 flex justify-between items-center">
-        <div>
-            <h1 id="match_title" class="text-2xl font-black uppercase tracking-tighter">Cargando Partido...</h1>
-            <p id="league_badge" class="text-purple-400 font-bold text-xs tracking-widest uppercase mt-1">---</p>
-        </div>
-        <div class="text-right">
-            <span class="text-[10px] text-slate-500 font-bold uppercase block">Poisson Depth Engine</span>
-            <span class="text-white font-mono text-xl" id="avg_display">0.00 | 0.00</span>
+<body class="p-4 md:p-6 lg:p-10">
+    
+    <header class="bet-header p-6 rounded-t-lg mb-8 relative overflow-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <span class="badge-live">DATA LIVE</span>
+                    <p id="league_badge" class="text-slate-400 font-bold text-xs tracking-[0.2em] uppercase">---</p>
+                </div>
+                <h1 id="match_title" class="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-white">
+                    CARGANDO...
+                </h1>
+            </div>
+            <div class="flex items-center gap-6 bg-black/40 p-4 border border-white/10 rounded">
+                <div class="text-center">
+                    <span class="text-[10px] text-slate-500 font-black uppercase block mb-1">Expectativa Goles</span>
+                    <span class="text-3xl font-black text-white italic" id="avg_display">0.00 | 0.00</span>
+                </div>
+                <div class="h-10 w-[1px] bg-white/10"></div>
+                <div class="text-center">
+                    <span class="text-[10px] text-slate-500 font-black uppercase block mb-1">Algoritmo</span>
+                    <span class="text-xl font-black text-[var(--accent)] block">POISSON V3</span>
+                </div>
+            </div>
         </div>
     </header>
 
     <div class="grid-markets">
-        <div class="market-card border-l-4 border-purple-500">
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Resultado Final (1X2)</h3>
-            <div id="m_1x2" class="space-y-2"></div>
-            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Doble Oportunidad</h3>
-            <div id="m_dc" class="space-y-2"></div>
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-trophy"></i> PRINCIPALES (1X2 / DC)</div>
+            <div id="m_1x2" class="divide-y divide-white/5"></div>
+            <div class="bg-white/5 h-[1px] my-2"></div>
+            <div id="m_dc" class="divide-y divide-white/5"></div>
         </div>
 
-        <div class="market-card border-l-4 border-cyan-500">
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Draw No Bet (Empate no Acción)</h3>
-            <div id="m_dnb" class="space-y-2"></div>
-            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Ambos Equipos Anotan</h3>
-            <div id="m_btts" class="space-y-2"></div>
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-shield-alt"></i> COBERTURA Y GOLES</div>
+            <div id="m_dnb" class="divide-y divide-white/5"></div>
+            <div class="bg-white/5 h-[1px] my-2"></div>
+            <div id="m_btts" class="divide-y divide-white/5"></div>
         </div>
 
-        <div class="market-card border-l-4 border-yellow-500">
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Totales (Over/Under)</h3>
-            <div id="m_ou_ft" class="space-y-1 text-sm"></div>
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-plus-minus"></i> LÍNEAS DE GOLES TOTALES</div>
+            <div id="m_ou_ft" class="h-[350px] overflow-y-auto"></div>
         </div>
 
-        <div class="market-card border-l-4 border-red-500">
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Local</h3>
-            <div id="m_ou_h" class="space-y-2 mb-4"></div>
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Goles Visitante</h3>
-            <div id="m_ou_a" class="space-y-2"></div>
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-chart-line"></i> GOLES POR EQUIPO</div>
+            <div class="p-3 text-[10px] font-bold text-slate-500 uppercase bg-black/20">Local</div>
+            <div id="m_ou_h"></div>
+            <div class="p-3 text-[10px] font-bold text-slate-500 uppercase bg-black/20 mt-2">Visitante</div>
+            <div id="m_ou_a"></div>
         </div>
 
-        <div class="market-card border-l-4 border-blue-500">
-            <h3 class="text-xs font-black text-slate-500 uppercase mb-4">Exacto / Rangos de Goles</h3>
-            <div id="m_ranges" class="space-y-2"></div>
-            <h3 class="text-xs font-black text-slate-500 uppercase mt-6 mb-4">Goles del Local (Rangos)</h3>
-            <div id="m_h_ranges" class="space-y-2"></div>
-            <h3 class="text-xs font-black text-slate-500 uppercase mt-4 mb-4">Goles del Visitante (Rangos)</h3>
-            <div id="m_a_ranges" class="space-y-2"></div>
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-layer-group"></i> RANGOS DE ANOTACIÓN</div>
+            <div class="p-2">
+                <div id="m_ranges"></div>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <div>
+                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Local</span>
+                        <div id="m_h_ranges" class="space-y-1"></div>
+                    </div>
+                    <div>
+                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Visita</span>
+                        <div id="m_a_ranges" class="space-y-1"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <footer class="mt-12 pt-6 border-t border-white/5 text-center">
+        <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+            BetAgs Analytics System &copy; 2026 | Prohibida su reproducción total o parcial
+        </p>
+    </footer>
 
     <script>
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
@@ -108,31 +244,24 @@
                     else p2 += matrix[h][a];
                 }
             }
-
-            renderMarket('m_1x2', [
-                {lab: 'Local (1)', p: p1}, {lab: 'Empate (X)', p: pX}, {lab: 'Visita (2)', p: p2}
-            ]);
+            renderMarket('m_1x2', [{lab: 'Local (1)', p: p1}, {lab: 'Empate (X)', p: pX}, {lab: 'Visita (2)', p: p2}]);
 
             // Doble Oportunidad
-            renderMarket('m_dc', [
-                {lab: '1X', p: p1 + pX}, {lab: 'X2', p: pX + p2}, {lab: '12', p: p1 + p2}
-            ]);
+            renderMarket('m_dc', [{lab: '1X', p: p1 + pX}, {lab: 'X2', p: pX + p2}, {lab: '12', p: p1 + p2}]);
 
             // DNB
             const pDNB1 = p1 / (p1 + p2);
-            renderMarket('m_dnb', [
-                {lab: 'DNB Local', p: pDNB1}, {lab: 'DNB Visita', p: 1 - pDNB1}
-            ]);
+            renderMarket('m_dnb', [{lab: 'DNB Local', p: pDNB1}, {lab: 'DNB Visita', p: 1 - pDNB1}]);
 
             // BTTS
             let bttsY = 0;
             for(let h=1; h<maxG; h++) {
                 for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
             }
-            renderMarket('m_btts', [{lab: 'Si', p: bttsY}, {lab: 'No', p: 1 - bttsY}]);
+            renderMarket('m_btts', [{lab: 'BTTS Si', p: bttsY}, {lab: 'BTTS No', p: 1 - bttsY}]);
 
             // Over Under General
-            const ouLvels = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
+            const ouLvels = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.5];
             let ouData = [];
             ouLvels.forEach(val => {
                 let overP = 0;
@@ -155,8 +284,8 @@
                         aOver += poisson(i, lA);
                     }
                 }
-                hOu.push({lab: `Local Over ${val}`, p: hOver});
-                aOu.push({lab: `Visita Over ${val}`, p: aOver});
+                hOu.push({lab: `Local +${val}`, p: hOver});
+                aOu.push({lab: `Visita +${val}`, p: aOver});
             });
             renderMarket('m_ou_h', hOu);
             renderMarket('m_ou_a', aOu);
@@ -178,7 +307,7 @@
                 let r0 = poisson(0, lambda);
                 let r12 = poisson(1, lambda) + poisson(2, lambda);
                 let r3p = 1 - (r0 + r12);
-                return [{lab: '0 Goles', p: r0}, {lab: '1-2 Goles', p: r12}, {lab: '3+ Goles', p: r3p}];
+                return [{lab: '0 G', p: r0}, {lab: '1-2 G', p: r12}, {lab: '3+ G', p: r3p}];
             };
             renderMarket('m_h_ranges', getIndivRange(lH));
             renderMarket('m_a_ranges', getIndivRange(lA));
@@ -187,11 +316,11 @@
         function renderMarket(id, items) {
             const container = document.getElementById(id);
             container.innerHTML = items.map(i => `
-                <div class="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase">${i.lab}</span>
-                    <div class="text-right">
-                        <span class="text-sm font-black text-white">${(i.p*100).toFixed(1)}%</span>
-                        <span class="text-[10px] text-purple-400 ml-2 font-mono">@${(1/i.p).toFixed(2)}</span>
+                <div class="odds-row">
+                    <span class="label-bet">${i.lab}</span>
+                    <div>
+                        <span class="value-perc">${(i.p*100).toFixed(1)}%</span>
+                        <span class="value-odd">${(1/i.p).toFixed(2)}</span>
                     </div>
                 </div>
             `).join('');
