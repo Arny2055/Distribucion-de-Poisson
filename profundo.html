@@ -15,6 +15,11 @@
             --accent-blue: #00f2ff;
             --accent-green: #00ff88;
             --accent-red: #ff3366;
+            /* Colores de Probabilidad */
+            --prob-high: #00ff88;   /* Verde */
+            --prob-mid: #ffcc00;    /* Ámbar */
+            --prob-low: #ff4d4d;    /* Rojo */
+            
             --border: rgba(30, 41, 59, 0.5);
             --text-secondary: #94a3b8;
             --glass: rgba(255, 255, 255, 0.03);
@@ -88,16 +93,22 @@
             font-size: 0.85rem;
         }
 
+        /* Clases Dinámicas de Probabilidad */
+        .color-high { color: var(--prob-high) !important; }
+        .color-mid { color: var(--prob-mid) !important; }
+        .color-low { color: var(--prob-low) !important; }
+
+        .bg-high { background: var(--prob-high) !important; color: #000 !important; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); }
+        .bg-mid { background: var(--prob-mid) !important; color: #000 !important; box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); }
+        .bg-low { background: var(--prob-low) !important; color: #fff !important; box-shadow: 0 0 15px rgba(255, 77, 77, 0.3); }
+
         .value-perc {
-            color: var(--accent-blue);
             font-weight: 900;
             font-size: 1.1rem;
             font-style: italic;
         }
 
         .value-odd {
-            background: linear-gradient(90deg, var(--accent-blue), #00c2ff);
-            color: #000;
             padding: 3px 10px;
             border-radius: 6px;
             font-weight: 900;
@@ -106,7 +117,6 @@
             min-width: 55px;
             text-align: center;
             display: inline-block;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
         }
 
         .form-dot {
@@ -306,47 +316,33 @@
                 }
             }
 
-            // 1X2
             let p1 = 0, pX = 0, p2 = 0;
             matrix.forEach((row, h) => row.forEach((p, a) => {
                 if(h > a) p1 += p; else if(h === a) pX += p; else p2 += p;
             }));
 
-            renderMarket('m_1x2', [
-                {lab: 'Home Win (1)', p: p1}, 
-                {lab: 'Away Win (2)', p: p2}, 
-                {lab: 'Draw (X)', p: pX}
-            ], true);
+            renderMarket('m_1x2', [{lab: 'Home Win (1)', p: p1}, {lab: 'Away Win (2)', p: p2}, {lab: 'Draw (X)', p: pX}], true);
+            renderMarket('m_dc', [{lab: 'Double 1X', p: p1+pX}, {lab: 'Double X2', p: pX+p2}, {lab: 'Double 12', p: p1+p2}], true);
 
-            renderMarket('m_dc', [
-                {lab: 'Double 1X', p: p1+pX}, 
-                {lab: 'Double X2', p: pX+p2}, 
-                {lab: 'Double 12', p: p1+p2}
-            ], true);
-
-            // BTTS
             let bttsY = 0;
             for(let h=1; h<maxG; h++) for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
-            renderMarket('m_btts', [
-                {lab: 'BTTS YES', p: bttsY}, 
-                {lab: 'BTTS NO', p: 1-bttsY}
-            ], true);
+            renderMarket('m_btts', [{lab: 'BTTS YES', p: bttsY}, {lab: 'BTTS NO', p: 1-bttsY}], true);
 
             renderMarket('m_defense', [
                 {lab: `CS ${document.getElementById('match_title').innerText.split(' VS ')[1]}`, p: poisson(0, lH)},
                 {lab: `CS ${document.getElementById('match_title').innerText.split(' VS ')[0]}`, p: poisson(0, lA)}
             ], true);
 
-            // Scores Matrix Descending
             flatScores.sort((a,b) => b.p - a.p);
-            document.getElementById('m_matrix').innerHTML = flatScores.slice(0, 15).map(s => `
+            document.getElementById('m_matrix').innerHTML = flatScores.slice(0, 15).map(s => {
+                let colorClass = s.p > 0.12 ? 'color-high' : (s.p > 0.08 ? 'color-mid' : 'color-low');
+                return `
                 <div class="score-box">
                     <div class="text-[10px] font-black text-white">${s.score}</div>
-                    <div class="text-[10px] text-cyan-400 font-black">${(s.p*100).toFixed(1)}%</div>
-                </div>
-            `).join('');
+                    <div class="text-[10px] ${colorClass} font-black">${(s.p*100).toFixed(1)}%</div>
+                </div>`;
+            }).join('');
 
-            // Over Under Descending
             let ouData = [];
             [0.5, 1.5, 2.5, 3.5, 4.5].forEach(v => {
                 let over = 0;
@@ -356,7 +352,6 @@
             });
             renderMarket('m_ou_ft', ouData, true);
 
-            // Individual stats Descending
             const getIndiv = (l) => [0.5, 1.5, 2.5].map(v => {
                 let p = 0; for(let i=0; i<maxG; i++) if(i > v) p += poisson(i, l);
                 return {lab: `OVER ${v}`, p: p};
@@ -376,15 +371,28 @@
             
             let displayItems = sort ? [...items].sort((a, b) => b.p - a.p) : items;
 
-            container.innerHTML = displayItems.map(i => `
+            container.innerHTML = displayItems.map(i => {
+                // Lógica de 3 colores
+                let colorClass = 'color-low';
+                let bgClass = 'bg-low';
+                
+                if(i.p >= 0.60) {
+                    colorClass = 'color-high';
+                    bgClass = 'bg-high';
+                } else if(i.p >= 0.40) {
+                    colorClass = 'color-mid';
+                    bgClass = 'bg-mid';
+                }
+
+                return `
                 <div class="odds-row">
                     <span class="label-bet">${i.lab}</span>
                     <div class="flex items-center">
-                        <span class="value-perc">${(i.p*100).toFixed(1)}%</span>
-                        <span class="value-odd">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span>
+                        <span class="value-perc ${colorClass}">${(i.p*100).toFixed(1)}%</span>
+                        <span class="value-odd ${bgClass}">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         window.onload = init;
