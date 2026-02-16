@@ -57,6 +57,14 @@
             letter-spacing: 1px;
         }
 
+        .btn-depth {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .badge-value {
             background: rgba(0, 255, 136, 0.1);
             color: var(--sl-green);
@@ -364,9 +372,14 @@
                             </div>
                         </div>
 
-                        <button onclick="calculate()" class="btn-primary w-full py-4 rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform mt-2">
-                            Analizar Probabilidades
-                        </button>
+                        <div class="grid grid-cols-2 gap-2">
+                             <button onclick="calculate()" class="btn-primary py-4 rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform mt-2">
+                                Analizar
+                            </button>
+                            <button onclick="goToDeepAnalysis()" class="btn-depth py-4 rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-transform mt-2">
+                                <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Profundo
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -873,6 +886,23 @@
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
             updateStatus('active', 'Análisis Completo');
+        }
+
+        // NUEVA FUNCIÓN PARA ANÁLISIS PROFUNDO
+        function goToDeepAnalysis() {
+            const data = {
+                liga: document.getElementById('league_name').value,
+                local: document.getElementById('home_select').value || 'Equipo Local',
+                visitante: document.getElementById('away_select').value || 'Equipo Visitante',
+                h_gf: document.getElementById('h_gf').value,
+                h_gc: document.getElementById('h_gc').value,
+                a_gf: document.getElementById('a_gf').value,
+                a_gc: document.getElementById('a_gc').value
+            };
+
+            // Convertimos data a Base64 para pasarla por URL de forma limpia
+            const encodedData = btoa(JSON.stringify(data));
+            window.open(`profundo.html?d=${encodedData}`, '_blank');
         }
 
         function updateMarketUI(resId, valId, p) {
