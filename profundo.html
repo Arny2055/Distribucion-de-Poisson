@@ -33,7 +33,7 @@
         .market-card { 
             background: var(--bg-card); 
             border: 1px solid var(--border); 
-            border-radius: 4px; /* Bordes más rectos, estilo industrial */
+            border-radius: 4px; 
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
@@ -120,7 +120,6 @@
             100% { opacity: 1; }
         }
 
-        /* Scrollbar Custom */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-main); }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -162,10 +161,18 @@
         </div>
 
         <div class="market-card">
-            <div class="market-title"><i class="fas fa-shield-alt"></i> COBERTURA Y GOLES</div>
-            <div id="m_dnb" class="divide-y divide-white/5"></div>
-            <div class="bg-white/5 h-[1px] my-2"></div>
+            <div class="market-title"><i class="fas fa-shield-alt"></i> DEFENSA Y BTTS</div>
             <div id="m_btts" class="divide-y divide-white/5"></div>
+            <div class="bg-white/5 h-[1px] my-2"></div>
+            <div id="m_defense" class="divide-y divide-white/5"></div>
+        </div>
+
+        <div class="market-card">
+            <div class="market-title"><i class="fas fa-clock"></i> MITADES (1H)</div>
+            <div class="p-3 text-[10px] font-bold text-slate-500 uppercase bg-black/20">Primera Parte</div>
+            <div id="m_1h_goals"></div>
+            <div class="bg-white/5 h-[1px] my-2"></div>
+            <div id="m_dnb" class="divide-y divide-white/5"></div>
         </div>
 
         <div class="market-card">
@@ -182,17 +189,17 @@
         </div>
 
         <div class="market-card">
-            <div class="market-title"><i class="fas fa-layer-group"></i> RANGOS DE ANOTACIÓN</div>
+            <div class="market-title"><i class="fas fa-layer-group"></i> RANGOS Y PROB. DE GOL</div>
             <div class="p-2">
                 <div id="m_ranges"></div>
                 <div class="grid grid-cols-2 gap-2 mt-4">
                     <div>
-                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Local</span>
-                        <div id="m_h_ranges" class="space-y-1"></div>
+                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Local Marcará?</span>
+                        <div id="m_h_will_score" class="space-y-1"></div>
                     </div>
                     <div>
-                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Visita</span>
-                        <div id="m_a_ranges" class="space-y-1"></div>
+                        <span class="text-[9px] font-black text-slate-500 uppercase block mb-2 pl-1">Visita Marcará?</span>
+                        <div id="m_a_will_score" class="space-y-1"></div>
                     </div>
                 </div>
             </div>
@@ -226,7 +233,7 @@
         }
 
         function calculateAll(lH, lA) {
-            const maxG = 8;
+            const maxG = 10;
             let matrix = [];
             for(let h=0; h<maxG; h++) {
                 matrix[h] = [];
@@ -253,15 +260,28 @@
             const pDNB1 = p1 / (p1 + p2);
             renderMarket('m_dnb', [{lab: 'DNB Local', p: pDNB1}, {lab: 'DNB Visita', p: 1 - pDNB1}]);
 
-            // BTTS
+            // BTTS y Clean Sheets
             let bttsY = 0;
+            let csH = poisson(0, lA); // Visita no marca
+            let csA = poisson(0, lH); // Local no marca
             for(let h=1; h<maxG; h++) {
                 for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
             }
             renderMarket('m_btts', [{lab: 'BTTS Si', p: bttsY}, {lab: 'BTTS No', p: 1 - bttsY}]);
+            renderMarket('m_defense', [
+                {lab: 'Clean Sheet Local', p: csH},
+                {lab: 'Clean Sheet Visita', p: csA},
+                {lab: 'Ambos NO marcan', p: 1 - bttsY}
+            ]);
+
+            // 1H Goals (Estimación basada en 45% del lambda total para 1era mitad)
+            const lH1h = lH * 0.45;
+            const lA1h = lA * 0.45;
+            let over05_1h = 1 - (poisson(0, lH1h) * poisson(0, lA1h));
+            renderMarket('m_1h_goals', [{lab: '1H Over 0.5', p: over05_1h}, {lab: '1H Under 1.5', p: (poisson(0, lH1h+lA1h) + poisson(1, lH1h+lA1h))}]);
 
             // Over Under General
-            const ouLvels = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.5];
+            const ouLvels = [0.5, 1.5, 2.5, 3.5, 4.5];
             let ouData = [];
             ouLvels.forEach(val => {
                 let overP = 0;
@@ -279,10 +299,8 @@
             indivLevels.forEach(val => {
                 let hOver = 0, aOver = 0;
                 for(let i=0; i<maxG; i++) {
-                    if(i > val) {
-                        hOver += poisson(i, lH);
-                        aOver += poisson(i, lA);
-                    }
+                    if(i > val) hOver += poisson(i, lH);
+                    if(i > val) aOver += poisson(i, lA);
                 }
                 hOu.push({lab: `Local +${val}`, p: hOver});
                 aOu.push({lab: `Visita +${val}`, p: aOver});
@@ -300,27 +318,25 @@
                     else r4p += matrix[h][a];
                 }
             }
-            renderMarket('m_ranges', [{lab: '0-1 Goles', p: r01}, {lab: '2-3 Goles', p: r23}, {lab: '4+ Goles', p: r4p}]);
+            renderMarket('m_ranges', [{lab: 'Rango 0-1 G', p: r01}, {lab: 'Rango 2-3 G', p: r23}, {lab: 'Rango 4+ G', p: r4p}]);
 
-            // Rangos Individuales
-            const getIndivRange = (lambda) => {
-                let r0 = poisson(0, lambda);
-                let r12 = poisson(1, lambda) + poisson(2, lambda);
-                let r3p = 1 - (r0 + r12);
-                return [{lab: '0 G', p: r0}, {lab: '1-2 G', p: r12}, {lab: '3+ G', p: r3p}];
-            };
-            renderMarket('m_h_ranges', getIndivRange(lH));
-            renderMarket('m_a_ranges', getIndivRange(lA));
+            // Probabilidad de marcar (Will Score)
+            const willScoreH = 1 - poisson(0, lH);
+            const willScoreA = 1 - poisson(0, lA);
+            
+            renderMarket('m_h_will_score', [{lab: 'SI', p: willScoreH}, {lab: 'NO', p: 1-willScoreH}]);
+            renderMarket('m_a_will_score', [{lab: 'SI', p: willScoreA}, {lab: 'NO', p: 1-willScoreA}]);
         }
 
         function renderMarket(id, items) {
             const container = document.getElementById(id);
+            if(!container) return;
             container.innerHTML = items.map(i => `
                 <div class="odds-row">
                     <span class="label-bet">${i.lab}</span>
                     <div>
                         <span class="value-perc">${(i.p*100).toFixed(1)}%</span>
-                        <span class="value-odd">${(1/i.p).toFixed(2)}</span>
+                        <span class="value-odd">${i.p > 0 ? (1/i.p).toFixed(2) : '0.00'}</span>
                     </div>
                 </div>
             `).join('');
