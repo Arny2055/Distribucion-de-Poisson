@@ -79,15 +79,21 @@
 
         .copy-badge {
             background: rgba(0, 242, 255, 0.1);
-            border: 1px dashed var(--sl-accent);
-            padding: 6px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            color: var(--sl-accent);
+            padding: 4px 8px;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 10px;
-            display: block;
-            margin-top: 8px;
-            color: #00f2ff;
-            word-break: break-all;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .copy-badge:hover {
+            background: rgba(0, 242, 255, 0.2);
         }
     </style>
 </head>
@@ -111,6 +117,49 @@
     </header>
 
     <main class="container mx-auto px-6 pb-20">
+        
+        <section class="mb-16">
+            <h3 class="text-center text-sm font-bold uppercase tracking-widest text-slate-500 mb-8 italic">Configuración de IDs del Sistema</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">ID Carga de Ligas</p>
+                    <div class="copy-badge" onclick="copyToClipboard('1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO')">
+                        1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">Over 0.5 HT ID</p>
+                    <div class="copy-badge" onclick="copyToClipboard('1QRm6Pg2UN_LMnJDpjlGlMNCg6oeba-KcjXqp72O37zY')">
+                        1QRm6Pg2UN_LMnJDpjlGlMNCg6oeba-Kcj... <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">Over 2.5 FT ID</p>
+                    <div class="copy-badge" onclick="copyToClipboard('1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6')">
+                        1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6 <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">Under 2.5 FT ID</p>
+                    <div class="copy-badge" onclick="copyToClipboard('1JYZcX06oGTn3jniZOYGPahKnxw2JEI89')">
+                        1JYZcX06oGTn3jniZOYGPahKnxw2JEI89 <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">BTTs Yes ID</p>
+                    <div class="copy-badge" onclick="copyToClipboard('1UGwsC7NT3J_ZkLhqNkfCAb1DwBwDhVJC')">
+                        1UGwsC7NT3J_ZkLhqNkfCAb1DwBwDhVJC <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <p class="text-[10px] uppercase text-slate-500 mb-2">BTTs No ID</p>
+                    <div class="copy-badge" onclick="copyToClipboard('12yvnzCIJFRxpyHyxs3LL-iC7BOkPoE66')">
+                        12yvnzCIJFRxpyHyxs3LL-iC7BOkPoE66 <i class="fa-regular fa-copy ml-2"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
             <div class="guide-card p-8">
@@ -119,28 +168,18 @@
                 <p class="text-slate-400 text-sm leading-relaxed mb-4">
                     Haz clic en el botón <span class="white-text font-bold">IDS</span>. Aquí debes pegar los IDs de tus Google Sheets donde guardas las estadísticas y los próximos partidos.
                 </p>
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-[10px] uppercase text-slate-500 font-bold">Base de Datos (Stats Históricas)</p>
-                        <code class="copy-badge">1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO</code>
-                    </div>
-                    <div>
-                        <p class="text-[10px] uppercase text-slate-500 font-bold">IDs de Mercados (Radar Pro)</p>
-                        <code class="copy-badge">1QRm6Pg2UN_LMnJDpjlGlMNCg6oeba-KcjXqp72O37zY</code>
-                    </div>
-                </div>
+                <ul class="text-xs space-y-2 text-slate-500">
+                    <li><i class="fa-solid fa-check green-text mr-2"></i> Base de Datos (Stats Históricas)</li>
+                    <li><i class="fa-solid fa-check green-text mr-2"></i> IDs de Mercados (Radar Pro)</li>
+                </ul>
             </div>
 
             <div class="guide-card p-8">
                 <div class="step-number">2</div>
                 <h3 class="text-xl font-bold mb-4 uppercase tracking-tighter accent-text">Radar de Valor</h3>
                 <p class="text-slate-400 text-sm leading-relaxed mb-4">
-                    El sistema escanea automáticamente tus hojas. Usa este ID para conectar la fuente de partidos en vivo del Radar:
+                    El sistema escanea automáticamente tus hojas. Si detecta una oportunidad donde la probabilidad de Poisson es mayor a la de la casa, verás una tarjeta:
                 </p>
-                <div class="mb-4">
-                    <p class="text-[10px] uppercase text-slate-500 font-bold">ID Radar de Partidos</p>
-                    <code class="copy-badge">1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6</code>
-                </div>
                 <div class="bg-slate-900 p-3 rounded border border-yellow-500/50 text-[10px]">
                     <span class="text-yellow-500 font-black">VALUE 🔥 +12.4%</span>
                     <p>Real Madrid vs Barcelona</p>
@@ -150,14 +189,10 @@
             <div class="guide-card p-8">
                 <div class="step-number">3</div>
                 <h3 class="text-xl font-bold mb-4 uppercase tracking-tighter accent-text">Análisis de Poisson</h3>
-                <p class="text-slate-400 text-sm leading-relaxed mb-4">
-                    Genera una <span class="green-text">Probabilidad Real</span>. Conecta el motor de cálculo con este ID de referencia:
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Al seleccionar los equipos, el sistema calcula el ataque y defensa basado en los últimos 10 partidos. Genera una <span class="green-text">Probabilidad Real</span>.
                 </p>
-                <div class="mb-4">
-                    <p class="text-[10px] uppercase text-slate-500 font-bold">ID Motor Poisson</p>
-                    <code class="copy-badge">1JYZcX06oGTn3jniZOYGPahKnxw2JEI89</code>
-                </div>
-                <div class="formula-box text-[10px]">
+                <div class="formula-box mt-4 text-[10px]">
                     Prob(x; μ) = (e^-μ * μ^x) / x!
                 </div>
             </div>
@@ -166,9 +201,8 @@
                 <div class="step-number">4</div>
                 <h3 class="text-xl font-bold mb-4 uppercase tracking-tighter accent-text">Detección de Edge</h3>
                 <p class="text-slate-400 text-sm leading-relaxed mb-4">
-                    Si el <span class="accent-text font-bold">Edge (Δ%)</span> es positivo, tienes ventaja. ID de Sincronización de Cuotas:
+                    Ingresa la cuota de la casa de apuestas. Si el <span class="accent-text font-bold">Edge (Δ%)</span> es positivo, tienes una ventaja matemática.
                 </p>
-                <code class="copy-badge mb-4">1UGwsC7NT3J_ZkLhqNkfCAb1DwBwDhVJC</code>
                 <div class="grid grid-cols-2 gap-2">
                     <div class="bg-black/40 p-2 rounded text-center">
                         <p class="text-[8px] uppercase text-slate-500">Cuota Justa</p>
@@ -185,9 +219,8 @@
                 <div class="step-number">5</div>
                 <h3 class="text-xl font-bold mb-4 uppercase tracking-tighter accent-text">Gestión ROI Lab</h3>
                 <p class="text-slate-400 text-sm leading-relaxed mb-4">
-                    Envía tus apuestas al panel de ROI. Utiliza este ID para tu base de datos personal de seguimiento:
+                    Envía tus apuestas al panel de ROI para trackear tu rendimiento. Vigila el <span class="white-text font-bold">P-Value</span>:
                 </p>
-                <code class="copy-badge mb-4">12yvnzCIJFRxpyHyxs3LL-iC7BOkPoE66</code>
                 <div class="flex items-center gap-4 bg-black/40 p-3 rounded">
                     <i class="fa-solid fa-award text-2xl text-yellow-500"></i>
                     <div>
@@ -203,9 +236,6 @@
                 <p class="text-slate-400 text-sm leading-relaxed">
                     Exporta tus mejores análisis a la sección Pro. Aquí verás qué ligas y mercados te están dando dinero real mediante el sistema de <strong>Rankings de Rendimiento</strong>.
                 </p>
-                <div class="mt-4 p-2 bg-cyan-500/10 rounded border border-cyan-500/20">
-                    <p class="text-[9px] text-cyan-400 font-bold uppercase">Sincronización Pro Activa</p>
-                </div>
             </div>
 
         </div>
@@ -222,5 +252,13 @@
     <footer class="p-10 text-center text-slate-600 text-[10px] uppercase tracking-widest">
         BETAGS Intelligence System &copy; 2026 - Algorithmic Sports Betting
     </footer>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('ID Copiado: ' + text);
+            });
+        }
+    </script>
 </body>
 </html>
