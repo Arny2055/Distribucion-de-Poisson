@@ -86,11 +86,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 18px; /* Aumentado padding */
+            padding: 14px 18px;
             border-bottom: 1px solid rgba(255,255,255,0.02);
         }
 
-        /* ETIQUETAS A 16PX (text-base) */
         .label-bet {
             color: #cbd5e1;
             font-weight: 600;
@@ -105,7 +104,6 @@
         .bg-mid { background: #451a03 !important; color: #fbbf24 !important; }
         .bg-low { background: #450a0a !important; color: #f87171 !important; }
 
-        /* PORCENTAJES MÁS GRANDES Y LEGIBLES */
         .value-perc {
             font-weight: 800;
             font-size: 1.4rem; 
@@ -122,7 +120,6 @@
             text-align: center;
         }
 
-        /* MEJORA EN SCORE BOXES */
         .score-box {
             background: rgba(0,0,0,0.3);
             padding: 12px 8px;
@@ -185,7 +182,7 @@
 
     <main class="grid-markets max-w-7xl mx-auto">
         <div class="market-card">
-            <div class="market-title"><i class="fas fa-trophy"></i> Win Probability</div>
+            <div class="market-title"><i class="fas fa-trophy"></i> Win Probability (1X2 & DC)</div>
             <div id="m_1x2" class="divide-y divide-white/5"></div>
             <div id="m_dc" class="divide-y divide-white/5 border-t border-white/5"></div>
         </div>
@@ -276,19 +273,21 @@
             matrix.forEach((row, h) => row.forEach((p, a) => {
                 if(h > a) p1 += p; else if(h === a) pX += p; else p2 += p;
             }));
-            renderMarket('m_1x2', [{lab: 'Home Win', p: p1}, {lab: 'Away Win', p: p2}, {lab: 'Draw', p: pX}], true);
-            renderMarket('m_dc', [{lab: '1X', p: p1+pX}, {lab: 'X2', p: pX+p2}, {lab: '12', p: p1+p2}], true);
+
+            // MERCADO 1X2 Y DC CON COMPARACIÓN INTERNA
+            renderRankedMarket('m_1x2', [{lab: 'Home Win (1)', p: p1}, {lab: 'Away Win (2)', p: p2}, {lab: 'Draw (X)', p: pX}]);
+            renderRankedMarket('m_dc', [{lab: '1X', p: p1+pX}, {lab: 'X2', p: pX+p2}, {lab: '12', p: p1+p2}]);
+
             let bttsY = 0;
             for(let h=1; h<maxG; h++) for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
-            renderMarket('m_btts', [{lab: 'BTTS YES', p: bttsY}, {lab: 'BTTS NO', p: 1-bttsY}], true);
-            renderMarket('m_defense', [{lab: `CS Home`, p: poisson(0, lA)}, {lab: `CS Away`, p: poisson(0, lH)}], true);
+            renderRankedMarket('m_btts', [{lab: 'BTTS YES', p: bttsY}, {lab: 'BTTS NO', p: 1-bttsY}]);
+            renderRankedMarket('m_defense', [{lab: `CS Home`, p: poisson(0, lA)}, {lab: `CS Away`, p: poisson(0, lH)}]);
 
             flatScores.sort((a,b) => b.p - a.p);
             const matrixContainer = document.getElementById('m_matrix');
             const topScore = flatScores[0];
             const otherScores = flatScores.slice(1, 13);
             
-            // MOST LIKELY Y RESULTADOS SECUNDARIOS AUMENTADOS
             let matrixHtml = `
                 <div class="col-span-2 row-span-2 bg-accent-blue/10 border-2 border-accent-blue/30 rounded-lg p-5 flex flex-col justify-center items-center shadow-lg">
                     <div class="text-xs font-bold text-accent-blue mb-1 uppercase tracking-widest">Most Likely</div>
@@ -301,50 +300,87 @@
             }).join('');
             matrixContainer.innerHTML = matrixHtml;
 
-            let ouHtml = '';
+            // OVER / UNDER COMPARATIVO
+            let overs = [], unders = [];
             [0.5, 1.5, 2.5, 3.5].forEach(v => {
                 let overProb = 0;
                 matrix.forEach((row, h) => row.forEach((p, a) => { if(h+a > v) overProb += p; }));
-                let underProb = 1 - overProb;
-                const getStyle = (p) => p >= 0.60 ? {c:'color-high', b:'bg-high'} : (p >= 0.40 ? {c:'color-mid', b:'bg-mid'} : {c:'color-low', b:'bg-low'});
-                const sO = getStyle(overProb); const sU = getStyle(underProb);
+                overs.push({v, p: overProb});
+                unders.push({v, p: 1 - overProb});
+            });
+
+            const ouFTContainer = document.getElementById('m_ou_ft');
+            let ouHtml = '';
+            overs.forEach((o, idx) => {
+                const u = unders[idx];
+                // Comparar overs entre sí y unders entre sí para colores
+                const getRankColor = (val, arr) => {
+                    const sorted = [...arr].sort((a,b) => b.p - a.p);
+                    if(val === sorted[0].p) return {c:'color-high', b:'bg-high'};
+                    if(val === sorted[sorted.length-1].p) return {c:'color-low', b:'bg-low'};
+                    return {c:'color-mid', b:'bg-mid'};
+                };
+
+                const sO = getRankColor(o.p, overs);
+                const sU = getRankColor(u.p, unders);
+
                 ouHtml += `
                 <div class="grid grid-cols-3 items-center py-4 border-b border-white/5">
                     <div class="flex flex-col items-center">
-                        <span class="value-perc ${sO.c}">${(overProb*100).toFixed(1)}%</span>
-                        <span class="value-odd ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
+                        <span class="value-perc ${sO.c}">${(o.p*100).toFixed(1)}%</span>
+                        <span class="value-odd ${sO.b}">${o.p > 0.01 ? (1/o.p).toFixed(2) : '---'}</span>
                     </div>
-                    <div class="text-center"><span class="text-slate-100 font-black text-2xl">${v}</span></div>
+                    <div class="text-center"><span class="text-slate-100 font-black text-2xl">${o.v}</span></div>
                     <div class="flex flex-col items-center">
-                        <span class="value-perc ${sU.c}">${(underProb*100).toFixed(1)}%</span>
-                        <span class="value-odd ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
+                        <span class="value-perc ${sU.c}">${(u.p*100).toFixed(1)}%</span>
+                        <span class="value-odd ${sU.b}">${u.p > 0.01 ? (1/u.p).toFixed(2) : '---'}</span>
                     </div>
                 </div>`;
             });
-            document.getElementById('m_ou_ft').innerHTML = ouHtml;
+            ouFTContainer.innerHTML = ouHtml;
 
             const getIndiv = (l) => [0.5, 1.5, 2.5].map(v => {
                 let p = 0; for(let i=0; i<maxG; i++) if(i > v) p += poisson(i, l);
                 return {lab: `OVER ${v}`, p: p};
             });
-            renderMarket('m_ou_h', getIndiv(lH), true);
-            renderMarket('m_ou_a', getIndiv(lA), true);
+            renderRankedMarket('m_ou_h', getIndiv(lH));
+            renderRankedMarket('m_ou_a', getIndiv(lA));
             const wH = 1-poisson(0, lH); const wA = 1-poisson(0, lA);
-            renderMarket('m_h_will_score', [{lab: 'YES', p: wH}, {lab: 'NO', p: 1-wH}], true);
-            renderMarket('m_a_will_score', [{lab: 'YES', p: wA}, {lab: 'NO', p: 1-wA}], true);
+            renderRankedMarket('m_h_will_score', [{lab: 'YES', p: wH}, {lab: 'NO', p: 1-wH}]);
+            renderRankedMarket('m_a_will_score', [{lab: 'YES', p: wA}, {lab: 'NO', p: 1-wA}]);
         }
 
-        function renderMarket(id, items, sort = false) {
+        // NUEVA FUNCIÓN DE RENDERIZADO PARA COMPARAR Y COLOREAR SEGÚN POSICIÓN
+        function renderRankedMarket(id, items) {
             const container = document.getElementById(id);
             if(!container) return;
-            let displayItems = sort ? [...items].sort((a, b) => b.p - a.p) : items;
-            container.innerHTML = displayItems.map(i => {
-                let colorClass = 'color-low', bgClass = 'bg-low';
-                if(i.p >= 0.60) { colorClass = 'color-high'; bgClass = 'bg-high'; }
-                else if(i.p >= 0.40) { colorClass = 'color-mid'; bgClass = 'bg-mid'; }
-                return `<div class="odds-row"><span class="label-bet">${i.lab}</span><div class="flex items-center"><span class="value-perc ${colorClass}">${(i.p*100).toFixed(1)}%</span><span class="value-odd ${bgClass}">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span></div></div>`;
+            
+            // Ordenar de mayor a menor probabilidad
+            let sorted = [...items].sort((a, b) => b.p - a.p);
+            
+            container.innerHTML = sorted.map((i, index) => {
+                let colorClass = 'color-mid', bgClass = 'bg-mid';
+                
+                // Color basado en el ranking del grupo
+                if(index === 0) { // El más probable
+                    colorClass = 'color-high'; 
+                    bgClass = 'bg-high';
+                } else if(index === sorted.length - 1 && sorted.length > 1) { // El menos probable
+                    colorClass = 'color-low'; 
+                    bgClass = 'bg-low';
+                }
+                
+                return `
+                <div class="odds-row">
+                    <span class="label-bet">${i.lab}</span>
+                    <div class="flex items-center">
+                        <span class="value-perc ${colorClass}">${(i.p*100).toFixed(1)}%</span>
+                        <span class="value-odd ${bgClass}">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span>
+                    </div>
+                </div>`;
             }).join('');
         }
+
         window.onload = init;
     </script>
 </body>
