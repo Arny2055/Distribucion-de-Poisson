@@ -116,7 +116,7 @@
             gap: 8px;
             cursor: pointer;
         }
-        .market-item input[type="checkbox"] {
+        .market-item input[type="checkbox"], .select-bet-checkbox {
             appearance: none;
             width: 14px;
             height: 14px;
@@ -126,10 +126,10 @@
             position: relative;
             cursor: pointer;
         }
-        .market-item input[type="checkbox"]:checked {
+        .market-item input[type="checkbox"]:checked, .select-bet-checkbox:checked {
             background: #10b981;
         }
-        .market-item input[type="checkbox"]:checked::after {
+        .market-item input[type="checkbox"]:checked::after, .select-bet-checkbox:checked::after {
             content: "✓";
             color: black;
             font-size: 10px;
@@ -311,11 +311,20 @@
             </div>
 
             <div class="lg:col-span-3">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h3 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Historial de Operaciones</h3>
+                    <div id="selection-summary" class="hidden bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
+                        <span class="text-[10px] font-bold text-emerald-400">Seleccionado: <span id="selected-profit">0.00u</span></span>
+                    </div>
+                </div>
                 <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
                     <div class="overflow-x-auto scroll-custom">
                         <table class="excel-table">
                             <thead>
                                 <tr>
+                                    <th class="w-8">
+                                        <input type="checkbox" id="master-checkbox" onchange="toggleSelectAll(this)" class="select-bet-checkbox">
+                                    </th>
                                     <th>Evento / Fecha</th>
                                     <th>Mercado</th>
                                     <th>Prob %</th>
@@ -421,7 +430,6 @@
         }
 
         function updateStats() {
-            // Obtener mercados seleccionados desde checkboxes
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
             const f_status = document.getElementById('f_status').value;
             const f_source = document.getElementById('f_source').value;
@@ -443,7 +451,6 @@
             document.getElementById('active-indicator').style.display = isFiltering ? 'inline-block' : 'none';
 
             const filtered = bets.filter(b => {
-                // Filtro multi-mercado
                 const matchM = selectedMarkets.length === 0 || (b.market && selectedMarkets.includes(b.market.toString().toUpperCase()));
                 const matchS = !f_status || (b.status === f_status);
                 const matchSource = !f_source || (b.teams && b.teams.toUpperCase().includes(f_source.toUpperCase()));
@@ -504,13 +511,41 @@
             
             renderHistory(filtered);
             renderBankrollChart(sortedResolved);
+            calculateSelectedProfit(); // Actualizar el resumen de selección si hay cambios
+        }
+
+        // --- Funciones de Selección y Filtro Manual ---
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.bet-item-checkbox');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+            calculateSelectedProfit();
+        }
+
+        function calculateSelectedProfit() {
+            const checkboxes = document.querySelectorAll('.bet-item-checkbox:checked');
+            const summary = document.getElementById('selection-summary');
+            const profitText = document.getElementById('selected-profit');
+            
+            if (checkboxes.length > 0) {
+                let total = 0;
+                checkboxes.forEach(cb => {
+                    total += parseFloat(cb.getAttribute('data-profit')) || 0;
+                });
+                profitText.innerText = (total >= 0 ? "+" : "") + total.toFixed(2) + "u";
+                profitText.className = total >= 0 ? "text-[10px] font-bold text-emerald-400" : "text-[10px] font-bold text-red-400";
+                summary.classList.remove('hidden');
+            } else {
+                summary.classList.add('hidden');
+            }
         }
 
         function renderHistory(data) {
             const tbody = document.getElementById('history-body'); 
             tbody.innerHTML = '';
+            document.getElementById('master-checkbox').checked = false;
+            
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="p-10 text-center text-slate-600 font-bold italic">No se encontraron registros</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="p-10 text-center text-slate-600 font-bold italic">No se encontraron registros</td></tr>';
                 return;
             }
             const clusters = getProfitableClusters();
@@ -543,12 +578,16 @@
                 const oddNum = Number(b.odd) || 0;
                 const houseProb = oddNum > 0 ? (1 / oddNum) * 100 : 0;
                 const valCol = probNum - houseProb;
+                const betProfit = parseFloat(b.profit) || 0;
 
                 const tagClass = isComboTop 
                     ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
                     : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
 
                 tr.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="select-bet-checkbox bet-item-checkbox" data-profit="${betProfit}" onchange="calculateSelectedProfit()">
+                    </td>
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
                         <div class="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">${b.date || ''}</div>
