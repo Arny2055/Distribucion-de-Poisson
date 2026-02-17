@@ -9,47 +9,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --bg-main: #060a10;
-            --bg-card: rgba(17, 23, 33, 0.8);
-            /* Colores suavizados (menos saturación) */
-            --accent: #c4e300; 
-            --accent-blue: #00d4df;
-            --accent-green: #00e67a;
-            --accent-red: #e62e5c;
+            /* Fondo más profundo y oscuro */
+            --bg-main: #04060a;
+            --bg-card: rgba(13, 18, 26, 0.9);
             
-            /* Colores de Probabilidad Tenues */
-            --prob-high: #00d975;   /* Verde suavizado */
-            --prob-mid: #e6b800;    /* Ámbar suavizado */
-            --prob-low: #e64545;    /* Rojo suavizado */
+            /* Colores Mate (Desaturados para descanso visual) */
+            --accent: #a8c200; 
+            --accent-blue: #00a8b3;
+            --accent-green: #00b365;
+            --accent-red: #b32447;
             
-            --border: rgba(30, 41, 59, 0.4);
-            --text-secondary: #94a3b8;
-            --glass: rgba(255, 255, 255, 0.02);
+            /* Colores de Probabilidad Opacos */
+            --prob-high: #009e56;   /* Verde esmeralda oscuro */
+            --prob-mid: #b38f00;    /* Ocre / Ámbar apagado */
+            --prob-low: #9e2f2f;    /* Granate suave */
+            
+            --border: rgba(30, 41, 59, 0.3);
+            --text-main: #cbd5e1;   /* Gris claro en lugar de blanco puro */
+            --text-secondary: #64748b;
+            --glass: rgba(255, 255, 255, 0.01);
         }
         
         body { 
             background-color: var(--bg-main); 
-            color: #e2e8f0; 
+            color: var(--text-main); 
             font-family: 'Barlow Condensed', sans-serif;
             background-image: 
-                radial-gradient(circle at 10% 20%, rgba(0, 212, 223, 0.03) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(196, 227, 0, 0.03) 0%, transparent 40%),
-                radial-gradient(circle at 50% 0%, #0f172a 0%, #060a10 100%);
+                radial-gradient(circle at 10% 20%, rgba(0, 168, 179, 0.02) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 194, 0, 0.02) 0%, transparent 40%),
+                radial-gradient(circle at 50% 0%, #0a0f1a 0%, #04060a 100%);
             background-attachment: fixed;
         }
 
-        /* Estilo del Botón Regresar */
+        /* Estilo del Botón Regresar - Más discreto */
         .btn-back {
             position: fixed;
             top: 20px;
             left: 20px;
             z-index: 100;
-            background: rgba(0, 212, 223, 0.05);
-            border: 1px solid rgba(0, 212, 223, 0.4);
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(0, 168, 179, 0.3);
             color: var(--accent-blue);
             padding: 8px 16px;
             border-radius: 8px;
-            font-weight: 900;
+            font-weight: 700;
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -63,15 +66,15 @@
         .btn-back:hover {
             background: var(--accent-blue);
             color: #000;
-            box-shadow: 0 0 15px rgba(0, 212, 223, 0.3);
-            transform: translateX(5px);
+            box-shadow: 0 0 10px rgba(0, 168, 179, 0.2);
+            transform: translateX(3px);
         }
 
         .bet-header {
-            background: linear-gradient(135deg, rgba(22, 29, 41, 0.9) 0%, rgba(11, 15, 23, 0.9) 100%);
+            background: linear-gradient(135deg, rgba(15, 20, 30, 0.95) 0%, rgba(8, 12, 20, 0.95) 100%);
             backdrop-filter: blur(10px);
-            border-bottom: 2px solid rgba(0, 212, 223, 0.5);
-            box-shadow: 0 15px 50px rgba(0,0,0,0.6);
+            border-bottom: 2px solid rgba(0, 168, 179, 0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             border-radius: 0 0 20px 20px;
         }
 
@@ -82,13 +85,12 @@
             border-radius: 12px; 
             position: relative;
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s ease;
         }
 
         .market-card:hover {
-            border-color: rgba(0, 212, 223, 0.5);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0, 212, 223, 0.1);
+            border-color: rgba(0, 168, 179, 0.3);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
         }
 
         .market-title {
@@ -98,11 +100,10 @@
             font-family: 'Archivo Black', sans-serif;
             font-size: 0.75rem;
             letter-spacing: 2px;
-            color: var(--accent-blue);
+            color: #5d7fa3; /* Azul grisáceo suave */
             display: flex;
             align-items: center;
             gap: 10px;
-            text-shadow: 0 0 8px rgba(0, 212, 223, 0.3);
         }
 
         .odds-row {
@@ -115,39 +116,40 @@
         }
 
         .odds-row:hover {
-            background: rgba(255,255,255,0.03);
+            background: rgba(255,255,255,0.02);
         }
 
         .label-bet {
-            color: #94a3b8;
+            color: #64748b;
             font-weight: 700;
             font-size: 0.85rem;
         }
 
-        /* Clases Dinámicas de Probabilidad */
+        /* Clases Dinámicas - Opacidad controlada */
         .color-high { color: var(--prob-high) !important; }
         .color-mid { color: var(--prob-mid) !important; }
         .color-low { color: var(--prob-low) !important; }
 
-        .bg-high { background: var(--prob-high) !important; color: #060a10 !important; opacity: 0.9; }
-        .bg-mid { background: var(--prob-mid) !important; color: #060a10 !important; opacity: 0.9; }
-        .bg-low { background: var(--prob-low) !important; color: #fff !important; opacity: 0.9; }
+        .bg-high { background: var(--prob-high) !important; color: #04060a !important; font-weight: 900; }
+        .bg-mid { background: var(--prob-mid) !important; color: #04060a !important; font-weight: 900; }
+        .bg-low { background: var(--prob-low) !important; color: #cbd5e1 !important; font-weight: 900; }
 
         .value-perc {
             font-weight: 900;
             font-size: 1.1rem;
             font-style: italic;
+            opacity: 0.85;
         }
 
         .value-odd {
             padding: 3px 10px;
             border-radius: 6px;
-            font-weight: 900;
             font-size: 0.85rem;
             margin-left: 12px;
             min-width: 55px;
             text-align: center;
             display: inline-block;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
         }
 
         .form-dot {
@@ -159,11 +161,11 @@
             border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 900;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            opacity: 0.7;
         }
-        .form-w { background: var(--accent-green); color: #060a10; opacity: 0.85; }
-        .form-d { background: #475569; color: #fff; }
-        .form-l { background: var(--accent-red); color: #fff; opacity: 0.85; }
+        .form-w { background: var(--accent-green); color: #04060a; }
+        .form-d { background: #334155; color: #cbd5e1; }
+        .form-l { background: var(--accent-red); color: #cbd5e1; }
 
         .score-grid {
             display: grid;
@@ -173,14 +175,12 @@
         }
 
         .score-box {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.25);
             padding: 8px;
             text-align: center;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.04);
-            transition: transform 0.2s;
+            border: 1px solid rgba(255,255,255,0.03);
         }
-        .score-box:hover { transform: scale(1.05); border-color: rgba(196, 227, 0, 0.4); }
 
         .grid-markets { 
             display: grid; 
@@ -189,21 +189,20 @@
         }
 
         .badge-live {
-            background: var(--accent-red);
-            color: white;
+            background: #47111d; /* Rojo muy oscuro */
+            color: #e62e5c;
+            border: 1px solid #b32447;
             padding: 2px 12px;
             font-size: 0.7rem;
             font-weight: 900;
             border-radius: 99px;
-            box-shadow: 0 0 10px rgba(230, 46, 92, 0.4);
-            animation: pulse 2.5s infinite;
-            opacity: 0.9;
+            animation: pulse 3s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 0.9; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.97); }
-            100% { opacity: 0.9; transform: scale(1); }
+            0% { opacity: 0.7; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.7; }
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -214,7 +213,7 @@
 <body class="p-4 md:p-8">
 
     <a href="index.html" class="btn-back">
-        <i class="fas fa-arrow-left"></i> Regresar a Poisson
+        <i class="fas fa-arrow-left"></i> Regresar
     </a>
     
     <header class="bet-header p-8 mb-10 relative overflow-hidden max-w-7xl mx-auto">
@@ -222,23 +221,23 @@
             <div>
                 <div class="flex items-center gap-4 mb-3">
                     <span class="badge-live">SYSTEM LIVE</span>
-                    <p id="league_badge" class="text-cyan-500/80 font-bold text-xs tracking-[0.3em] uppercase opacity-70">---</p>
+                    <p id="league_badge" class="text-slate-500 font-bold text-xs tracking-[0.3em] uppercase">---</p>
                 </div>
-                <h1 id="match_title" class="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-white/90 drop-shadow-2xl">
+                <h1 id="match_title" class="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-slate-300">
                     CALCULATING...
                 </h1>
             </div>
             
             <div class="flex flex-col gap-4">
-                <div class="flex items-center gap-8 bg-black/40 p-6 border border-white/5 rounded-2xl backdrop-blur-md">
+                <div class="flex items-center gap-8 bg-black/30 p-6 border border-white/5 rounded-2xl backdrop-blur-md">
                     <div class="text-center">
-                        <span class="text-[11px] text-slate-400 font-black uppercase block mb-1 tracking-widest">EXP. GOLES</span>
-                        <span class="text-4xl font-black text-white/90 italic" id="avg_display">0.00 | 0.00</span>
+                        <span class="text-[11px] text-slate-500 font-black uppercase block mb-1 tracking-widest">EXP. GOLES</span>
+                        <span class="text-4xl font-black text-slate-300 italic" id="avg_display">0.00 | 0.00</span>
                     </div>
-                    <div class="h-12 w-[1px] bg-white/10"></div>
+                    <div class="h-12 w-[1px] bg-white/5"></div>
                     <div class="text-center">
-                        <span class="text-[11px] text-slate-400 font-black uppercase block mb-1 tracking-widest">ALGORITMO</span>
-                        <span class="text-2xl font-black text-[var(--accent-blue)] opacity-80 block">P. V3.2</span>
+                        <span class="text-[11px] text-slate-500 font-black uppercase block mb-1 tracking-widest">ALGORITMO</span>
+                        <span class="text-2xl font-black text-slate-400 block">P. V3.2</span>
                     </div>
                 </div>
                 <div class="flex justify-between px-2">
@@ -253,14 +252,14 @@
         <div class="market-card">
             <div class="market-title"><i class="fas fa-trophy"></i> Win Probability</div>
             <div id="m_1x2" class="divide-y divide-white/5"></div>
-            <div class="bg-cyan-500/10 h-[1px] my-1"></div>
+            <div class="bg-slate-800/20 h-[1px] my-1"></div>
             <div id="m_dc" class="divide-y divide-white/5"></div>
         </div>
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-fire"></i> Goal Potential</div>
             <div id="m_btts" class="divide-y divide-white/5"></div>
-            <div class="p-3 bg-white/5 text-[11px] font-black text-cyan-500/70 uppercase tracking-widest">Clean Sheet Prob.</div>
+            <div class="p-3 bg-white/5 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Clean Sheet Prob.</div>
             <div id="m_defense" class="divide-y divide-white/5"></div>
         </div>
 
@@ -276,10 +275,10 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-home"></i> Home Team Performance</div>
-            <div class="p-5 bg-black/20">
+            <div class="p-5 bg-black/10">
                 <div id="m_ou_h" class="space-y-1"></div>
                 <div class="mt-5 pt-5 border-t border-white/5">
-                    <span class="text-[11px] font-black text-slate-500 block mb-3 tracking-widest">¿MARCARÁ AL MENOS 1 GOL?</span>
+                    <span class="text-[11px] font-black text-slate-600 block mb-3 tracking-widest uppercase">¿Marcará gol?</span>
                     <div id="m_h_will_score"></div>
                 </div>
             </div>
@@ -287,10 +286,10 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-plane"></i> Away Team Performance</div>
-            <div class="p-5 bg-black/20">
+            <div class="p-5 bg-black/10">
                 <div id="m_ou_a" class="space-y-1"></div>
                 <div class="mt-5 pt-5 border-t border-white/5">
-                    <span class="text-[11px] font-black text-slate-500 block mb-3 tracking-widest">¿MARCARÁ AL MENOS 1 GOL?</span>
+                    <span class="text-[11px] font-black text-slate-600 block mb-3 tracking-widest uppercase">¿Marcará gol?</span>
                     <div id="m_a_will_score"></div>
                 </div>
             </div>
@@ -299,7 +298,7 @@
 
     <footer class="mt-16 pb-12 text-center">
         <div class="inline-block px-8 py-3 bg-white/5 rounded-full border border-white/5">
-            <p class="text-[11px] font-bold text-slate-600 uppercase tracking-[0.4em]">
+            <p class="text-[11px] font-bold text-slate-700 uppercase tracking-[0.4em]">
                 &copy; 2026 BETAGS ANALYTICS | Industrial Intelligence
             </p>
         </div>
@@ -357,8 +356,8 @@
                 if(h > a) p1 += p; else if(h === a) pX += p; else p2 += p;
             }));
 
-            renderMarket('m_1x2', [{lab: 'Home Win (1)', p: p1}, {lab: 'Away Win (2)', p: p2}, {lab: 'Draw (X)', p: pX}], true);
-            renderMarket('m_dc', [{lab: 'Double 1X', p: p1+pX}, {lab: 'Double X2', p: pX+p2}, {lab: 'Double 12', p: p1+p2}], true);
+            renderMarket('m_1x2', [{lab: 'Home (1)', p: p1}, {lab: 'Away (2)', p: p2}, {lab: 'Draw (X)', p: pX}], true);
+            renderMarket('m_dc', [{lab: '1X', p: p1+pX}, {lab: 'X2', p: pX+p2}, {lab: '12', p: p1+p2}], true);
 
             let bttsY = 0;
             for(let h=1; h<maxG; h++) for(let a=1; a<maxG; a++) bttsY += matrix[h][a];
@@ -374,7 +373,7 @@
                 let colorClass = s.p > 0.12 ? 'color-high' : (s.p > 0.08 ? 'color-mid' : 'color-low');
                 return `
                 <div class="score-box">
-                    <div class="text-[10px] font-black text-white/80">${s.score}</div>
+                    <div class="text-[10px] font-black text-slate-500">${s.score}</div>
                     <div class="text-[10px] ${colorClass} font-black">${(s.p*100).toFixed(1)}%</div>
                 </div>`;
             }).join('');
