@@ -572,19 +572,32 @@
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
                     database = statsJson.table.rows.map(row => {
-                        // Lógica de separación de Local - Visita y Resultado
+                        // --- MEJORA DINÁMICA: UBICACIÓN DE EVENTO Y RESULTADO ---
                         const eventoFull = row.c[2]?.v || "";
                         const resultadoFull = row.c[4]?.v || "0-0";
                         
-                        const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
-                        const [goalsL, goalsV] = resultadoFull.split('-').map(s => parseFloat(s.trim()));
+                        // Separación inteligente de equipos (basado en el patrón ' - ')
+                        let homeName = "Local";
+                        let awayName = "Visita";
+                        if(eventoFull.includes(' - ')) {
+                            [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+                        }
+
+                        // Separación inteligente de goles (basado en el patrón '-')
+                        let goalsL = 0;
+                        let goalsV = 0;
+                        if(resultadoFull.toString().includes('-')) {
+                            const scores = resultadoFull.toString().split('-').map(s => parseFloat(s.trim()));
+                            goalsL = isNaN(scores[0]) ? 0 : scores[0];
+                            goalsV = isNaN(scores[1]) ? 0 : scores[1];
+                        }
 
                         return {
                             league: row.c[0]?.v, 
                             home: homeName, 
                             away: awayName,
-                            gl: isNaN(goalsL) ? 0 : goalsL, 
-                            gv: isNaN(goalsV) ? 0 : goalsV
+                            gl: goalsL, 
+                            gv: goalsV
                         };
                     }).filter(r => r.league && r.home);
                     
@@ -603,15 +616,19 @@
                 const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
 
                 autoMatches = autoJson.table.rows.map(row => {
+                    // --- MEJORA DINÁMICA: UBICACIÓN DE EVENTO EN RADAR ---
                     const eventoFull = row.c[3]?.v || "";
-                    const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+                    let hName = "Local", aName = "Visita";
+                    if(eventoFull.includes(' - ')) {
+                        [hName, aName] = eventoFull.split(' - ').map(s => s.trim());
+                    }
                     
                     const matchData = {
                         fecha: row.c[1]?.f || row.c[1]?.v,
                         liga: row.c[2]?.v,
-                        home: homeName,
-                        away: awayName,
-                        odd: parseFloat(row.c[0]?.v), // Ajustado según tu ejemplo: Cuota es la primera columna
+                        home: hName,
+                        away: aName,
+                        odd: parseFloat(row.c[0]?.v), 
                         marketSource: marketType 
                     };
                     matchData.valueEdge = detectValue(matchData, marketType);
@@ -685,14 +702,18 @@
                     const text = await res.text();
                     const json = JSON.parse(text.substr(47).slice(0, -2));
                     const results = json.table.rows.map(row => {
+                        // --- MEJORA DINÁMICA: LOCALIZACIÓN DE EQUIPOS EN MULTI-MERCADO ---
                         const eventoFull = row.c[3]?.v || "";
-                        const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+                        let hName = "Local", aName = "Visita";
+                        if(eventoFull.includes(' - ')) {
+                            [hName, aName] = eventoFull.split(' - ').map(s => s.trim());
+                        }
 
                         const matchData = {
                             fecha: row.c[1]?.f || row.c[1]?.v, 
                             liga: row.c[2]?.v,
-                            home: homeName, 
-                            away: awayName, 
+                            home: hName, 
+                            away: aName, 
                             odd: parseFloat(row.c[0]?.v),
                             marketLabel: m.toUpperCase().replace('_', ' '),
                             marketSource: m
