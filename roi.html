@@ -100,7 +100,7 @@
 
         select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; }
 
-        /* Estilos nuevos para Checkboxes */
+        /* Estilos para Checkboxes */
         .market-checkbox-group {
             display: grid;
             grid-template-columns: 1fr;
@@ -405,7 +405,6 @@
         }
 
         function simulateKelly(resolvedBets, fraction) {
-            let bank = 100; 
             let totalProfit = 0;
             let totalStaked = 0;
             const sorted = [...resolvedBets].sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -450,7 +449,8 @@
             const isFiltering = selectedMarkets.length > 0 || f_status || f_source || pMin !== -Infinity || pMax !== Infinity || fjMin !== -Infinity || fjMax !== Infinity || ocMin !== -Infinity || ocMax !== Infinity || eMin !== -Infinity || eMax !== Infinity || sMin !== -Infinity || sMax !== Infinity || vMin !== -Infinity || vMax !== Infinity;
             document.getElementById('active-indicator').style.display = isFiltering ? 'inline-block' : 'none';
 
-            const filtered = bets.filter(b => {
+            // 1. Filtrar base según los filtros laterales
+            let filtered = bets.filter(b => {
                 const matchM = selectedMarkets.length === 0 || (b.market && selectedMarkets.includes(b.market.toString().toUpperCase()));
                 const matchS = !f_status || (b.status === f_status);
                 const matchSource = !f_source || (b.teams && b.teams.toUpperCase().includes(f_source.toUpperCase()));
@@ -465,7 +465,17 @@
                 return matchM && matchS && matchSource && (probVal >= pMin && probVal <= pMax) && (fair >= fjMin && fair <= fjMax) && (odd >= ocMin && odd <= ocMax) && (edge >= eMin && edge <= eMax) && (stake >= sMin && stake <= sMax) && (valColumn >= vMin && vMax >= valColumn);
             });
 
-            const resolved = filtered.filter(b => b.status === 'win' || b.status === 'loss');
+            renderHistory(filtered);
+
+            // 2. Determinar si hay una selección manual por checkbox en la tabla
+            const checkedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
+            
+            // Si hay checkboxes marcados, usamos SOLAMENTE esos para las estadísticas de arriba
+            let statsData = (checkedIds.length > 0) 
+                ? filtered.filter(b => checkedIds.includes(b.id.toString())) 
+                : filtered;
+
+            const resolved = statsData.filter(b => b.status === 'win' || b.status === 'loss');
             const sortedResolved = [...resolved].sort((a,b) => new Date(a.date) - new Date(b.date));
             const profit = sortedResolved.reduce((a, b) => a + (Number(b.profit) || 0), 0);
             const staked = sortedResolved.reduce((a, b) => a + (Number(b.stake) || 0), 0);
@@ -509,19 +519,18 @@
                 pElem.className = pVal < 0.05 ? "text-xl font-black text-emerald-400" : "text-xl font-black text-yellow-500";
             } else { pElem.innerText = "--"; }
             
-            renderHistory(filtered);
             renderBankrollChart(sortedResolved);
-            calculateSelectedProfit(); // Actualizar el resumen de selección si hay cambios
+            calculateSelectedSummary();
         }
 
-        // --- Funciones de Selección y Filtro Manual ---
+        // --- Funciones de Selección ---
         function toggleSelectAll(master) {
             const checkboxes = document.querySelectorAll('.bet-item-checkbox');
             checkboxes.forEach(cb => cb.checked = master.checked);
-            calculateSelectedProfit();
+            updateStats(); // Al cambiar selección, actualizamos los stats de arriba
         }
 
-        function calculateSelectedProfit() {
+        function calculateSelectedSummary() {
             const checkboxes = document.querySelectorAll('.bet-item-checkbox:checked');
             const summary = document.getElementById('selection-summary');
             const profitText = document.getElementById('selected-profit');
@@ -541,8 +550,9 @@
 
         function renderHistory(data) {
             const tbody = document.getElementById('history-body'); 
+            const currentCheckedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
+            
             tbody.innerHTML = '';
-            document.getElementById('master-checkbox').checked = false;
             
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="11" class="p-10 text-center text-slate-600 font-bold italic">No se encontraron registros</td></tr>';
@@ -584,9 +594,13 @@
                     ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
                     : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
 
+                // Mantener el estado del checkbox si ya estaba marcado
+                const isChecked = currentCheckedIds.includes(b.id.toString()) ? 'checked' : '';
+
                 tr.innerHTML = `
                     <td>
-                        <input type="checkbox" class="select-bet-checkbox bet-item-checkbox" data-profit="${betProfit}" onchange="calculateSelectedProfit()">
+                        <input type="checkbox" class="select-bet-checkbox bet-item-checkbox" 
+                               data-profit="${betProfit}" data-id="${b.id}" ${isChecked} onchange="updateStats()">
                     </td>
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
