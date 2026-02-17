@@ -49,7 +49,6 @@
         .market-row { border-bottom: 1px solid var(--sl-border); transition: background 0.3s; }
         .market-row:hover { background: rgba(255,255,255,0.02); }
 
-        /* --- BOTONES REDISEÑADOS --- */
         .btn-primary {
             background: #0ea5e9;
             color: #000;
@@ -83,7 +82,6 @@
             box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
             transform: translateY(-1px);
         }
-        /* -------------------------- */
 
         .badge-value {
             background: rgba(0, 255, 136, 0.1);
@@ -130,7 +128,6 @@
             font-size: 11px;
         }
 
-        /* Value Alertas */
         .card-value-high {
             border: 1px solid var(--sl-gold) !important;
             box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
@@ -154,18 +151,6 @@
             text-transform: uppercase;
         }
 
-        /* Estilo para el scanner de automatización */
-        .scanner-active {
-            border: 1px solid var(--sl-accent);
-            animation: pulse-border 2s infinite;
-        }
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
-        }
-
-        /* Config Panel */
         #config_panel {
             display: none;
             position: absolute;
@@ -177,7 +162,6 @@
             overflow-y: auto;
         }
 
-        /* --- NUEVOS INDICADORES VISUALES --- */
         .status-indicator {
             display: flex;
             align-items: center;
@@ -203,7 +187,6 @@
             box-shadow: 0 0 5px rgba(0, 242, 255, 0.3) !important;
         }
 
-        /* Estilos Filtro de Ligas */
         .league-filter-box {
             background: #05070a;
             border: 1px solid var(--sl-border);
@@ -274,11 +257,9 @@
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
                     </div>
                     <div style="display: none;">
-                        <label class="text-[7px] uppercase text-cyan-500 font-bold">Todas las Ligas ID</label>
                         <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
                     </div>
                     <div class="flex flex-col gap-1 mt-1" style="display: none;">
-                        <label class="text-[7px] uppercase text-slate-500 font-bold">Usar Base de Datos:</label>
                         <select id="active_stats_id" onchange="database=[]; syncSheet();" class="text-[10px] p-1 rounded">
                             <option value="top" selected>Top Ligas Europeas</option>
                             <option value="all">Todas las Ligas</option>
@@ -452,14 +433,14 @@
                         <div id="score-matrix" class="grid grid-cols-5 gap-2"></div>
                     </div>
                     <div class="scorelab-card p-5">
-                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Muestra (Primeros 10 del Sheet)</h2>
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Últimos 10 Partidos (Cronológico)</h2>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (Locales)</p>
+                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (Local)</p>
                                 <div id="history-home" class="space-y-1"></div>
                             </div>
                             <div>
-                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (Visitantes)</p>
+                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (Visita)</p>
                                 <div id="history-away" class="space-y-1"></div>
                             </div>
                         </div>
@@ -493,7 +474,6 @@
             const txt = document.getElementById('status_text');
             led.className = 'led-puck';
             txt.innerText = message;
-            
             if(state === 'loading') led.classList.add('led-loading');
             if(state === 'active') led.classList.add('led-active');
         }
@@ -522,11 +502,9 @@
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
             SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
             SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
-            
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             alert("✅ Configuración guardada.");
             toggleConfig();
-            
             database = []; 
             syncSheet();
         }
@@ -539,12 +517,10 @@
         function renderLeagueCheckboxes() {
             const container = document.getElementById('league_filter_container');
             const leagues = [...new Set(database.map(r => r.league))].sort();
-            
             if(leagues.length === 0) {
                 container.innerHTML = '<p class="text-[9px] text-slate-600 p-2 italic text-center">No hay datos</p>';
                 return;
             }
-
             container.innerHTML = leagues.map(liga => `
                 <div class="league-item">
                     <input type="checkbox" value="${liga}" onchange="updateSelectedLeagues()" ${selectedLeagues.includes(liga) ? 'checked' : ''}>
@@ -567,8 +543,7 @@
             const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
 
             if(!activeStatsID) {
-                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats) en el botón IDS.");
-                updateStatus('standby', 'Sin Base de Datos');
+                updateStatus('standby', 'Sin DB');
                 return;
             }
 
@@ -578,16 +553,26 @@
                     const statsRes = await fetch(statsUrl);
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-                    database = statsJson.table.rows.map(row => ({
-                        league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
-                        gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
-                    })).filter(r => r.league);
+                    
+                    // PROCESAMIENTO DE DB CON FECHAS
+                    database = statsJson.table.rows.map(row => {
+                        let rawDate = row.c[1]?.f || row.c[1]?.v;
+                        return {
+                            league: row.c[0]?.v,
+                            date: rawDate,
+                            dateObj: parseSpanishDate(rawDate), // Conversión crítica para ordenamiento
+                            home: row.c[2]?.v,
+                            away: row.c[3]?.v,
+                            gl: parseFloat(row.c[4]?.v || 0),
+                            gv: parseFloat(row.c[5]?.v || 0)
+                        };
+                    }).filter(r => r.league && r.home);
                     
                     renderLeagueCheckboxes();
                 }
 
                 if(!currentSheetID) {
-                    updateStatus('active', 'DB Lista / Sin Mercado');
+                    updateStatus('active', 'DB Lista');
                     updateLeagueSelect();
                     return;
                 }
@@ -620,15 +605,55 @@
             }
         }
 
+        // Función para parsear fechas variadas (Ej: 20 de enero 2026 o 20/01/2026)
+        function parseSpanishDate(dateStr) {
+            if (!dateStr) return new Date(0);
+            if (dateStr instanceof Date) return dateStr;
+            
+            const months = { "enero": 0, "febrero": 1, "marzo": 2, "abril": 3, "mayo": 4, "junio": 5, "julio": 6, "agosto": 7, "septiembre": 8, "octubre": 9, "noviembre": 10, "diciembre": 11 };
+            
+            let clean = dateStr.toString().toLowerCase().replace(/de/g, '').replace(/\s+/g, ' ');
+            let parts = clean.split(' ');
+
+            if (parts.length >= 3) {
+                let day = parseInt(parts[0]);
+                let month = months[parts[1]] !== undefined ? months[parts[1]] : parseInt(parts[1]) - 1;
+                let year = parts[2].length === 2 ? 2000 + parseInt(parts[2]) : parseInt(parts[2]);
+                return new Date(year, month, day);
+            }
+            
+            let date = new Date(dateStr);
+            return isNaN(date.getTime()) ? new Date(0) : date;
+        }
+
+        function getTeamStats(league, team, isHome) {
+            // MEJORA: Filtrar y ORDENAR descendente por fecha antes de tomar la muestra
+            const teamMatches = database
+                .filter(r => r.league === league && (isHome ? r.home === team : r.away === team))
+                .sort((a, b) => b.dateObj - a.dateObj) // Orden cronológico descendente
+                .slice(0, 10); // Tomamos los 10 más actuales
+
+            if(teamMatches.length === 0) return { fav:0, con:0, count:0, matches: [] };
+            
+            let gf = 0, gc = 0;
+            teamMatches.forEach(m => {
+                gf += isHome ? m.gl : m.gv;
+                gc += isHome ? m.gv : m.gl;
+            });
+            return { 
+                fav: gf/teamMatches.length, 
+                con: gc/teamMatches.length, 
+                count: teamMatches.length,
+                matches: teamMatches
+            };
+        }
+
         function detectValue(match, marketType) {
             const hStats = getTeamStats(match.liga, match.home, true);
             const aStats = getTeamStats(match.liga, match.away, false);
-            
             if(hStats.count === 0 || aStats.count === 0) return 0;
-
             const lambdaH = (hStats.fav + aStats.con) / 2;
             const lambdaA = (aStats.fav + hStats.con) / 2;
-            
             let probPoisson = 0;
             if(marketType === 'over25' || marketType === 'under25') {
                 for(let h=0; h<7; h++) {
@@ -648,27 +673,14 @@
                 const lambdaHT = (lambdaH + lambdaA) * 0.44;
                 probPoisson = 1 - Math.exp(-lambdaHT);
             }
-
             const probHouse = 1 / match.odd;
             return (probPoisson - probHouse) * 100;
-        }
-
-        function getTeamStats(league, team, isHome) {
-            const matches = database.filter(r => r.league === league && (isHome ? r.home === team : r.away === team)).slice(0,10);
-            if(matches.length === 0) return { fav:0, con:0, count:0 };
-            let gf = 0, gc = 0;
-            matches.forEach(m => {
-                gf += isHome ? m.gl : m.gv;
-                gc += isHome ? m.gv : m.gl;
-            });
-            return { fav: gf/matches.length, con: gc/matches.length, count: matches.length };
         }
 
         async function syncAllMarkets() {
             updateStatus('loading', 'Escaneando Radar...');
             const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
             let allResults = [];
-            
             for(let m of markets) {
                 if(!SHEET_IDS[m]) continue;
                 try {
@@ -687,7 +699,7 @@
                         return matchData;
                     }).filter(r => r.home);
                     allResults = [...allResults, ...results];
-                } catch(e) { console.error("Sync Error en " + m); }
+                } catch(e) { }
             }
             autoMatches = allResults.sort((a,b) => b.valueEdge - a.valueEdge);
             renderAutoMatches();
@@ -697,42 +709,26 @@
         function renderAutoMatches() {
             const container = document.getElementById('auto_matches_list');
             container.innerHTML = '';
-            
             let filteredMatches = autoMatches;
-            if(selectedLeagues.length > 0) {
-                filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
-            }
-
+            if(selectedLeagues.length > 0) filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
             if(filteredMatches.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-600 p-4">Sin datos en el radar...</p>';
                 return;
             }
-
             filteredMatches.forEach((m, idx) => {
                 const div = document.createElement('div');
-                let valueClass = "";
-                let badge = "";
-
-                if(m.valueEdge > 10) {
-                    valueClass = "card-value-high";
-                    badge = `<span class="badge-value-hit">VALUE 🔥 +${m.valueEdge.toFixed(1)}%</span>`;
-                } else if(m.valueEdge > 5) {
-                    valueClass = "card-value-mid";
-                    badge = `<span class="badge-value-hit" style="background:#00ff88">VALUE +${m.valueEdge.toFixed(1)}%</span>`;
-                }
-
+                let valueClass = m.valueEdge > 10 ? "card-value-high" : (m.valueEdge > 5 ? "card-value-mid" : "");
+                let badge = m.valueEdge > 5 ? `<span class="badge-value-hit" style="${m.valueEdge > 10 ? '' : 'background:#00ff88'}">VALUE +${m.valueEdge.toFixed(1)}%</span>` : "";
                 div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
                 div.onclick = () => selectAutoMatch(m);
-                div.innerHTML = `
-                    ${badge}
+                div.innerHTML = `${badge}
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-[8px] text-slate-500 font-bold uppercase">${m.marketLabel || m.liga}</span>
                         <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
                     </div>
                     <div class="text-[11px] font-black text-white truncate">${m.home}</div>
                     <div class="text-[11px] font-black text-white truncate">${m.away}</div>
-                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>
-                `;
+                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>`;
                 container.appendChild(div);
             });
         }
@@ -741,63 +737,24 @@
             const lSel = document.getElementById('league_select');
             lSel.value = match.liga;
             filterTeamsByLeague();
-
             document.getElementById('home_select').value = match.home;
             document.getElementById('away_select').value = match.away;
-            
-            document.querySelectorAll('.auto-select').forEach(s => s.classList.add('active-selection-ring'));
-            setTimeout(() => {
-                document.querySelectorAll('.auto-select').forEach(s => s.classList.remove('active-selection-ring'));
-            }, 2000);
-
             loadStatsIndependent();
-
-            let targetIdx = -1;
-            const source = match.marketSource || document.getElementById('market_auto_select').value;
-            
-            if(source === 'over05ht') targetIdx = 0;
-            else if(source === 'over25') targetIdx = 1;
-            else if(source === 'under25') targetIdx = 2;
-            else if(source === 'btts_yes') targetIdx = 3;
-            else if(source === 'btts_no') targetIdx = 4;
-
-            setTimeout(() => {
-                const oddInput = document.getElementById(`odd_${targetIdx}`);
-                if(oddInput) {
-                    oddInput.value = match.odd;
-                    const event = new Event('input', { bubbles: true });
-                    oddInput.dispatchEvent(event);
-                }
-            }, 600);
         }
 
         function updateLeagueSelect() {
             let leagues = [...new Set(database.map(r => r.league))];
-            if(selectedLeagues.length > 0) {
-                leagues = leagues.filter(l => selectedLeagues.includes(l));
-            }
-
+            if(selectedLeagues.length > 0) leagues = leagues.filter(l => selectedLeagues.includes(l));
             const lSel = document.getElementById('league_select');
-            lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
-                             leagues.map(l => `<option value="${l}">${l}</option>`).join('');
+            lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
         function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
             const hSel = document.getElementById('home_select');
             const aSel = document.getElementById('away_select');
-            const counter = document.getElementById('league_count');
-
-            if(!league) {
-                counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
-                hSel.innerHTML = '<option value="">Liga primero</option>';
-                aSel.innerHTML = '<option value="">Liga primero</option>';
-                return;
-            }
-
+            if(!league) return;
             const leagueMatches = database.filter(r => r.league === league);
-            counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${leagueMatches.length} Partidos`;
-
             const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
             const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
@@ -808,71 +765,48 @@
             const league = document.getElementById('league_select').value;
             const local = document.getElementById('home_select').value;
             const visita = document.getElementById('away_select').value;
-            
             if(!local || !visita) return;
 
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            const homeMatches = database.filter(r => r.league === league && r.home === local).slice(0, 10);
-            document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
-            renderHistory('history-home', homeMatches, true);
+            const hData = getTeamStats(league, local, true);
+            const aData = getTeamStats(league, visita, false);
 
-            const awayMatches = database.filter(r => r.league === league && r.away === visita).slice(0, 10);
-            document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
-            renderHistory('history-away', awayMatches, false);
+            document.getElementById('home_sample').innerText = `N = ${hData.count}`;
+            document.getElementById('away_sample').innerText = `N = ${aData.count}`;
 
-            const getStats = (matches, isHome) => {
-                if(matches.length === 0) return { fav: 0, con: 0 };
-                let gf = 0, gc = 0;
-                matches.forEach(m => {
-                    gf += isHome ? m.gl : m.gv;
-                    gc += isHome ? m.gv : m.gl;
-                });
-                return { fav: (gf / matches.length).toFixed(2), con: (gc / matches.length).toFixed(2) };
-            };
+            renderHistory('history-home', hData.matches, true);
+            renderHistory('history-away', aData.matches, false);
 
-            const hStats = getStats(homeMatches, true);
-            const aStats = getStats(awayMatches, false);
-
-            document.getElementById('h_gf').value = hStats.fav;
-            document.getElementById('h_gc').value = hStats.con;
-            document.getElementById('a_gf').value = aStats.fav;
-            document.getElementById('a_gc').value = aStats.con;
-
+            document.getElementById('h_gf').value = hData.fav.toFixed(2);
+            document.getElementById('h_gc').value = hData.con.toFixed(2);
+            document.getElementById('a_gf').value = aData.fav.toFixed(2);
+            document.getElementById('a_gc').value = aData.con.toFixed(2);
             calculate();
         }
 
         function renderHistory(containerId, matches, isHome) {
             const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if(matches.length === 0) {
-                container.innerHTML = '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
-                return;
-            }
-            matches.forEach(m => {
-                container.innerHTML += `
-                    <div class="history-item">
-                        <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
-                        <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
-                    </div>`;
-            });
+            container.innerHTML = matches.map(m => `
+                <div class="history-item">
+                    <div class="flex flex-col">
+                        <span class="text-[7px] text-slate-600 font-mono">${m.date}</span>
+                        <span class="text-slate-500 truncate" style="max-width: 60px">${isHome ? m.away : m.home}</span>
+                    </div>
+                    <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
+                </div>`).join('') || '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
         }
 
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
         function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
         function calculate() {
-            updateStatus('loading', 'Calculando...');
             const h_gf = parseFloat(document.getElementById('h_gf').value) || 0;
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
-            
-            if (h_gf === 0 || a_gf === 0) {
-                updateStatus('active', 'Esperando datos...');
-                return;
-            }
+            if (h_gf === 0 || a_gf === 0) return;
             
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
@@ -902,25 +836,8 @@
                 { name: 'BTTS YES', p: btts },
                 { name: 'BTTS NO', p: 1 - btts }
             ]);
-
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
-            updateStatus('active', 'Análisis Completo');
-        }
-
-        function goToDeepAnalysis() {
-            const data = {
-                liga: document.getElementById('league_name').value,
-                local: document.getElementById('home_select').value || 'Equipo Local',
-                visitante: document.getElementById('away_select').value || 'Equipo Visitante',
-                h_gf: document.getElementById('h_gf').value,
-                h_gc: document.getElementById('h_gc').value,
-                a_gf: document.getElementById('a_gf').value,
-                a_gc: document.getElementById('a_gc').value
-            };
-
-            const encodedData = btoa(JSON.stringify(data));
-            window.open(`profundo.html?d=${encodedData}`, '_blank');
         }
 
         function updateMarketUI(resId, valId, p) {
@@ -930,98 +847,56 @@
 
         function renderTable(markets) {
             const body = document.getElementById('market-body');
-            body.innerHTML = '';
-            markets.forEach((m, i) => {
-                const fair = (1/m.p).toFixed(2);
-                body.innerHTML += `<tr class="market-row" id="row_${i}">
+            body.innerHTML = markets.map((m, i) => `
+                <tr class="market-row">
                     <td class="p-4 font-bold text-slate-300">${m.name}</td>
                     <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
-                    <td class="p-4 text-slate-500 font-mono">${fair}</td>
+                    <td class="p-4 text-slate-500 font-mono">${(1/m.p).toFixed(2)}</td>
                     <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}"></td>
                     <td class="p-4 font-black" id="diff_${i}">--</td>
                     <td class="p-4 text-center">
-                        <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all">
-                            <i class="fa-solid fa-share"></i> ROI
-                        </button>
+                        <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all"><i class="fa-solid fa-share"></i> ROI</button>
                     </td>
-                </tr>`;
-            });
+                </tr>`).join('');
         }
 
         function calcProbDiff(input, probPoisson, diffId) {
             const oddHouse = parseFloat(input.value);
             const diffEl = document.getElementById(diffId);
             if(oddHouse > 1) {
-                const probHouse = 1 / oddHouse;
-                const diff = probPoisson - probHouse;
+                const diff = probPoisson - (1 / oddHouse);
                 diffEl.innerText = (diff * 100).toFixed(1) + '%';
                 diffEl.className = `p-4 font-black ${diff > 0 ? 'text-green-400' : 'text-red-400'}`;
-            } else {
-                diffEl.innerText = '--';
-                diffEl.className = 'p-4 font-black text-slate-500';
             }
+        }
+
+        function renderMatrix(data) {
+            const container = document.getElementById('score-matrix');
+            container.innerHTML = data.sort((a,b) => b.p - a.p).slice(0, 15).map(item => `
+                <div class="bg-black/40 border border-white/5 p-2 rounded text-center">
+                    <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
+                    <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
+                </div>`).join('');
+        }
+
+        function renderChart(h, a) {
+            const ctx = document.getElementById('distChart').getContext('2d');
+            if(chart) chart.destroy();
+            chart = new Chart(ctx, { type: 'bar', data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'Local', data: h, backgroundColor: '#00f2ff' }, { label: 'Visita', data: a, backgroundColor: '#00ff88' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } } });
         }
 
         function sendToROI(index, market, prob) {
             const league = document.getElementById('league_name').value || 'S/L';
             const event = document.getElementById('event_name').value || 'Evento';
             const odd = parseFloat(document.getElementById(`odd_${index}`).value);
-            const diffText = document.getElementById(`diff_${index}`).innerText;
             if(!odd || odd <= 1) return alert("⚠️ Cuota no válida.");
-            
-            const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: diffText, stake: 1.0, status: 'pending', profit: 0 };
             let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            bets.unshift(newBet);
+            bets.unshift({ id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: document.getElementById(`diff_${index}`).innerText, stake: 1.0, status: 'pending', profit: 0 });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
-            
-            const btn = document.querySelector(`#row_${index} button`);
-            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-            btn.classList.replace('bg-cyan-600', 'bg-green-500');
-            setTimeout(() => { 
-                btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; 
-                btn.classList.replace('bg-green-500', 'bg-cyan-600'); 
-            }, 1000);
+            alert("✅ Enviado a Panel ROI");
         }
 
-        function renderMatrix(data) {
-            const container = document.getElementById('score-matrix');
-            container.innerHTML = '';
-            data.sort((a,b) => b.p - a.p).slice(0, 15).forEach(item => {
-                container.innerHTML += `<div class="bg-black/40 border border-white/5 p-2 rounded text-center">
-                    <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
-                    <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
-                </div>`;
-            });
-        }
-
-        function renderChart(h, a) {
-            const ctx = document.getElementById('distChart').getContext('2d');
-            if(chart) chart.destroy();
-            chart = new Chart(ctx, { 
-                type: 'bar', 
-                data: { 
-                    labels: [0,1,2,3,4,5,6], 
-                    datasets: [
-                        { label: 'Local', data: h, backgroundColor: '#00f2ff' }, 
-                        { label: 'Visita', data: a, backgroundColor: '#00ff88' }
-                    ] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } }, 
-                    scales: { 
-                        y: { display: false }, 
-                        x: { grid: { display: false }, ticks: { color: '#475569' } } 
-                    } 
-                } 
-            });
-        }
-
-        window.onload = () => {
-            loadSavedIDs();
-            syncSheet();
-        };
+        window.onload = () => { loadSavedIDs(); syncSheet(); };
     </script>
 </body>
 </html>
