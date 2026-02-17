@@ -536,6 +536,44 @@
             renderAutoMatches(); 
         }
 
+        // PARSEO DE FECHAS MEJORADO PARA 2026 HACIA ABAJO
+        function parseSpanishDate(dateStr) {
+            if (!dateStr) return new Date(0);
+            if (dateStr instanceof Date) return dateStr;
+            
+            const months = { "enero": 0, "febrero": 1, "marzo": 2, "abril": 3, "mayo": 4, "junio": 5, "julio": 6, "agosto": 7, "septiembre": 8, "octubre": 9, "noviembre": 10, "diciembre": 11 };
+            
+            let clean = dateStr.toString().toLowerCase().trim();
+            
+            // Caso: "20 de enero 2026" o "20 de enero de 2026"
+            if (clean.includes("de")) {
+                let parts = clean.replace(/de/g, '').replace(/\s+/g, ' ').split(' ');
+                if (parts.length >= 3) {
+                    let day = parseInt(parts[0]);
+                    let month = months[parts[1]] !== undefined ? months[parts[1]] : parseInt(parts[1]) - 1;
+                    let year = parseInt(parts[2]);
+                    if (year < 100) year += 2000;
+                    return new Date(year, month, day);
+                }
+            }
+
+            // Caso: Formatos ISO o estándar (2026-01-20) o barras (20/01/2026)
+            let date = new Date(dateStr);
+            if (!isNaN(date.getTime())) return date;
+
+            // Caso desesperado: DD/MM/YYYY
+            let partsBarra = clean.split(/[\/\-]/);
+            if (partsBarra.length === 3) {
+                if (partsBarra[2].length === 4) { // YYYY al final
+                    return new Date(partsBarra[2], partsBarra[1]-1, partsBarra[0]);
+                } else if (partsBarra[0].length === 4) { // YYYY al inicio
+                    return new Date(partsBarra[0], partsBarra[1]-1, partsBarra[2]);
+                }
+            }
+
+            return new Date(0);
+        }
+
         async function syncSheet() {
             updateStatus('loading', 'Sincronizando...');
             const marketType = document.getElementById('market_auto_select').value;
@@ -554,26 +592,24 @@
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
                     
-                    // PROCESAMIENTO DE DB CON FECHAS
                     database = statsJson.table.rows.map(row => {
-                        let rawDate = row.c[1]?.f || row.c[1]?.v;
+                        let rawDate = row.c[1]?.f || row.c[1]?.v || "";
                         return {
                             league: row.c[0]?.v,
                             date: rawDate,
-                            dateObj: parseSpanishDate(rawDate), // Conversión crítica para ordenamiento
+                            dateObj: parseSpanishDate(rawDate), 
                             home: row.c[2]?.v,
                             away: row.c[3]?.v,
                             gl: parseFloat(row.c[4]?.v || 0),
                             gv: parseFloat(row.c[5]?.v || 0)
                         };
                     }).filter(r => r.league && r.home);
-                    
-                    renderLeagueCheckboxes();
                 }
 
                 if(!currentSheetID) {
                     updateStatus('active', 'DB Lista');
                     updateLeagueSelect();
+                    renderLeagueCheckboxes();
                     return;
                 }
 
@@ -597,6 +633,7 @@
 
                 renderAutoMatches();
                 updateLeagueSelect();
+                renderLeagueCheckboxes();
                 document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
                 updateStatus('active', 'Sistema Online');
             } catch (e) { 
@@ -605,46 +642,28 @@
             }
         }
 
-        // Función para parsear fechas variadas (Ej: 20 de enero 2026 o 20/01/2026)
-        function parseSpanishDate(dateStr) {
-            if (!dateStr) return new Date(0);
-            if (dateStr instanceof Date) return dateStr;
-            
-            const months = { "enero": 0, "febrero": 1, "marzo": 2, "abril": 3, "mayo": 4, "junio": 5, "julio": 6, "agosto": 7, "septiembre": 8, "octubre": 9, "noviembre": 10, "diciembre": 11 };
-            
-            let clean = dateStr.toString().toLowerCase().replace(/de/g, '').replace(/\s+/g, ' ');
-            let parts = clean.split(' ');
-
-            if (parts.length >= 3) {
-                let day = parseInt(parts[0]);
-                let month = months[parts[1]] !== undefined ? months[parts[1]] : parseInt(parts[1]) - 1;
-                let year = parts[2].length === 2 ? 2000 + parseInt(parts[2]) : parseInt(parts[2]);
-                return new Date(year, month, day);
-            }
-            
-            let date = new Date(dateStr);
-            return isNaN(date.getTime()) ? new Date(0) : date;
-        }
-
         function getTeamStats(league, team, isHome) {
-            // MEJORA: Filtrar y ORDENAR descendente por fecha antes de tomar la muestra
-            const teamMatches = database
+            // CRÍTICO: Filtramos y ordenamos DESCENDENTE (b.dateObj - a.dateObj)
+            // Esto pone 2026 al principio del array.
+            const sortedMatches = database
                 .filter(r => r.league === league && (isHome ? r.home === team : r.away === team))
-                .sort((a, b) => b.dateObj - a.dateObj) // Orden cronológico descendente
-                .slice(0, 10); // Tomamos los 10 más actuales
+                .sort((a, b) => b.dateObj - a.dateObj);
 
-            if(teamMatches.length === 0) return { fav:0, con:0, count:0, matches: [] };
+            // Tomamos los primeros 10 después de ordenar (los 10 más actuales)
+            const sample = sortedMatches.slice(0, 10);
+
+            if(sample.length === 0) return { fav:0, con:0, count:0, matches: [] };
             
             let gf = 0, gc = 0;
-            teamMatches.forEach(m => {
+            sample.forEach(m => {
                 gf += isHome ? m.gl : m.gv;
                 gc += isHome ? m.gv : m.gl;
             });
             return { 
-                fav: gf/teamMatches.length, 
-                con: gc/teamMatches.length, 
-                count: teamMatches.length,
-                matches: teamMatches
+                fav: gf/sample.length, 
+                con: gc/sample.length, 
+                count: sample.length,
+                matches: sample
             };
         }
 
@@ -673,7 +692,7 @@
                 const lambdaHT = (lambdaH + lambdaA) * 0.44;
                 probPoisson = 1 - Math.exp(-lambdaHT);
             }
-            const probHouse = 1 / match.odd;
+            const probHouse = 1 / (match.odd || 1);
             return (probPoisson - probHouse) * 100;
         }
 
@@ -788,10 +807,11 @@
 
         function renderHistory(containerId, matches, isHome) {
             const container = document.getElementById(containerId);
+            // La lista ya viene ordenada de la más reciente a la más antigua desde getTeamStats
             container.innerHTML = matches.map(m => `
                 <div class="history-item">
                     <div class="flex flex-col">
-                        <span class="text-[7px] text-slate-600 font-mono">${m.date}</span>
+                        <span class="text-[7px] text-cyan-500 font-mono font-bold">${m.date}</span>
                         <span class="text-slate-500 truncate" style="max-width: 60px">${isHome ? m.away : m.home}</span>
                     </div>
                     <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
@@ -894,6 +914,20 @@
             bets.unshift({ id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: document.getElementById(`diff_${index}`).innerText, stake: 1.0, status: 'pending', profit: 0 });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
             alert("✅ Enviado a Panel ROI");
+        }
+
+        function goToDeepAnalysis() {
+            const data = {
+                liga: document.getElementById('league_name').value,
+                local: document.getElementById('home_select').value || 'Equipo Local',
+                visitante: document.getElementById('away_select').value || 'Equipo Visitante',
+                h_gf: document.getElementById('h_gf').value,
+                h_gc: document.getElementById('h_gc').value,
+                a_gf: document.getElementById('a_gf').value,
+                a_gc: document.getElementById('a_gc').value
+            };
+            const encodedData = btoa(JSON.stringify(data));
+            window.open(`profundo.html?d=${encodedData}`, '_blank');
         }
 
         window.onload = () => { loadSavedIDs(); syncSheet(); };
