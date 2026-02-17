@@ -121,7 +121,6 @@
             font-weight: 800;
             font-size: 1.1rem;
             letter-spacing: 0.05em;
-            /* Eliminada la itálica para mejorar lectura */
         }
 
         .value-odd {
@@ -241,8 +240,8 @@
         </div>
 
         <div class="market-card">
-            <div class="market-title"><i class="fas fa-chart-line"></i> Over / Under Goals</div>
-            <div id="m_ou_ft" class="h-[300px] overflow-y-auto"></div>
+            <div class="market-title"><i class="fas fa-chart-line"></i> Over / Under Goals FT</div>
+            <div id="m_ou_ft" class="divide-y divide-white/5"></div>
         </div>
 
         <div class="market-card">
@@ -338,7 +337,7 @@
                 {lab: `CS Away`, p: poisson(0, lH)}
             ], true);
 
-            // Ordenamiento aplicado: de mayor a menor probabilidad
+            // Ordenamiento Score Matrix: Mayor a Menor
             flatScores.sort((a,b) => b.p - a.p);
             
             document.getElementById('m_matrix').innerHTML = flatScores.slice(0, 15).map(s => {
@@ -350,14 +349,37 @@
                 </div>`;
             }).join('');
 
-            let ouData = [];
-            [0.5, 1.5, 2.5, 3.5, 4.5].forEach(v => {
-                let over = 0;
-                matrix.forEach((row, h) => row.forEach((p, a) => { if(h+a > v) over += p; }));
-                ouData.push({lab: `OVER ${v}`, p: over});
-                ouData.push({lab: `UNDER ${v}`, p: 1-over});
+            // Mejora Mercado Over/Under 0.5 a 3.5 agrupado
+            let ouHtml = '';
+            [0.5, 1.5, 2.5, 3.5].forEach(v => {
+                let overProb = 0;
+                matrix.forEach((row, h) => row.forEach((p, a) => { if(h+a > v) overProb += p; }));
+                let underProb = 1 - overProb;
+                
+                // Helper para colores
+                const getStyle = (p) => p >= 0.60 ? {c:'color-high', b:'bg-high'} : (p >= 0.40 ? {c:'color-mid', b:'bg-mid'} : {c:'color-low', b:'bg-low'});
+                const sO = getStyle(overProb);
+                const sU = getStyle(underProb);
+
+                ouHtml += `
+                <div class="odds-row flex flex-col sm:flex-row gap-2 py-3">
+                    <div class="flex items-center justify-between w-full">
+                        <span class="label-bet">Over ${v} FT</span>
+                        <div class="flex items-center">
+                            <span class="value-perc ${sO.c}">${(overProb*100).toFixed(1)}%</span>
+                            <span class="value-odd ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between w-full border-t border-white/5 sm:border-t-0 pt-2 sm:pt-0">
+                        <span class="label-bet">Under ${v} FT</span>
+                        <div class="flex items-center">
+                            <span class="value-perc ${sU.c}">${(underProb*100).toFixed(1)}%</span>
+                            <span class="value-odd ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
+                        </div>
+                    </div>
+                </div>`;
             });
-            renderMarket('m_ou_ft', ouData, true);
+            document.getElementById('m_ou_ft').innerHTML = ouHtml;
 
             const getIndiv = (l) => [0.5, 1.5, 2.5].map(v => {
                 let p = 0; for(let i=0; i<maxG; i++) if(i > v) p += poisson(i, l);
