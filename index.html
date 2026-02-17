@@ -247,58 +247,32 @@
 
     <div id="config_panel" class="scorelab-card p-4 border-cyan-500/50 shadow-2xl">
         <h3 class="text-[10px] font-black text-cyan-400 uppercase mb-3"><i class="fa-solid fa-database mr-1"></i> Configura tu herramienta BetAgs</h3>
-        
         <div class="space-y-4">
             <div class="bg-black/20 p-2 rounded border border-white/5">
                 <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Base de Datos (Stats)</p>
                 <div class="space-y-2">
                     <div>
-                        <label class="text-[7px] uppercase text-cyan-500 font-bold">Introduce el ID para cargar las ligas</label>
+                        <label class="text-[7px] uppercase text-cyan-500 font-bold">ID para cargar las ligas</label>
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
-                    </div>
-                    <div style="display: none;">
-                        <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
-                    </div>
-                    <div class="flex flex-col gap-1 mt-1" style="display: none;">
-                        <select id="active_stats_id" onchange="database=[]; syncSheet();" class="text-[10px] p-1 rounded">
-                            <option value="top" selected>Top Ligas Europeas</option>
-                            <option value="all">Todas las Ligas</option>
-                        </select>
                     </div>
                 </div>
             </div>
 
             <div class="bg-black/20 p-2 rounded border border-white/5">
                 <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Filtro de Ligas Activas</p>
-                <p class="text-[7px] text-slate-500 mb-2 uppercase">Si no marcas ninguna, se usan todas por defecto</p>
                 <div id="league_filter_container" class="league-filter-box">
-                    <p class="text-[9px] text-slate-600 p-2 italic text-center">Cargando ligas de la DB...</p>
+                    <p class="text-[9px] text-slate-600 p-2 italic text-center">Cargando ligas...</p>
                 </div>
             </div>
-
-            <hr class="border-white/5">
 
             <div class="space-y-2">
                 <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Próximos Partidos (Scanner)</p>
                 <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Over 0.5 HT ID</label>
-                    <input type="text" id="id_over05ht" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Over 2.5 FT ID</label>
-                    <input type="text" id="id_over25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Under 2.5 FT ID</label>
-                    <input type="text" id="id_under25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS YES ID</label>
-                    <input type="text" id="id_btts_yes" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS NO ID</label>
-                    <input type="text" id="id_btts_no" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
+                    <input type="text" id="id_over05ht" class="w-full p-2 text-[10px] rounded mb-1" placeholder="ID Over 0.5 HT">
+                    <input type="text" id="id_over25" class="w-full p-2 text-[10px] rounded mb-1" placeholder="ID Over 2.5 FT">
+                    <input type="text" id="id_under25" class="w-full p-2 text-[10px] rounded mb-1" placeholder="ID Under 2.5 FT">
+                    <input type="text" id="id_btts_yes" class="w-full p-2 text-[10px] rounded mb-1" placeholder="ID BTTS YES">
+                    <input type="text" id="id_btts_no" class="w-full p-2 text-[10px] rounded" placeholder="ID BTTS NO">
                 </div>
             </div>
             <button onclick="saveIDs()" class="w-full btn-primary py-2 rounded text-[10px]">Guardar Configuración</button>
@@ -309,7 +283,6 @@
         <div class="scorelab-card p-3 mb-6 overflow-x-auto">
             <div class="flex justify-between items-center mb-2 px-2">
                 <span class="text-[10px] font-black text-cyan-500 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Radar de Próximos Partidos</span>
-                <span id="scan_status" class="text-[9px] text-slate-500 font-mono">Detección de Value Activa</span>
             </div>
             <div id="auto_matches_list" class="flex gap-3 pb-4 min-w-max">
                 <p class="text-xs text-slate-600 p-4">Sincroniza para detectar oportunidades...</p>
@@ -320,75 +293,48 @@
             <div class="scorelab-card p-3 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Elegir Liga</span>
-                    <span id="league_count" class="match-counter"><i class="fa-solid fa-database text-[8px]"></i> 0 Partidos</span>
+                    <span id="league_count" class="match-counter">0 Partidos</span>
                 </div>
-                <select id="league_select" onchange="filterTeamsByLeague()" class="p-2 rounded text-xs auto-select">
-                    <option value="">Cargando ligas...</option>
-                </select>
+                <select id="league_select" onchange="filterTeamsByLeague()" class="p-2 rounded text-xs auto-select"></select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">2. Equipo Local</span>
                     <span id="home_sample" class="sample-badge">N = 0</span>
                 </div>
-                <select id="home_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
-                    <option value="">Liga primero</option>
-                </select>
+                <select id="home_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select"></select>
             </div>
             <div class="scorelab-card p-3 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">3. Equipo Visitante</span>
                     <span id="away_sample" class="sample-badge">N = 0</span>
                 </div>
-                <select id="away_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select">
-                    <option value="">Liga primero</option>
-                </select>
+                <select id="away_select" onchange="loadStatsIndependent()" class="p-2 rounded text-xs auto-select"></select>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-4 space-y-4">
                 <div class="scorelab-card p-5">
-                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest"><i class="fa-solid fa-database mr-2"></i>Data Entry</h2>
-                    
+                    <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest">Data Entry</h2>
                     <div class="grid grid-cols-1 gap-4">
                         <div class="grid grid-cols-2 gap-2">
                             <input type="text" id="league_name" placeholder="LIGA" class="p-2 text-xs rounded uppercase font-bold text-cyan-400">
                             <input type="text" id="event_name" placeholder="EVENTO" class="p-2 text-xs rounded uppercase font-bold text-cyan-400">
                         </div>
-
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-slate-400">Local Casa: GF Favor / GC Contra</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="h_gf" step="0.01" placeholder="GF" class="p-3 rounded-lg text-center">
-                                <input type="number" id="h_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
-                            </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="h_gf" step="0.01" placeholder="LOCAL GF" class="p-3 rounded-lg text-center">
+                            <input type="number" id="h_gc" step="0.01" placeholder="LOCAL GC" class="p-3 rounded-lg text-center">
                         </div>
-
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-slate-400">Visita Fuera: GF Favor / GC Contra</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="a_gf" step="0.01" placeholder="GF" class="p-3 rounded-lg text-center">
-                                <input type="number" id="a_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
-                            </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="a_gf" step="0.01" placeholder="VISITA GF" class="p-3 rounded-lg text-center">
+                            <input type="number" id="a_gc" step="0.01" placeholder="VISITA GC" class="p-3 rounded-lg text-center">
                         </div>
-
-                        <div class="grid grid-cols-2 gap-3 mt-2">
-                             <button onclick="calculate()" class="btn-primary py-3 rounded-lg active:scale-95 text-[11px]">
-                                Analizar
-                            </button>
-                            <button onclick="goToDeepAnalysis()" class="btn-depth py-3 rounded-lg active:scale-95 text-[11px]">
-                                <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Profundo
-                            </button>
-                        </div>
+                        <button onclick="calculate()" class="btn-primary py-3 rounded-lg text-[11px]">Analizar</button>
                     </div>
                 </div>
-
-                <div class="scorelab-card p-5 overflow-hidden">
-                    <h2 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">Distribución de Probabilidad</h2>
-                    <div class="h-48">
-                        <canvas id="distChart"></canvas>
-                    </div>
+                <div class="scorelab-card p-5 h-48">
+                    <canvas id="distChart"></canvas>
                 </div>
             </div>
 
@@ -405,7 +351,7 @@
                         <div id="val_ft25" class="badge-value mt-1 w-fit">C. Justa: --</div>
                     </div>
                     <div class="scorelab-card p-4 border-l-2 border-yellow-500">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">BTTS (Ambos Anotan)</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase">BTTS YES</p>
                         <h3 id="res_btts" class="text-2xl font-black text-white">0.0%</h3>
                         <div id="val_btts" class="badge-value mt-1 w-fit">C. Justa: --</div>
                     </div>
@@ -415,12 +361,12 @@
                     <table class="w-full text-left">
                         <thead class="bg-black/40 text-[9px] uppercase text-slate-500">
                             <tr>
-                                <th class="p-4">Mercado Analizado</th>
+                                <th class="p-4">Mercado</th>
                                 <th class="p-4">Probabilidad</th>
                                 <th class="p-4">Cuota Justa</th>
                                 <th class="p-4">Cuota Casa</th>
                                 <th class="p-4">Δ Prob (%)</th>
-                                <th class="p-4 text-center">Acción</th>
+                                <th class="p-4 text-center">ROI</th>
                             </tr>
                         </thead>
                         <tbody id="market-body" class="text-sm"></tbody>
@@ -429,18 +375,18 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="scorelab-card p-5">
-                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Score Matrix (Top 15)</h2>
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 text-center">Score Matrix</h2>
                         <div id="score-matrix" class="grid grid-cols-5 gap-2"></div>
                     </div>
                     <div class="scorelab-card p-5">
-                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest text-center">Últimos 10 Partidos (Cronológico)</h2>
+                        <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4 text-center">Últimos 10 Partidos (Bottom Sheet)</h2>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Home (Local)</p>
+                                <p class="text-[8px] text-cyan-500 font-bold mb-2 uppercase text-center">Local (Recientes)</p>
                                 <div id="history-home" class="space-y-1"></div>
                             </div>
                             <div>
-                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Away (Visita)</p>
+                                <p class="text-[8px] text-green-500 font-bold mb-2 uppercase text-center">Visita (Recientes)</p>
                                 <div id="history-away" class="space-y-1"></div>
                             </div>
                         </div>
@@ -458,16 +404,7 @@
         const STORAGE_KEY = 'betags_pre_match';
         const IDS_KEY = 'betags_sheet_ids';
         
-        let SHEET_IDS = {
-            over05ht: '',
-            over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6',
-            under25: '',
-            btts_yes: '',
-            btts_no: '',
-            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', 
-            stats_all: '',
-            active_stats: 'top'
-        };
+        let SHEET_IDS = { over05ht: '', over25: '', under25: '', btts_yes: '', btts_no: '', stats_top: '', stats_all: '', active_stats: 'top' };
 
         function updateStatus(state, message) {
             const led = document.getElementById('status_led');
@@ -488,8 +425,6 @@
                 document.getElementById('id_btts_yes').value = SHEET_IDS.btts_yes || '';
                 document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
                 document.getElementById('id_stats_top').value = SHEET_IDS.stats_top || '';
-                document.getElementById('id_stats_all').value = SHEET_IDS.stats_all || '';
-                document.getElementById('active_stats_id').value = SHEET_IDS.active_stats || 'top';
             }
         }
 
@@ -500,8 +435,6 @@
             SHEET_IDS.btts_yes = document.getElementById('id_btts_yes').value.trim();
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
-            SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
-            SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             alert("✅ Configuración guardada.");
             toggleConfig();
@@ -514,76 +447,11 @@
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
-        function renderLeagueCheckboxes() {
-            const container = document.getElementById('league_filter_container');
-            const leagues = [...new Set(database.map(r => r.league))].sort();
-            if(leagues.length === 0) {
-                container.innerHTML = '<p class="text-[9px] text-slate-600 p-2 italic text-center">No hay datos</p>';
-                return;
-            }
-            container.innerHTML = leagues.map(liga => `
-                <div class="league-item">
-                    <input type="checkbox" value="${liga}" onchange="updateSelectedLeagues()" ${selectedLeagues.includes(liga) ? 'checked' : ''}>
-                    <span class="truncate">${liga}</span>
-                </div>
-            `).join('');
-        }
-
-        function updateSelectedLeagues() {
-            const checkboxes = document.querySelectorAll('#league_filter_container input[type="checkbox"]');
-            selectedLeagues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            updateLeagueSelect();
-            renderAutoMatches(); 
-        }
-
-        // PARSEO DE FECHAS MEJORADO PARA 2026 HACIA ABAJO
-        function parseSpanishDate(dateStr) {
-            if (!dateStr) return new Date(0);
-            if (dateStr instanceof Date) return dateStr;
-            
-            const months = { "enero": 0, "febrero": 1, "marzo": 2, "abril": 3, "mayo": 4, "junio": 5, "julio": 6, "agosto": 7, "septiembre": 8, "octubre": 9, "noviembre": 10, "diciembre": 11 };
-            
-            let clean = dateStr.toString().toLowerCase().trim();
-            
-            // Caso: "20 de enero 2026" o "20 de enero de 2026"
-            if (clean.includes("de")) {
-                let parts = clean.replace(/de/g, '').replace(/\s+/g, ' ').split(' ');
-                if (parts.length >= 3) {
-                    let day = parseInt(parts[0]);
-                    let month = months[parts[1]] !== undefined ? months[parts[1]] : parseInt(parts[1]) - 1;
-                    let year = parseInt(parts[2]);
-                    if (year < 100) year += 2000;
-                    return new Date(year, month, day);
-                }
-            }
-
-            // Caso: Formatos ISO o estándar (2026-01-20) o barras (20/01/2026)
-            let date = new Date(dateStr);
-            if (!isNaN(date.getTime())) return date;
-
-            // Caso desesperado: DD/MM/YYYY
-            let partsBarra = clean.split(/[\/\-]/);
-            if (partsBarra.length === 3) {
-                if (partsBarra[2].length === 4) { // YYYY al final
-                    return new Date(partsBarra[2], partsBarra[1]-1, partsBarra[0]);
-                } else if (partsBarra[0].length === 4) { // YYYY al inicio
-                    return new Date(partsBarra[0], partsBarra[1]-1, partsBarra[2]);
-                }
-            }
-
-            return new Date(0);
-        }
-
         async function syncSheet() {
             updateStatus('loading', 'Sincronizando...');
             const marketType = document.getElementById('market_auto_select').value;
-            const currentSheetID = SHEET_IDS[marketType];
-            const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
-
-            if(!activeStatsID) {
-                updateStatus('standby', 'Sin DB');
-                return;
-            }
+            const activeStatsID = SHEET_IDS.stats_top;
+            if(!activeStatsID) return;
 
             try {
                 if(database.length === 0) {
@@ -591,193 +459,40 @@
                     const statsRes = await fetch(statsUrl);
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-                    
-                    database = statsJson.table.rows.map(row => {
-                        let rawDate = row.c[1]?.f || row.c[1]?.v || "";
-                        return {
-                            league: row.c[0]?.v,
-                            date: rawDate,
-                            dateObj: parseSpanishDate(rawDate), 
-                            home: row.c[2]?.v,
-                            away: row.c[3]?.v,
-                            gl: parseFloat(row.c[4]?.v || 0),
-                            gv: parseFloat(row.c[5]?.v || 0)
-                        };
-                    }).filter(r => r.league && r.home);
-                }
-
-                if(!currentSheetID) {
-                    updateStatus('active', 'DB Lista');
-                    updateLeagueSelect();
+                    database = statsJson.table.rows.map(row => ({
+                        league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
+                        gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
+                    })).filter(r => r.league);
                     renderLeagueCheckboxes();
-                    return;
                 }
 
-                const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
-                const autoRes = await fetch(autoUrl);
-                const autoText = await autoRes.text();
-                const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
-
-                autoMatches = autoJson.table.rows.map(row => {
-                    const matchData = {
-                        fecha: row.c[0]?.f || row.c[0]?.v,
-                        liga: row.c[1]?.v,
-                        home: row.c[2]?.v,
-                        away: row.c[3]?.v,
-                        odd: parseFloat(row.c[4]?.v),
-                        marketSource: marketType 
-                    };
-                    matchData.valueEdge = detectValue(matchData, marketType);
-                    return matchData;
-                }).filter(m => m.home);
-
-                renderAutoMatches();
+                const currentSheetID = SHEET_IDS[marketType];
+                if(currentSheetID) {
+                    const autoRes = await fetch(`https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`);
+                    const autoText = await autoRes.text();
+                    const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
+                    autoMatches = autoJson.table.rows.map(row => ({
+                        fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v, home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v), marketSource: marketType 
+                    })).filter(m => m.home);
+                    renderAutoMatches();
+                }
                 updateLeagueSelect();
-                renderLeagueCheckboxes();
-                document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
                 updateStatus('active', 'Sistema Online');
-            } catch (e) { 
-                console.error("Sheet Sync Error", e); 
-                updateStatus('standby', 'Error de Sync');
-            }
+            } catch (e) { updateStatus('standby', 'Error Sync'); }
         }
 
         function getTeamStats(league, team, isHome) {
-            // CRÍTICO: Filtramos y ordenamos DESCENDENTE (b.dateObj - a.dateObj)
-            // Esto pone 2026 al principio del array.
-            const sortedMatches = database
-                .filter(r => r.league === league && (isHome ? r.home === team : r.away === team))
-                .sort((a, b) => b.dateObj - a.dateObj);
-
-            // Tomamos los primeros 10 después de ordenar (los 10 más actuales)
-            const sample = sortedMatches.slice(0, 10);
-
-            if(sample.length === 0) return { fav:0, con:0, count:0, matches: [] };
+            // MEJORA: Filtramos los partidos del equipo y tomamos los últimos 10 de la lista (los más nuevos)
+            const allMatches = database.filter(r => r.league === league && (isHome ? r.home === team : r.away === team));
+            const last10 = allMatches.slice(-10); // Toma los últimos 10 del fondo
             
+            if(last10.length === 0) return { fav:0, con:0, count:0 };
             let gf = 0, gc = 0;
-            sample.forEach(m => {
+            last10.forEach(m => {
                 gf += isHome ? m.gl : m.gv;
                 gc += isHome ? m.gv : m.gl;
             });
-            return { 
-                fav: gf/sample.length, 
-                con: gc/sample.length, 
-                count: sample.length,
-                matches: sample
-            };
-        }
-
-        function detectValue(match, marketType) {
-            const hStats = getTeamStats(match.liga, match.home, true);
-            const aStats = getTeamStats(match.liga, match.away, false);
-            if(hStats.count === 0 || aStats.count === 0) return 0;
-            const lambdaH = (hStats.fav + aStats.con) / 2;
-            const lambdaA = (aStats.fav + hStats.con) / 2;
-            let probPoisson = 0;
-            if(marketType === 'over25' || marketType === 'under25') {
-                for(let h=0; h<7; h++) {
-                    for(let a=0; a<7; a++) {
-                        if (h + a > 2.5) probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
-                    }
-                }
-                if(marketType === 'under25') probPoisson = 1 - probPoisson;
-            } else if(marketType.startsWith('btts')) {
-                for(let h=1; h<7; h++) {
-                    for(let a=1; a<7; a++) {
-                        probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
-                    }
-                }
-                if(marketType === 'btts_no') probPoisson = 1 - probPoisson;
-            } else if(marketType === 'over05ht') {
-                const lambdaHT = (lambdaH + lambdaA) * 0.44;
-                probPoisson = 1 - Math.exp(-lambdaHT);
-            }
-            const probHouse = 1 / (match.odd || 1);
-            return (probPoisson - probHouse) * 100;
-        }
-
-        async function syncAllMarkets() {
-            updateStatus('loading', 'Escaneando Radar...');
-            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
-            let allResults = [];
-            for(let m of markets) {
-                if(!SHEET_IDS[m]) continue;
-                try {
-                    const url = `https://docs.google.com/spreadsheets/d/${SHEET_IDS[m]}/gviz/tq?tqx=out:json`;
-                    const res = await fetch(url);
-                    const text = await res.text();
-                    const json = JSON.parse(text.substr(47).slice(0, -2));
-                    const results = json.table.rows.map(row => {
-                        const matchData = {
-                            fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
-                            home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
-                            marketLabel: m.toUpperCase().replace('_', ' '),
-                            marketSource: m
-                        };
-                        matchData.valueEdge = detectValue(matchData, m);
-                        return matchData;
-                    }).filter(r => r.home);
-                    allResults = [...allResults, ...results];
-                } catch(e) { }
-            }
-            autoMatches = allResults.sort((a,b) => b.valueEdge - a.valueEdge);
-            renderAutoMatches();
-            updateStatus('active', 'Radar Actualizado');
-        }
-
-        function renderAutoMatches() {
-            const container = document.getElementById('auto_matches_list');
-            container.innerHTML = '';
-            let filteredMatches = autoMatches;
-            if(selectedLeagues.length > 0) filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
-            if(filteredMatches.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-600 p-4">Sin datos en el radar...</p>';
-                return;
-            }
-            filteredMatches.forEach((m, idx) => {
-                const div = document.createElement('div');
-                let valueClass = m.valueEdge > 10 ? "card-value-high" : (m.valueEdge > 5 ? "card-value-mid" : "");
-                let badge = m.valueEdge > 5 ? `<span class="badge-value-hit" style="${m.valueEdge > 10 ? '' : 'background:#00ff88'}">VALUE +${m.valueEdge.toFixed(1)}%</span>` : "";
-                div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
-                div.onclick = () => selectAutoMatch(m);
-                div.innerHTML = `${badge}
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[8px] text-slate-500 font-bold uppercase">${m.marketLabel || m.liga}</span>
-                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
-                    </div>
-                    <div class="text-[11px] font-black text-white truncate">${m.home}</div>
-                    <div class="text-[11px] font-black text-white truncate">${m.away}</div>
-                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>`;
-                container.appendChild(div);
-            });
-        }
-
-        function selectAutoMatch(match) {
-            const lSel = document.getElementById('league_select');
-            lSel.value = match.liga;
-            filterTeamsByLeague();
-            document.getElementById('home_select').value = match.home;
-            document.getElementById('away_select').value = match.away;
-            loadStatsIndependent();
-        }
-
-        function updateLeagueSelect() {
-            let leagues = [...new Set(database.map(r => r.league))];
-            if(selectedLeagues.length > 0) leagues = leagues.filter(l => selectedLeagues.includes(l));
-            const lSel = document.getElementById('league_select');
-            lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + leagues.map(l => `<option value="${l}">${l}</option>`).join('');
-        }
-
-        function filterTeamsByLeague() {
-            const league = document.getElementById('league_select').value;
-            const hSel = document.getElementById('home_select');
-            const aSel = document.getElementById('away_select');
-            if(!league) return;
-            const leagueMatches = database.filter(r => r.league === league);
-            const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
-            const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
-            hSel.innerHTML = options;
-            aSel.innerHTML = options;
+            return { fav: gf/last10.length, con: gc/last10.length, count: last10.length };
         }
 
         function loadStatsIndependent() {
@@ -789,31 +504,31 @@
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
-            const hData = getTeamStats(league, local, true);
-            const aData = getTeamStats(league, visita, false);
+            // MEJORA: Capturar los últimos 10 de abajo hacia arriba para la visualización
+            const homeMatches = database.filter(r => r.league === league && r.home === local).slice(-10).reverse();
+            const awayMatches = database.filter(r => r.league === league && r.away === visita).slice(-10).reverse();
 
-            document.getElementById('home_sample').innerText = `N = ${hData.count}`;
-            document.getElementById('away_sample').innerText = `N = ${aData.count}`;
+            document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
+            document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
+            renderHistory('history-home', homeMatches, true);
+            renderHistory('history-away', awayMatches, false);
 
-            renderHistory('history-home', hData.matches, true);
-            renderHistory('history-away', aData.matches, false);
+            const hStats = getTeamStats(league, local, true);
+            const aStats = getTeamStats(league, visita, false);
 
-            document.getElementById('h_gf').value = hData.fav.toFixed(2);
-            document.getElementById('h_gc').value = hData.con.toFixed(2);
-            document.getElementById('a_gf').value = aData.fav.toFixed(2);
-            document.getElementById('a_gc').value = aData.con.toFixed(2);
+            document.getElementById('h_gf').value = hStats.fav.toFixed(2);
+            document.getElementById('h_gc').value = hStats.con.toFixed(2);
+            document.getElementById('a_gf').value = aStats.fav.toFixed(2);
+            document.getElementById('a_gc').value = aStats.con.toFixed(2);
+
             calculate();
         }
 
         function renderHistory(containerId, matches, isHome) {
             const container = document.getElementById(containerId);
-            // La lista ya viene ordenada de la más reciente a la más antigua desde getTeamStats
             container.innerHTML = matches.map(m => `
                 <div class="history-item">
-                    <div class="flex flex-col">
-                        <span class="text-[7px] text-cyan-500 font-mono font-bold">${m.date}</span>
-                        <span class="text-slate-500 truncate" style="max-width: 60px">${isHome ? m.away : m.home}</span>
-                    </div>
+                    <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
                     <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
                 </div>`).join('') || '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
         }
@@ -826,7 +541,6 @@
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
-            if (h_gf === 0 || a_gf === 0) return;
             
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
@@ -842,8 +556,7 @@
                     matrixData.push({ score: `${h}-${a}`, p: p });
                 }
             }
-            const lambdaHT = (lambdaH + lambdaA) * 0.44; 
-            const over05HT = 1 - Math.exp(-lambdaHT);
+            const over05HT = 1 - Math.exp(-(lambdaH + lambdaA) * 0.44);
             
             updateMarketUI('res_ht05', 'val_ht05', over05HT);
             updateMarketUI('res_ft25', 'val_ft25', over25);
@@ -874,9 +587,7 @@
                     <td class="p-4 text-slate-500 font-mono">${(1/m.p).toFixed(2)}</td>
                     <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}"></td>
                     <td class="p-4 font-black" id="diff_${i}">--</td>
-                    <td class="p-4 text-center">
-                        <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all"><i class="fa-solid fa-share"></i> ROI</button>
-                    </td>
+                    <td class="p-4 text-center"><button class="bg-cyan-600 px-3 py-1 rounded text-black text-[10px] font-black"><i class="fa-solid fa-share"></i></button></td>
                 </tr>`).join('');
         }
 
@@ -884,10 +595,64 @@
             const oddHouse = parseFloat(input.value);
             const diffEl = document.getElementById(diffId);
             if(oddHouse > 1) {
-                const diff = probPoisson - (1 / oddHouse);
-                diffEl.innerText = (diff * 100).toFixed(1) + '%';
+                const diff = (probPoisson - (1 / oddHouse)) * 100;
+                diffEl.innerText = diff.toFixed(1) + '%';
                 diffEl.className = `p-4 font-black ${diff > 0 ? 'text-green-400' : 'text-red-400'}`;
             }
+        }
+
+        function updateLeagueSelect() {
+            const leagues = [...new Set(database.map(r => r.league))].sort();
+            document.getElementById('league_select').innerHTML = '<option value="">-- ELIGE LIGA --</option>' + leagues.map(l => `<option value="${l}">${l}</option>`).join('');
+        }
+
+        function filterTeamsByLeague() {
+            const league = document.getElementById('league_select').value;
+            const leagueMatches = database.filter(r => r.league === league);
+            const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
+            const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById('home_select').innerHTML = options;
+            document.getElementById('away_select').innerHTML = options;
+        }
+
+        function renderLeagueCheckboxes() {
+            const container = document.getElementById('league_filter_container');
+            const leagues = [...new Set(database.map(r => r.league))].sort();
+            container.innerHTML = leagues.map(liga => `
+                <div class="league-item">
+                    <input type="checkbox" value="${liga}" onchange="updateSelectedLeagues()">
+                    <span class="truncate">${liga}</span>
+                </div>`).join('');
+        }
+
+        function updateSelectedLeagues() {
+            const checkboxes = document.querySelectorAll('#league_filter_container input[type="checkbox"]');
+            selectedLeagues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            renderAutoMatches();
+        }
+
+        function renderAutoMatches() {
+            const container = document.getElementById('auto_matches_list');
+            let filtered = autoMatches;
+            if(selectedLeagues.length > 0) filtered = autoMatches.filter(m => selectedLeagues.includes(m.liga));
+            
+            container.innerHTML = filtered.map(m => `
+                <div class="bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500" onclick='selectAutoMatch(${JSON.stringify(m)})'>
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[8px] text-slate-500 font-bold uppercase">${m.liga}</span>
+                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
+                    </div>
+                    <div class="text-[11px] font-black text-white truncate">${m.home}</div>
+                    <div class="text-[11px] font-black text-white truncate">${m.away}</div>
+                </div>`).join('');
+        }
+
+        function selectAutoMatch(match) {
+            document.getElementById('league_select').value = match.liga;
+            filterTeamsByLeague();
+            document.getElementById('home_select').value = match.home;
+            document.getElementById('away_select').value = match.away;
+            loadStatsIndependent();
         }
 
         function renderMatrix(data) {
@@ -902,32 +667,11 @@
         function renderChart(h, a) {
             const ctx = document.getElementById('distChart').getContext('2d');
             if(chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'bar', data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'Local', data: h, backgroundColor: '#00f2ff' }, { label: 'Visita', data: a, backgroundColor: '#00ff88' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } } });
-        }
-
-        function sendToROI(index, market, prob) {
-            const league = document.getElementById('league_name').value || 'S/L';
-            const event = document.getElementById('event_name').value || 'Evento';
-            const odd = parseFloat(document.getElementById(`odd_${index}`).value);
-            if(!odd || odd <= 1) return alert("⚠️ Cuota no válida.");
-            let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            bets.unshift({ id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: document.getElementById(`diff_${index}`).innerText, stake: 1.0, status: 'pending', profit: 0 });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
-            alert("✅ Enviado a Panel ROI");
-        }
-
-        function goToDeepAnalysis() {
-            const data = {
-                liga: document.getElementById('league_name').value,
-                local: document.getElementById('home_select').value || 'Equipo Local',
-                visitante: document.getElementById('away_select').value || 'Equipo Visitante',
-                h_gf: document.getElementById('h_gf').value,
-                h_gc: document.getElementById('h_gc').value,
-                a_gf: document.getElementById('a_gf').value,
-                a_gc: document.getElementById('a_gc').value
-            };
-            const encodedData = btoa(JSON.stringify(data));
-            window.open(`profundo.html?d=${encodedData}`, '_blank');
+            chart = new Chart(ctx, { 
+                type: 'bar', 
+                data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'L', data: h, backgroundColor: '#00f2ff' }, { label: 'V', data: a, backgroundColor: '#00ff88' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#475569' } } } }
+            });
         }
 
         window.onload = () => { loadSavedIDs(); syncSheet(); };
