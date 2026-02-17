@@ -88,7 +88,7 @@
             font-family: 'Archivo Black', sans-serif;
             font-size: 0.7rem;
             letter-spacing: 0.15em;
-            color: #475569; /* Tono apagado para el título secundario */
+            color: #475569; 
             text-transform: uppercase;
             display: flex;
             align-items: center;
@@ -241,7 +241,14 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-chart-line"></i> Over / Under Goals FT</div>
-            <div id="m_ou_ft" class="divide-y divide-white/5"></div>
+            <div class="p-4">
+                <div class="grid grid-cols-3 text-center mb-2 px-2">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Over</span>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase text-accent-blue">FT</span>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Under</span>
+                </div>
+                <div id="m_ou_ft" class="divide-y divide-white/5"></div>
+            </div>
         </div>
 
         <div class="market-card">
@@ -349,33 +356,31 @@
                 </div>`;
             }).join('');
 
-            // Mejora Mercado Over/Under 0.5 a 3.5 agrupado
+            // Nueva Mejora Goles Formato: Over | Linea | Under
             let ouHtml = '';
             [0.5, 1.5, 2.5, 3.5].forEach(v => {
                 let overProb = 0;
                 matrix.forEach((row, h) => row.forEach((p, a) => { if(h+a > v) overProb += p; }));
                 let underProb = 1 - overProb;
                 
-                // Helper para colores
                 const getStyle = (p) => p >= 0.60 ? {c:'color-high', b:'bg-high'} : (p >= 0.40 ? {c:'color-mid', b:'bg-mid'} : {c:'color-low', b:'bg-low'});
                 const sO = getStyle(overProb);
                 const sU = getStyle(underProb);
 
                 ouHtml += `
-                <div class="odds-row flex flex-col sm:flex-row gap-2 py-3">
-                    <div class="flex items-center justify-between w-full">
-                        <span class="label-bet">Over ${v} FT</span>
-                        <div class="flex items-center">
-                            <span class="value-perc ${sO.c}">${(overProb*100).toFixed(1)}%</span>
-                            <span class="value-odd ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
-                        </div>
+                <div class="grid grid-cols-3 items-center py-3 border-b border-white/5">
+                    <div class="flex flex-col items-center">
+                        <span class="value-perc ${sO.c} text-sm">${(overProb*100).toPrecision(2)}%</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
                     </div>
-                    <div class="flex items-center justify-between w-full border-t border-white/5 sm:border-t-0 pt-2 sm:pt-0">
-                        <span class="label-bet">Under ${v} FT</span>
-                        <div class="flex items-center">
-                            <span class="value-perc ${sU.c}">${(underProb*100).toFixed(1)}%</span>
-                            <span class="value-odd ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
-                        </div>
+                    
+                    <div class="text-center">
+                        <span class="text-slate-200 font-black text-lg">${v}</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <span class="value-perc ${sU.c} text-sm">${(underProb*100).toPrecision(2)}%</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
                     </div>
                 </div>`;
             });
