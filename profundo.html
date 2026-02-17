@@ -18,8 +18,9 @@
             --prob-mid: #d4a017;    
             --prob-low: #c0392b;    
             --border: rgba(255, 255, 255, 0.05);
-            --text-main: #cbd5e1;   
-            --text-titles: #f8fafc;
+            --text-main: #94a3b8;   
+            --text-titles: #cbd5e1;
+            --glass: rgba(255, 255, 255, 0.01);
         }
         
         body { 
@@ -42,12 +43,15 @@
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid rgba(0, 138, 148, 0.2);
             color: var(--accent-blue);
-            padding: 10px 20px;
+            padding: 8px 18px;
             border-radius: 6px;
-            font-weight: 700;
-            font-size: 0.9rem;
+            font-weight: 600;
+            font-size: 0.8rem;
             text-transform: uppercase;
             backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .bet-header {
@@ -66,10 +70,10 @@
         }
 
         .market-title {
-            padding: 16px 20px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--border);
             font-family: 'Archivo Black', sans-serif;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             letter-spacing: 0.15em;
             color: #64748b; 
             text-transform: uppercase;
@@ -82,15 +86,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
+            padding: 14px 18px; /* Aumentado padding */
             border-bottom: 1px solid rgba(255,255,255,0.02);
         }
 
-        /* ETIQUETAS ESTÁNDAR 16PX */
+        /* ETIQUETAS A 16PX (text-base) */
         .label-bet {
-            color: #94a3b8;
+            color: #cbd5e1;
             font-weight: 600;
-            font-size: 1rem; /* 16px */
+            font-size: 1rem; 
         }
 
         .color-high { color: var(--prob-high) !important; }
@@ -101,26 +105,27 @@
         .bg-mid { background: #451a03 !important; color: #fbbf24 !important; }
         .bg-low { background: #450a0a !important; color: #f87171 !important; }
 
-        /* PORCENTAJES MÁS GRANDES */
+        /* PORCENTAJES MÁS GRANDES Y LEGIBLES */
         .value-perc {
             font-weight: 800;
-            font-size: 1.5rem; /* Aumentado sustancialmente */
-            letter-spacing: 0.01em;
+            font-size: 1.4rem; 
+            letter-spacing: 0.02em;
         }
 
         .value-odd {
-            padding: 6px 14px;
+            padding: 4px 10px;
             border-radius: 4px;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            margin-left: 14px;
-            min-width: 65px;
+            margin-left: 12px;
+            min-width: 55px;
             text-align: center;
         }
 
+        /* MEJORA EN SCORE BOXES */
         .score-box {
             background: rgba(0,0,0,0.3);
-            padding: 14px 10px;
+            padding: 12px 8px;
             text-align: center;
             border-radius: 6px;
             border: 1px solid var(--border);
@@ -128,16 +133,16 @@
 
         .grid-markets { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); 
-            gap: 24px; 
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); 
+            gap: 20px; 
         }
 
         .badge-live {
             color: #ef4444;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 800;
             border: 1px solid #ef4444;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 4px;
             animation: pulse 3s infinite;
         }
@@ -158,17 +163,21 @@
                     <span class="badge-live">LIVE ANALYTICS</span>
                     <p id="league_badge" class="text-slate-500 font-bold text-sm tracking-widest uppercase">---</p>
                 </div>
-                <h1 id="match_title" class="text-4xl md:text-6xl font-extrabold uppercase text-slate-100 tracking-tight">
+                <h1 id="match_title" class="text-3xl md:text-5xl font-extrabold uppercase text-slate-200 tracking-tight">
                     CALCULATING...
                 </h1>
             </div>
             
             <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-6 bg-black/40 p-6 border border-white/5 rounded-xl">
+                <div class="flex items-center gap-6 bg-black/40 p-5 border border-white/5 rounded-xl">
                     <div class="text-center">
                         <span class="text-xs text-slate-500 font-bold uppercase block mb-1">Expectativa Goles</span>
-                        <span class="text-5xl font-black text-slate-200" id="avg_display">0.00 | 0.00</span>
+                        <span class="text-4xl font-black text-slate-200" id="avg_display">0.00 | 0.00</span>
                     </div>
+                </div>
+                <div class="flex justify-between px-2" id="form_container">
+                   <div class="flex gap-1" id="h_form_row"></div>
+                   <div class="flex gap-1" id="a_form_row"></div>
                 </div>
             </div>
         </div>
@@ -190,16 +199,16 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-th-large"></i> Score Matrix</div>
-            <div id="m_matrix" class="grid grid-cols-6 gap-3 p-5 auto-rows-min"></div>
+            <div id="m_matrix" class="grid grid-cols-6 gap-3 p-4 auto-rows-min"></div>
         </div>
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-chart-line"></i> Over / Under Goals FT</div>
-            <div class="p-6">
+            <div class="p-5">
                 <div class="grid grid-cols-3 text-center mb-4 px-2">
-                    <span class="text-sm font-bold text-slate-400 uppercase">Over</span>
-                    <span class="text-sm font-bold text-slate-400 uppercase text-accent-blue tracking-widest">LÍNEA</span>
-                    <span class="text-sm font-bold text-slate-400 uppercase">Under</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase">Over</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase text-accent-blue">LÍNEA</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase">Under</span>
                 </div>
                 <div id="m_ou_ft" class="divide-y divide-white/5"></div>
             </div>
@@ -207,10 +216,10 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-home"></i> Home Performance</div>
-            <div class="p-6">
-                <div id="m_ou_h" class="space-y-3"></div>
-                <div class="mt-6 pt-6 border-t border-white/5">
-                    <span class="text-sm font-bold text-slate-500 block mb-4 uppercase tracking-wider">Score at least 1?</span>
+            <div class="p-5">
+                <div id="m_ou_h" class="space-y-2"></div>
+                <div class="mt-6 pt-4 border-t border-white/5">
+                    <span class="text-xs font-bold text-slate-500 block mb-3 uppercase tracking-wider">Score at least 1?</span>
                     <div id="m_h_will_score"></div>
                 </div>
             </div>
@@ -218,10 +227,10 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-plane"></i> Away Performance</div>
-            <div class="p-6">
-                <div id="m_ou_a" class="space-y-3"></div>
-                <div class="mt-6 pt-6 border-t border-white/5">
-                    <span class="text-sm font-bold text-slate-500 block mb-4 uppercase tracking-wider">Score at least 1?</span>
+            <div class="p-5">
+                <div id="m_ou_a" class="space-y-2"></div>
+                <div class="mt-6 pt-4 border-t border-white/5">
+                    <span class="text-xs font-bold text-slate-500 block mb-3 uppercase tracking-wider">Score at least 1?</span>
                     <div id="m_a_will_score"></div>
                 </div>
             </div>
@@ -229,7 +238,7 @@
     </main>
 
     <footer class="mt-12 pb-10 text-center">
-        <p class="text-sm font-bold text-slate-600 uppercase tracking-[0.3em]">
+        <p class="text-xs font-bold text-slate-700 uppercase tracking-[0.3em]">
             &copy; 2026 BETAGS | Clean Data Interface
         </p>
     </footer>
@@ -279,21 +288,16 @@
             const topScore = flatScores[0];
             const otherScores = flatScores.slice(1, 13);
             
-            // MATRIX AJUSTADA: MOST LIKELY Y RESULTADOS SECUNDARIOS MÁS GRANDES
+            // MOST LIKELY Y RESULTADOS SECUNDARIOS AUMENTADOS
             let matrixHtml = `
-                <div class="col-span-2 row-span-2 bg-accent-blue/20 border-2 border-accent-blue/40 rounded-lg p-5 flex flex-col justify-center items-center shadow-2xl">
-                    <div class="text-xs font-black text-accent-blue mb-2 uppercase tracking-[0.2em]">MOST LIKELY</div>
-                    <div class="text-5xl font-black text-white mb-1">${topScore.score}</div>
+                <div class="col-span-2 row-span-2 bg-accent-blue/10 border-2 border-accent-blue/30 rounded-lg p-5 flex flex-col justify-center items-center shadow-lg">
+                    <div class="text-xs font-bold text-accent-blue mb-1 uppercase tracking-widest">Most Likely</div>
+                    <div class="text-4xl font-black text-slate-100">${topScore.score}</div>
                     <div class="text-2xl font-black color-high">${(topScore.p*100).toFixed(1)}%</div>
                 </div>`;
-            
             matrixHtml += otherScores.map(s => {
                 let colorClass = s.p > 0.10 ? 'color-high' : (s.p > 0.07 ? 'color-mid' : 'color-low');
-                return `
-                <div class="score-box col-span-1">
-                    <div class="text-sm font-bold text-slate-400 mb-1 tracking-tight">${s.score}</div>
-                    <div class="text-lg ${colorClass} font-black">${(s.p*100).toFixed(1)}%</div>
-                </div>`;
+                return `<div class="score-box col-span-1"><div class="text-xs font-bold text-slate-500 mb-1">${s.score}</div><div class="text-sm ${colorClass} font-black">${(s.p*100).toFixed(1)}%</div></div>`;
             }).join('');
             matrixContainer.innerHTML = matrixHtml;
 
@@ -305,12 +309,12 @@
                 const getStyle = (p) => p >= 0.60 ? {c:'color-high', b:'bg-high'} : (p >= 0.40 ? {c:'color-mid', b:'bg-mid'} : {c:'color-low', b:'bg-low'});
                 const sO = getStyle(overProb); const sU = getStyle(underProb);
                 ouHtml += `
-                <div class="grid grid-cols-3 items-center py-5 border-b border-white/5">
+                <div class="grid grid-cols-3 items-center py-4 border-b border-white/5">
                     <div class="flex flex-col items-center">
                         <span class="value-perc ${sO.c}">${(overProb*100).toFixed(1)}%</span>
                         <span class="value-odd ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
                     </div>
-                    <div class="text-center"><span class="text-white font-black text-3xl">${v}</span></div>
+                    <div class="text-center"><span class="text-slate-100 font-black text-2xl">${v}</span></div>
                     <div class="flex flex-col items-center">
                         <span class="value-perc ${sU.c}">${(underProb*100).toFixed(1)}%</span>
                         <span class="value-odd ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
@@ -338,14 +342,7 @@
                 let colorClass = 'color-low', bgClass = 'bg-low';
                 if(i.p >= 0.60) { colorClass = 'color-high'; bgClass = 'bg-high'; }
                 else if(i.p >= 0.40) { colorClass = 'color-mid'; bgClass = 'bg-mid'; }
-                return `
-                <div class="odds-row">
-                    <span class="label-bet">${i.lab}</span>
-                    <div class="flex items-center">
-                        <span class="value-perc ${colorClass}">${(i.p*100).toFixed(1)}%</span>
-                        <span class="value-odd ${bgClass}">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span>
-                    </div>
-                </div>`;
+                return `<div class="odds-row"><span class="label-bet">${i.lab}</span><div class="flex items-center"><span class="value-perc ${colorClass}">${(i.p*100).toFixed(1)}%</span><span class="value-odd ${bgClass}">${i.p > 0.01 ? (1/i.p).toFixed(2) : '---'}</span></div></div>`;
             }).join('');
         }
         window.onload = init;
