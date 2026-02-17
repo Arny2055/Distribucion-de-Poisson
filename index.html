@@ -49,7 +49,6 @@
         .market-row { border-bottom: 1px solid var(--sl-border); transition: background 0.3s; }
         .market-row:hover { background: rgba(255,255,255,0.02); }
 
-        /* --- BOTONES REDISEÑADOS --- */
         .btn-primary {
             background: #0ea5e9;
             color: #000;
@@ -83,7 +82,6 @@
             box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
             transform: translateY(-1px);
         }
-        /* -------------------------- */
 
         .badge-value {
             background: rgba(0, 255, 136, 0.1);
@@ -130,7 +128,6 @@
             font-size: 11px;
         }
 
-        /* Value Alertas */
         .card-value-high {
             border: 1px solid var(--sl-gold) !important;
             box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
@@ -154,7 +151,6 @@
             text-transform: uppercase;
         }
 
-        /* Estilo para el scanner de automatización */
         .scanner-active {
             border: 1px solid var(--sl-accent);
             animation: pulse-border 2s infinite;
@@ -165,7 +161,6 @@
             100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
         }
 
-        /* Config Panel */
         #config_panel {
             display: none;
             position: absolute;
@@ -177,7 +172,6 @@
             overflow-y: auto;
         }
 
-        /* --- NUEVOS INDICADORES VISUALES --- */
         .status-indicator {
             display: flex;
             align-items: center;
@@ -203,7 +197,6 @@
             box-shadow: 0 0 5px rgba(0, 242, 255, 0.3) !important;
         }
 
-        /* Estilos Filtro de Ligas */
         .league-filter-box {
             background: #05070a;
             border: 1px solid var(--sl-border);
@@ -578,10 +571,22 @@
                     const statsRes = await fetch(statsUrl);
                     const statsText = await statsRes.text();
                     const statsJson = JSON.parse(statsText.substr(47).slice(0, -2));
-                    database = statsJson.table.rows.map(row => ({
-                        league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
-                        gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
-                    })).filter(r => r.league);
+                    database = statsJson.table.rows.map(row => {
+                        // Lógica de separación de Local - Visita y Resultado
+                        const eventoFull = row.c[2]?.v || "";
+                        const resultadoFull = row.c[4]?.v || "0-0";
+                        
+                        const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+                        const [goalsL, goalsV] = resultadoFull.split('-').map(s => parseFloat(s.trim()));
+
+                        return {
+                            league: row.c[0]?.v, 
+                            home: homeName, 
+                            away: awayName,
+                            gl: isNaN(goalsL) ? 0 : goalsL, 
+                            gv: isNaN(goalsV) ? 0 : goalsV
+                        };
+                    }).filter(r => r.league && r.home);
                     
                     renderLeagueCheckboxes();
                 }
@@ -598,12 +603,15 @@
                 const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
 
                 autoMatches = autoJson.table.rows.map(row => {
+                    const eventoFull = row.c[3]?.v || "";
+                    const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+                    
                     const matchData = {
-                        fecha: row.c[0]?.f || row.c[0]?.v,
-                        liga: row.c[1]?.v,
-                        home: row.c[2]?.v,
-                        away: row.c[3]?.v,
-                        odd: parseFloat(row.c[4]?.v),
+                        fecha: row.c[1]?.f || row.c[1]?.v,
+                        liga: row.c[2]?.v,
+                        home: homeName,
+                        away: awayName,
+                        odd: parseFloat(row.c[0]?.v), // Ajustado según tu ejemplo: Cuota es la primera columna
                         marketSource: marketType 
                     };
                     matchData.valueEdge = detectValue(matchData, marketType);
@@ -677,9 +685,15 @@
                     const text = await res.text();
                     const json = JSON.parse(text.substr(47).slice(0, -2));
                     const results = json.table.rows.map(row => {
+                        const eventoFull = row.c[3]?.v || "";
+                        const [homeName, awayName] = eventoFull.split(' - ').map(s => s.trim());
+
                         const matchData = {
-                            fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
-                            home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
+                            fecha: row.c[1]?.f || row.c[1]?.v, 
+                            liga: row.c[2]?.v,
+                            home: homeName, 
+                            away: awayName, 
+                            odd: parseFloat(row.c[0]?.v),
                             marketLabel: m.toUpperCase().replace('_', ' '),
                             marketSource: m
                         };
@@ -853,7 +867,7 @@
             matches.forEach(m => {
                 container.innerHTML += `
                     <div class="history-item">
-                        <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
+                        <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? (m.away || "Visitante") : (m.home || "Local")}</span>
                         <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
                     </div>`;
             });
