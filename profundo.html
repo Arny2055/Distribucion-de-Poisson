@@ -338,7 +338,9 @@
                 {lab: `CS Away`, p: poisson(0, lH)}
             ], true);
 
+            // Ordenamiento aplicado: de mayor a menor probabilidad
             flatScores.sort((a,b) => b.p - a.p);
+            
             document.getElementById('m_matrix').innerHTML = flatScores.slice(0, 15).map(s => {
                 let colorClass = s.p > 0.12 ? 'color-high' : (s.p > 0.08 ? 'color-mid' : 'color-low');
                 return `
