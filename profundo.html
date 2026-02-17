@@ -236,7 +236,7 @@
 
         <div class="market-card">
             <div class="market-title"><i class="fas fa-th-large"></i> Score Matrix</div>
-            <div id="m_matrix" class="grid grid-cols-5 gap-2 p-4"></div>
+            <div id="m_matrix" class="grid grid-cols-6 gap-2 p-4 auto-rows-min"></div>
         </div>
 
         <div class="market-card">
@@ -344,19 +344,33 @@
                 {lab: `CS Away`, p: poisson(0, lH)}
             ], true);
 
-            // Ordenamiento Score Matrix: Mayor a Menor
+            // ACTUALIZACIÓN DE SCORE MATRIX FORMATO PERSONALIZADO
             flatScores.sort((a,b) => b.p - a.p);
             
-            document.getElementById('m_matrix').innerHTML = flatScores.slice(0, 15).map(s => {
-                let colorClass = s.p > 0.12 ? 'color-high' : (s.p > 0.08 ? 'color-mid' : 'color-low');
+            const matrixContainer = document.getElementById('m_matrix');
+            const topScore = flatScores[0];
+            const otherScores = flatScores.slice(1, 13); // Tomamos 12 resultados más para llenar el grid
+            
+            let matrixHtml = `
+                <div class="col-span-2 row-span-2 bg-accent-blue/10 border-2 border-accent-blue/30 rounded-lg p-4 flex flex-col justify-center items-center shadow-lg shadow-cyan-900/10">
+                    <div class="text-xs font-bold text-accent-blue mb-1 uppercase tracking-widest">Most Likely</div>
+                    <div class="text-3xl font-black text-slate-100">${topScore.score}</div>
+                    <div class="text-lg font-black color-high">${(topScore.p*100).toFixed(1)}%</div>
+                </div>
+            `;
+
+            matrixHtml += otherScores.map(s => {
+                let colorClass = s.p > 0.10 ? 'color-high' : (s.p > 0.07 ? 'color-mid' : 'color-low');
                 return `
-                <div class="score-box">
+                <div class="score-box col-span-1">
                     <div class="text-[10px] font-bold text-slate-600 mb-1">${s.score}</div>
                     <div class="text-[11px] ${colorClass} font-extrabold">${(s.p*100).toFixed(1)}%</div>
                 </div>`;
             }).join('');
 
-            // Nueva Mejora Goles Formato: Over | Linea | Under
+            matrixContainer.innerHTML = matrixHtml;
+
+            // Mercado Over/Under Goals FT
             let ouHtml = '';
             [0.5, 1.5, 2.5, 3.5].forEach(v => {
                 let overProb = 0;
@@ -370,16 +384,12 @@
                 ouHtml += `
                 <div class="grid grid-cols-3 items-center py-3 border-b border-white/5">
                     <div class="flex flex-col items-center">
-                        <span class="value-perc ${sO.c} text-sm">${(overProb*100).toPrecision(2)}%</span>
+                        <span class="value-perc ${sO.c} text-sm">${(overProb*100).toFixed(1)}%</span>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded ${sO.b}">${overProb > 0.01 ? (1/overProb).toFixed(2) : '---'}</span>
                     </div>
-                    
-                    <div class="text-center">
-                        <span class="text-slate-200 font-black text-lg">${v}</span>
-                    </div>
-
+                    <div class="text-center"><span class="text-slate-200 font-black text-lg">${v}</span></div>
                     <div class="flex flex-col items-center">
-                        <span class="value-perc ${sU.c} text-sm">${(underProb*100).toPrecision(2)}%</span>
+                        <span class="value-perc ${sU.c} text-sm">${(underProb*100).toFixed(1)}%</span>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded ${sU.b}">${underProb > 0.01 ? (1/underProb).toFixed(2) : '---'}</span>
                     </div>
                 </div>`;
@@ -402,15 +412,12 @@
         function renderMarket(id, items, sort = false) {
             const container = document.getElementById(id);
             if(!container) return;
-            
             let displayItems = sort ? [...items].sort((a, b) => b.p - a.p) : items;
-
             container.innerHTML = displayItems.map(i => {
                 let colorClass = 'color-low';
                 let bgClass = 'bg-low';
                 if(i.p >= 0.60) { colorClass = 'color-high'; bgClass = 'bg-high'; }
                 else if(i.p >= 0.40) { colorClass = 'color-mid'; bgClass = 'bg-mid'; }
-
                 return `
                 <div class="odds-row">
                     <span class="label-bet">${i.lab}</span>
