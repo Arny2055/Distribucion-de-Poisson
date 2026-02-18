@@ -968,7 +968,7 @@
             markets.forEach((m, i) => {
                 const fair = (1/m.p).toFixed(2);
                 // Cuota sugerida para un 5% de valor (solo representativo)
-                const targetOdd = (1 / (m.p / 1.10)).toFixed(2);
+                const targetOdd = (1 / (m.p / 1.12)).toFixed(2);
 
                 body.innerHTML += `<tr class="market-row" id="row_${i}">
                     <td class="p-4 font-bold text-slate-300">${m.name}</td>
