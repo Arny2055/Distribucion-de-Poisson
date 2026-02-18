@@ -222,6 +222,19 @@
         }
         .league-item:hover { background: rgba(255,255,255,0.05); }
         .league-item input { width: 12px !important; height: 12px !important; cursor: pointer; }
+
+        /* Badge representativo para la cuota sugerida */
+        .target-odd-badge {
+            font-size: 8px;
+            color: var(--sl-accent);
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            padding: 1px 4px;
+            border-radius: 4px;
+            display: block;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -954,11 +967,17 @@
             body.innerHTML = '';
             markets.forEach((m, i) => {
                 const fair = (1/m.p).toFixed(2);
+                // Cuota sugerida para un 5% de valor (solo representativo)
+                const targetOdd = (1 / (m.p / 1.05)).toFixed(2);
+
                 body.innerHTML += `<tr class="market-row" id="row_${i}">
                     <td class="p-4 font-bold text-slate-300">${m.name}</td>
                     <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
                     <td class="p-4 text-slate-500 font-mono">${fair}</td>
-                    <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}"></td>
+                    <td class="p-4">
+                        <input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}">
+                        <span class="target-odd-badge">Objetivo (Value +5%): ${targetOdd}</span>
+                    </td>
                     <td class="p-4 font-black" id="diff_${i}">--</td>
                     <td class="p-4 text-center">
                         <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all">
