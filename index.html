@@ -452,7 +452,7 @@
                             <tr>
                                 <th class="p-4">Mercado Analizado</th>
                                 <th class="p-4">Probabilidad</th>
-                                <th class="p-4">Cuota Justa (-5%)</th>
+                                <th class="p-4">Cuota Justa</th>
                                 <th class="p-4">Cuota Casa</th>
                                 <th class="p-4">Δ Prob (%)</th>
                                 <th class="p-4 text-center">Acción</th>
@@ -959,28 +959,24 @@
 
         function updateMarketUI(resId, valId, p) {
             document.getElementById(resId).innerText = (p * 100).toFixed(1) + '%';
-            // MEJORA: Restar 5% directo a la probabilidad antes de calcular la cuota
-            let adjustedProb = (p * 100) - 5;
-            if(adjustedProb <= 0) adjustedProb = 0.1; // Evitar división por cero
-            document.getElementById(valId).innerText = `C. Justa: ${(100/adjustedProb).toFixed(2)}`;
+            document.getElementById(valId).innerText = `C. Justa: ${(1/p).toFixed(2)}`;
         }
 
         function renderTable(markets) {
             const body = document.getElementById('market-body');
             body.innerHTML = '';
             markets.forEach((m, i) => {
-                // MEJORA: Lógica de resta del 5% solicitada por el usuario
-                let probPercent = m.p * 100;
-                let adjustedProb = probPercent - 5;
-                if(adjustedProb <= 0) adjustedProb = 0.1;
-                const fair = (100 / adjustedProb).toFixed(2);
+                const fair = (1/m.p).toFixed(2);
+                // Cuota sugerida para un 5% de valor (solo representativo)
+                const targetOdd = (1 / (m.p / 1.05)).toFixed(2);
 
                 body.innerHTML += `<tr class="market-row" id="row_${i}">
                     <td class="p-4 font-bold text-slate-300">${m.name}</td>
-                    <td class="p-4 text-cyan-400 font-mono">${(probPercent).toFixed(1)}%</td>
+                    <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
                     <td class="p-4 text-slate-500 font-mono">${fair}</td>
                     <td class="p-4">
                         <input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}">
+                        <span class="target-odd-badge">Objetivo (Value +5%): ${targetOdd}</span>
                     </td>
                     <td class="p-4 font-black" id="diff_${i}">--</td>
                     <td class="p-4 text-center">
