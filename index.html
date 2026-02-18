@@ -259,7 +259,6 @@
                         <option value="under25">UNDER 2.5 FT</option>
                         <option value="btts_yes">BTTS YES</option>
                         <option value="btts_no">BTTS NO</option>
-                        <option value="importhtml">IMPORTHTML (D/F)</option>
                     </select>
                 </div>
                 <a href="guia.html" class="text-[10px] font-black bg-slate-800 text-cyan-400 border border-cyan-500/20 px-3 py-1 rounded hover:bg-slate-700 transition-all">
@@ -313,12 +312,6 @@
 
             <div class="space-y-2">
                 <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Próximos Partidos (Scanner)</p>
-                <div class="mb-3 p-2 bg-cyan-500/10 border border-cyan-500/20 rounded">
-                    <label class="text-[8px] uppercase text-cyan-400 font-black">Google Sheets ID (ImportHTML)</label>
-                    <input type="text" id="id_importhtml" class="w-full p-2 text-[10px] rounded" placeholder="ID para jalar (Col D y F)...">
-                    <p class="text-[6px] text-slate-500 mt-1">Extrae Local (Col D) y Visita (Col F) desde Fila 2</p>
-                </div>
-                
                 <div>
                     <label class="text-[8px] uppercase text-slate-500 font-bold">Over 0.5 HT ID</label>
                     <input type="text" id="id_over05ht" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
@@ -506,7 +499,6 @@
             under25: '',
             btts_yes: '',
             btts_no: '',
-            importhtml: '', // Nueva ID solicitada
             stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', 
             stats_all: '',
             active_stats: 'top'
@@ -531,7 +523,6 @@
                 document.getElementById('id_under25').value = SHEET_IDS.under25 || '';
                 document.getElementById('id_btts_yes').value = SHEET_IDS.btts_yes || '';
                 document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
-                document.getElementById('id_importhtml').value = SHEET_IDS.importhtml || '';
                 document.getElementById('id_stats_top').value = SHEET_IDS.stats_top || '';
                 document.getElementById('id_stats_all').value = SHEET_IDS.stats_all || '';
                 document.getElementById('active_stats_id').value = SHEET_IDS.active_stats || 'top';
@@ -544,7 +535,6 @@
             SHEET_IDS.under25 = document.getElementById('id_under25').value.trim();
             SHEET_IDS.btts_yes = document.getElementById('id_btts_yes').value.trim();
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
-            SHEET_IDS.importhtml = document.getElementById('id_importhtml').value.trim();
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
             SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
             SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
@@ -624,28 +614,14 @@
                 const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
 
                 autoMatches = autoJson.table.rows.map(row => {
-                    let matchData;
-                    
-                    // Lógica específica para ImportHTML (D y F)
-                    if(marketType === 'importhtml') {
-                         matchData = {
-                            fecha: row.c[0]?.f || "Hoy",
-                            liga: "Google Sheet",
-                            home: row.c[3]?.v, // Columna D
-                            away: row.c[5]?.v, // Columna F
-                            odd: 1.0,
-                            marketSource: 'importhtml'
-                        };
-                    } else {
-                        matchData = {
-                            fecha: row.c[0]?.f || row.c[0]?.v,
-                            liga: row.c[1]?.v,
-                            home: row.c[2]?.v,
-                            away: row.c[3]?.v,
-                            odd: parseFloat(row.c[4]?.v),
-                            marketSource: marketType 
-                        };
-                    }
+                    const matchData = {
+                        fecha: row.c[0]?.f || row.c[0]?.v,
+                        liga: row.c[1]?.v,
+                        home: row.c[2]?.v,
+                        away: row.c[3]?.v,
+                        odd: parseFloat(row.c[4]?.v),
+                        marketSource: marketType 
+                    };
                     matchData.valueEdge = detectValue(matchData, marketType);
                     return matchData;
                 }).filter(m => m.home);
@@ -661,7 +637,6 @@
         }
 
         function detectValue(match, marketType) {
-            if(marketType === 'importhtml') return 0;
             const hStats = getTeamStats(match.liga, match.home, true);
             const aStats = getTeamStats(match.liga, match.away, false);
             
@@ -695,7 +670,7 @@
         }
 
         function getTeamStats(league, team, isHome) {
-            const matches = [...database].reverse().filter(r => (league === "Google Sheet" || r.league === league) && (isHome ? r.home === team : r.away === team)).slice(0,10);
+            const matches = [...database].reverse().filter(r => r.league === league && (isHome ? r.home === team : r.away === team)).slice(0,10);
             if(matches.length === 0) return { fav:0, con:0, count:0 };
             let gf = 0, gc = 0;
             matches.forEach(m => {
@@ -707,7 +682,7 @@
 
         async function syncAllMarkets() {
             updateStatus('loading', 'Escaneando Radar...');
-            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no', 'importhtml'];
+            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
             let allResults = [];
             
             for(let m of markets) {
@@ -718,22 +693,12 @@
                     const text = await res.text();
                     const json = JSON.parse(text.substr(47).slice(0, -2));
                     const results = json.table.rows.map(row => {
-                        let matchData;
-                        if(m === 'importhtml') {
-                            matchData = {
-                                fecha: row.c[0]?.f || "Hoy", liga: "Importado",
-                                home: row.c[3]?.v, away: row.c[5]?.v, odd: 1.0,
-                                marketLabel: "MANUAL SHEET",
-                                marketSource: 'importhtml'
-                            };
-                        } else {
-                            matchData = {
-                                fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
-                                home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
-                                marketLabel: m.toUpperCase().replace('_', ' '),
-                                marketSource: m
-                            };
-                        }
+                        const matchData = {
+                            fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
+                            home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
+                            marketLabel: m.toUpperCase().replace('_', ' '),
+                            marketSource: m
+                        };
                         matchData.valueEdge = detectValue(matchData, m);
                         return matchData;
                     }).filter(r => r.home);
@@ -778,7 +743,7 @@
                     ${badge}
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-[8px] text-slate-500 font-bold uppercase">${m.marketLabel || m.liga}</span>
-                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd > 1 ? m.odd : ''}</span>
+                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
                     </div>
                     <div class="text-[11px] font-black text-white truncate">${m.home}</div>
                     <div class="text-[11px] font-black text-white truncate">${m.away}</div>
@@ -789,17 +754,9 @@
         }
 
         function selectAutoMatch(match) {
-            // Si es importado, intentamos buscar liga en la DB basada en el equipo
-            if(match.marketSource === 'importhtml') {
-                const found = database.find(r => r.home === match.home || r.away === match.home);
-                if(found) {
-                    document.getElementById('league_select').value = found.league;
-                    filterTeamsByLeague();
-                }
-            } else {
-                document.getElementById('league_select').value = match.liga;
-                filterTeamsByLeague();
-            }
+            const lSel = document.getElementById('league_select');
+            lSel.value = match.liga;
+            filterTeamsByLeague();
 
             document.getElementById('home_select').value = match.home;
             document.getElementById('away_select').value = match.away;
@@ -821,13 +778,11 @@
             else if(source === 'btts_no') targetIdx = 4;
 
             setTimeout(() => {
-                if(targetIdx >= 0) {
-                    const oddInput = document.getElementById(`odd_${targetIdx}`);
-                    if(oddInput) {
-                        oddInput.value = match.odd;
-                        const event = new Event('input', { bubbles: true });
-                        oddInput.dispatchEvent(event);
-                    }
+                const oddInput = document.getElementById(`odd_${targetIdx}`);
+                if(oddInput) {
+                    oddInput.value = match.odd;
+                    const event = new Event('input', { bubbles: true });
+                    oddInput.dispatchEvent(event);
                 }
             }, 600);
         }
@@ -843,6 +798,7 @@
                              leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
+        // FUNCION PARA FILTRAR EL SELECT DESDE EL BUSCADOR
         function filterLeagueOptions() {
             const searchText = document.getElementById('league_search').value.toLowerCase();
             const lSel = document.getElementById('league_select');
@@ -887,16 +843,16 @@
             
             if(!local || !visita) return;
 
-            document.getElementById('league_name').value = league || "Manual";
+            document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
             const dbReversed = [...database].reverse();
 
-            const homeMatches = dbReversed.filter(r => (league ? r.league === league : true) && r.home === local).slice(0, 10);
+            const homeMatches = dbReversed.filter(r => r.league === league && r.home === local).slice(0, 10);
             document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
             renderHistory('history-home', homeMatches, true);
 
-            const awayMatches = dbReversed.filter(r => (league ? r.league === league : true) && r.away === visita).slice(0, 10);
+            const awayMatches = dbReversed.filter(r => r.league === league && r.away === visita).slice(0, 10);
             document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
             renderHistory('history-away', awayMatches, false);
 
@@ -947,7 +903,7 @@
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
             
-            if (h_gf === 0 && a_gf === 0) {
+            if (h_gf === 0 || a_gf === 0) {
                 updateStatus('active', 'Esperando datos...');
                 return;
             }
@@ -1011,6 +967,7 @@
             body.innerHTML = '';
             markets.forEach((m, i) => {
                 const fair = (1/m.p).toFixed(2);
+                // Cuota sugerida para un 5% de valor (solo representativo)
                 const targetOdd = (1 / (m.p / 1.12)).toFixed(2);
 
                 body.innerHTML += `<tr class="market-row" id="row_${i}">
