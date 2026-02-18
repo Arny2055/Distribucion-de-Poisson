@@ -116,7 +116,21 @@
             padding: 1px 4px;
             border-radius: 3px;
             border: 1px solid rgba(0, 242, 255, 0.2);
+            transition: all 0.3s ease;
         }
+
+        /* --- MEJORA: COLORES PATRULLA --- */
+        .patrol-alert {
+            animation: patrol 0.6s infinite alternate;
+            border-color: red !important;
+            font-weight: bold;
+        }
+
+        @keyframes patrol {
+            0% { background-color: rgba(255, 0, 0, 0.8); color: white; box-shadow: 0 0 10px red; }
+            100% { background-color: rgba(0, 0, 255, 0.8); color: white; box-shadow: 0 0 10px blue; }
+        }
+        /* ------------------------------ */
 
         .history-item {
             background: rgba(0,0,0,0.2);
@@ -849,11 +863,28 @@
             const dbReversed = [...database].reverse();
 
             const homeMatches = dbReversed.filter(r => r.league === league && r.home === local).slice(0, 10);
-            document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
-            renderHistory('history-home', homeMatches, true);
+            
+            // --- MEJORA: APLICAR INDICADOR VISUAL SI N != 10 ---
+            const homeBadge = document.getElementById('home_sample');
+            homeBadge.innerText = `N = ${homeMatches.length}`;
+            if(homeMatches.length !== 10) {
+                homeBadge.classList.add('patrol-alert');
+            } else {
+                homeBadge.classList.remove('patrol-alert');
+            }
 
             const awayMatches = dbReversed.filter(r => r.league === league && r.away === visita).slice(0, 10);
-            document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
+            
+            const awayBadge = document.getElementById('away_sample');
+            awayBadge.innerText = `N = ${awayMatches.length}`;
+            if(awayMatches.length !== 10) {
+                awayBadge.classList.add('patrol-alert');
+            } else {
+                awayBadge.classList.remove('patrol-alert');
+            }
+            // ------------------------------------------------
+
+            renderHistory('history-home', homeMatches, true);
             renderHistory('history-away', awayMatches, false);
 
             const getStats = (matches, isHome) => {
