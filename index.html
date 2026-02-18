@@ -222,16 +222,6 @@
         }
         .league-item:hover { background: rgba(255,255,255,0.05); }
         .league-item input { width: 12px !important; height: 12px !important; cursor: pointer; }
-        
-        /* Estilo específico para el buscador de ligas */
-        .search-league-input {
-            background-color: rgba(255,255,255,0.03) !important;
-            border-bottom: 1px solid var(--sl-border) !important;
-            border-top: none !important;
-            border-left: none !important;
-            border-right: none !important;
-            border-radius: 0 !important;
-        }
     </style>
 </head>
 <body>
@@ -351,7 +341,9 @@
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">1. Elegir Liga</span>
                     <span id="league_count" class="match-counter"><i class="fa-solid fa-database text-[8px]"></i> 0 Partidos</span>
                 </div>
-                <input type="text" id="league_search" onkeyup="filterLeagueSelect()" placeholder="🔍 Buscar liga..." class="p-2 text-[10px] search-league-input mb-1">
+                <div class="relative">
+                    <input type="text" id="league_search" oninput="filterLeagueOptions()" placeholder="🔍 Buscar liga..." class="w-full p-1 text-[10px] rounded mb-1 bg-black border-slate-700">
+                </div>
                 <select id="league_select" onchange="filterTeamsByLeague()" class="p-2 rounded text-xs auto-select">
                     <option value="">Cargando ligas...</option>
                 </select>
@@ -792,22 +784,21 @@
             lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                              leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
-        
-        // --- FUNCIÓN AGREGADA: Filtro del buscador de ligas ---
-        function filterLeagueSelect() {
-            const input = document.getElementById('league_search');
-            const filter = input.value.toUpperCase();
-            const select = document.getElementById('league_select');
-            const options = select.getElementsByTagName('option');
 
-            for (let i = 0; i < options.length; i++) {
-                const txtValue = options[i].textContent || options[i].innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1 || options[i].value === "") {
-                    options[i].style.display = "";
-                } else {
-                    options[i].style.display = "none";
-                }
+        // FUNCION PARA FILTRAR EL SELECT DESDE EL BUSCADOR
+        function filterLeagueOptions() {
+            const searchText = document.getElementById('league_search').value.toLowerCase();
+            const lSel = document.getElementById('league_select');
+            
+            let leagues = [...new Set(database.map(r => r.league))];
+            if(selectedLeagues.length > 0) {
+                leagues = leagues.filter(l => selectedLeagues.includes(l));
             }
+
+            const filteredLeagues = leagues.filter(l => l.toLowerCase().includes(searchText));
+            
+            lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
+                             filteredLeagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
         function filterTeamsByLeague() {
