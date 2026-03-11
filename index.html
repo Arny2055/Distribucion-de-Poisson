@@ -49,7 +49,6 @@
         .market-row { border-bottom: 1px solid var(--sl-border); transition: background 0.3s; }
         .market-row:hover { background: rgba(255,255,255,0.02); }
 
-        /* --- BOTONES REDISEÑADOS --- */
         .btn-primary {
             background: #0ea5e9;
             color: #000;
@@ -83,7 +82,6 @@
             box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
             transform: translateY(-1px);
         }
-        /* -------------------------- */
 
         .badge-value {
             background: rgba(0, 255, 136, 0.1);
@@ -119,7 +117,6 @@
             transition: all 0.3s ease;
         }
 
-        /* --- MEJORA: COLORES PATRULLA --- */
         .patrol-alert {
             animation: patrol 0.6s infinite alternate;
             border-color: red !important;
@@ -130,7 +127,6 @@
             0% { background-color: rgba(255, 0, 0, 0.8); color: white; box-shadow: 0 0 10px red; }
             100% { background-color: rgba(0, 0, 255, 0.8); color: white; box-shadow: 0 0 10px blue; }
         }
-        /* ------------------------------ */
 
         .history-item {
             background: rgba(0,0,0,0.2);
@@ -144,7 +140,6 @@
             font-size: 11px;
         }
 
-        /* Value Alertas */
         .card-value-high {
             border: 1px solid var(--sl-gold) !important;
             box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
@@ -168,18 +163,6 @@
             text-transform: uppercase;
         }
 
-        /* Estilo para el scanner de automatización */
-        .scanner-active {
-            border: 1px solid var(--sl-accent);
-            animation: pulse-border 2s infinite;
-        }
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
-        }
-
-        /* Config Panel */
         #config_panel {
             display: none;
             position: absolute;
@@ -191,7 +174,6 @@
             overflow-y: auto;
         }
 
-        /* --- NUEVOS INDICADORES VISUALES --- */
         .status-indicator {
             display: flex;
             align-items: center;
@@ -217,7 +199,6 @@
             box-shadow: 0 0 5px rgba(0, 242, 255, 0.3) !important;
         }
 
-        /* Estilos Filtro de Ligas */
         .league-filter-box {
             background: #05070a;
             border: 1px solid var(--sl-border);
@@ -235,9 +216,7 @@
             border-bottom: 1px solid rgba(255,255,255,0.02);
         }
         .league-item:hover { background: rgba(255,255,255,0.05); }
-        .league-item input { width: 12px !important; height: 12px !important; cursor: pointer; }
 
-        /* Badge representativo para la cuota sugerida */
         .target-odd-badge {
             font-size: 8px;
             color: var(--sl-accent);
@@ -249,6 +228,16 @@
             margin-top: 4px;
             white-space: nowrap;
         }
+
+        /* ESTILO WIDGET 365SCORES */
+        #widget-container {
+            background: var(--sl-card);
+            border-radius: 12px;
+            border: 1px solid var(--sl-border);
+            min-height: 400px;
+        }
+        #powered-by { font-size: 10px; text-align: center; padding: 5px; color: #475569; }
+        #powered-by-link { color: var(--sl-accent); text-decoration: none; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -300,15 +289,9 @@
                         <label class="text-[7px] uppercase text-cyan-500 font-bold">Introduce el ID para cargar las ligas</label>
                         <input type="text" id="id_stats_top" class="w-full p-2 text-[10px] rounded" placeholder="ID Top Europa...">
                     </div>
-                    <div style="display: none;">
-                        <label class="text-[7px] uppercase text-cyan-500 font-bold">Todas las Ligas ID</label>
-                        <input type="text" id="id_stats_all" class="w-full p-2 text-[10px] rounded" placeholder="ID Global...">
-                    </div>
                     <div class="flex flex-col gap-1 mt-1" style="display: none;">
-                        <label class="text-[7px] uppercase text-slate-500 font-bold">Usar Base de Datos:</label>
                         <select id="active_stats_id" onchange="database=[]; syncSheet();" class="text-[10px] p-1 rounded">
                             <option value="top" selected>Top Ligas Europeas</option>
-                            <option value="all">Todas las Ligas</option>
                         </select>
                     </div>
                 </div>
@@ -316,37 +299,11 @@
 
             <div class="bg-black/20 p-2 rounded border border-white/5">
                 <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Filtro de Ligas Activas</p>
-                <p class="text-[7px] text-slate-500 mb-2 uppercase">Si no marcas ninguna, se usan todas por defecto</p>
                 <div id="league_filter_container" class="league-filter-box">
                     <p class="text-[9px] text-slate-600 p-2 italic text-center">Cargando ligas de la DB...</p>
                 </div>
             </div>
 
-            <hr class="border-white/5">
-
-            <div class="space-y-2">
-                <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Próximos Partidos (Scanner)</p>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Over 0.5 HT ID</label>
-                    <input type="text" id="id_over05ht" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Over 2.5 FT ID</label>
-                    <input type="text" id="id_over25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">Under 2.5 FT ID</label>
-                    <input type="text" id="id_under25" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS YES ID</label>
-                    <input type="text" id="id_btts_yes" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-                <div>
-                    <label class="text-[8px] uppercase text-slate-500 font-bold">BTTS NO ID</label>
-                    <input type="text" id="id_btts_no" class="w-full p-2 text-[10px] rounded" placeholder="ID del Excel...">
-                </div>
-            </div>
             <button onclick="saveIDs()" class="w-full btn-primary py-2 rounded text-[10px]">Guardar Configuración</button>
         </div>
     </div>
@@ -399,13 +356,11 @@
             <div class="lg:col-span-4 space-y-4">
                 <div class="scorelab-card p-5">
                     <h2 class="text-[10px] font-black text-cyan-500 uppercase mb-4 tracking-widest"><i class="fa-solid fa-database mr-2"></i>Data Entry</h2>
-                    
                     <div class="grid grid-cols-1 gap-4">
                         <div class="grid grid-cols-2 gap-2">
                             <input type="text" id="league_name" placeholder="LIGA" class="p-2 text-xs rounded uppercase font-bold text-cyan-400">
                             <input type="text" id="event_name" placeholder="EVENTO" class="p-2 text-xs rounded uppercase font-bold text-cyan-400">
                         </div>
-
                         <div class="space-y-2">
                             <label class="text-[9px] uppercase font-bold text-slate-400">Local Casa: GF Favor / GC Contra</label>
                             <div class="grid grid-cols-2 gap-2">
@@ -413,7 +368,6 @@
                                 <input type="number" id="h_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
                             </div>
                         </div>
-
                         <div class="space-y-2">
                             <label class="text-[9px] uppercase font-bold text-slate-400">Visita Fuera: GF Favor / GC Contra</label>
                             <div class="grid grid-cols-2 gap-2">
@@ -421,23 +375,19 @@
                                 <input type="number" id="a_gc" step="0.01" placeholder="GC" class="p-3 rounded-lg text-center">
                             </div>
                         </div>
-
                         <div class="grid grid-cols-2 gap-3 mt-2">
-                             <button onclick="calculate()" class="btn-primary py-3 rounded-lg active:scale-95 text-[11px]">
-                                Analizar
-                            </button>
-                            <button onclick="goToDeepAnalysis()" class="btn-depth py-3 rounded-lg active:scale-95 text-[11px]">
-                                <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Profundo
-                            </button>
+                             <button onclick="calculate()" class="btn-primary py-3 rounded-lg active:scale-95 text-[11px]">Analizar</button>
+                            <button onclick="goToDeepAnalysis()" class="btn-depth py-3 rounded-lg active:scale-95 text-[11px]"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Profundo</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="scorelab-card p-5 overflow-hidden">
-                    <h2 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">Distribución de Probabilidad</h2>
-                    <div class="h-48">
-                        <canvas id="distChart"></canvas>
+                <div id="widget-container" class="p-2">
+                    <h2 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest text-center">Tabla de Clasificación</h2>
+                    <div id="scores-365-widget">
+                        <p class="text-[9px] text-slate-600 text-center py-10 italic">Selecciona una liga para ver posiciones</p>
                     </div>
+                    <div id="powered-by" style="display:none">Provisto por<a id="powered-by-link" href="https://www.365scores.com/es-mx" target="_blank">365Scores.com</a></div>
                 </div>
             </div>
 
@@ -499,6 +449,8 @@
         </div>
     </main>
 
+    <script src="https://widgets.365scores.com/main.js"></script>
+
     <script>
         let chart;
         let database = [];
@@ -507,23 +459,28 @@
         const STORAGE_KEY = 'betags_pre_match';
         const IDS_KEY = 'betags_sheet_ids';
         
+        // Mapeo de Ligas para el Widget de 365Scores (Añadir IDs según sea necesario)
+        const LEAGUE_WIDGET_IDS = {
+            "PREMIER LEAGUE": "7",
+            "LALIGA": "11",
+            "SERIE A": "13",
+            "BUNDESLIGA": "9",
+            "LIGUE 1": "15",
+            "EREDIVISIE": "45",
+            "LIGA MX": "194",
+            "MLS": "242",
+            "CHAMPIONS LEAGUE": "572"
+        };
+
         let SHEET_IDS = {
-            over05ht: '',
-            over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6',
-            under25: '',
-            btts_yes: '',
-            btts_no: '',
-            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', 
-            stats_all: '',
-            active_stats: 'top'
+            over05ht: '', over25: '1BfAXMV6EHLEz3CJ2lAZO6spHJUXQ-mh6', under25: '', btts_yes: '', btts_no: '',
+            stats_top: '1DYUN8_Gr80v6bpj3T2k9Ga2Bg1ZwHYtO', stats_all: '', active_stats: 'top'
         };
 
         function updateStatus(state, message) {
             const led = document.getElementById('status_led');
             const txt = document.getElementById('status_text');
-            led.className = 'led-puck';
-            txt.innerText = message;
-            
+            led.className = 'led-puck'; txt.innerText = message;
             if(state === 'loading') led.classList.add('led-loading');
             if(state === 'active') led.classList.add('led-active');
         }
@@ -538,8 +495,6 @@
                 document.getElementById('id_btts_yes').value = SHEET_IDS.btts_yes || '';
                 document.getElementById('id_btts_no').value = SHEET_IDS.btts_no || '';
                 document.getElementById('id_stats_top').value = SHEET_IDS.stats_top || '';
-                document.getElementById('id_stats_all').value = SHEET_IDS.stats_all || '';
-                document.getElementById('active_stats_id').value = SHEET_IDS.active_stats || 'top';
             }
         }
 
@@ -550,15 +505,10 @@
             SHEET_IDS.btts_yes = document.getElementById('id_btts_yes').value.trim();
             SHEET_IDS.btts_no = document.getElementById('id_btts_no').value.trim();
             SHEET_IDS.stats_top = document.getElementById('id_stats_top').value.trim();
-            SHEET_IDS.stats_all = document.getElementById('id_stats_all').value.trim();
-            SHEET_IDS.active_stats = document.getElementById('active_stats_id').value;
-            
             localStorage.setItem(IDS_KEY, JSON.stringify(SHEET_IDS));
             alert("✅ Configuración guardada.");
             toggleConfig();
-            
-            database = []; 
-            syncSheet();
+            database = []; syncSheet();
         }
 
         function toggleConfig() {
@@ -566,41 +516,10 @@
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
-        function renderLeagueCheckboxes() {
-            const container = document.getElementById('league_filter_container');
-            const leagues = [...new Set(database.map(r => r.league))].sort();
-            
-            if(leagues.length === 0) {
-                container.innerHTML = '<p class="text-[9px] text-slate-600 p-2 italic text-center">No hay datos</p>';
-                return;
-            }
-
-            container.innerHTML = leagues.map(liga => `
-                <div class="league-item">
-                    <input type="checkbox" value="${liga}" onchange="updateSelectedLeagues()" ${selectedLeagues.includes(liga) ? 'checked' : ''}>
-                    <span class="truncate">${liga}</span>
-                </div>
-            `).join('');
-        }
-
-        function updateSelectedLeagues() {
-            const checkboxes = document.querySelectorAll('#league_filter_container input[type="checkbox"]');
-            selectedLeagues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            updateLeagueSelect();
-            renderAutoMatches(); 
-        }
-
         async function syncSheet() {
             updateStatus('loading', 'Sincronizando...');
-            const marketType = document.getElementById('market_auto_select').value;
-            const currentSheetID = SHEET_IDS[marketType];
-            const activeStatsID = SHEET_IDS.active_stats === 'top' ? SHEET_IDS.stats_top : SHEET_IDS.stats_all;
-
-            if(!activeStatsID) {
-                alert("⚠️ Por favor configura el ID de la Base de Datos (Stats) en el botón IDS.");
-                updateStatus('standby', 'Sin Base de Datos');
-                return;
-            }
+            const activeStatsID = SHEET_IDS.stats_top;
+            if(!activeStatsID) { updateStatus('standby', 'Sin Base de Datos'); return; }
 
             try {
                 if(database.length === 0) {
@@ -612,238 +531,48 @@
                         league: row.c[0]?.v, home: row.c[2]?.v, away: row.c[3]?.v,
                         gl: parseFloat(row.c[4]?.v || 0), gv: parseFloat(row.c[5]?.v || 0)
                     })).filter(r => r.league);
-                    
-                    renderLeagueCheckboxes();
                 }
-
-                if(!currentSheetID) {
-                    updateStatus('active', 'DB Lista / Sin Mercado');
-                    updateLeagueSelect();
-                    return;
-                }
-
-                const autoUrl = `https://docs.google.com/spreadsheets/d/${currentSheetID}/gviz/tq?tqx=out:json`;
-                const autoRes = await fetch(autoUrl);
-                const autoText = await autoRes.text();
-                const autoJson = JSON.parse(autoText.substr(47).slice(0, -2));
-
-                autoMatches = autoJson.table.rows.map(row => {
-                    const matchData = {
-                        fecha: row.c[0]?.f || row.c[0]?.v,
-                        liga: row.c[1]?.v,
-                        home: row.c[2]?.v,
-                        away: row.c[3]?.v,
-                        odd: parseFloat(row.c[4]?.v),
-                        marketSource: marketType 
-                    };
-                    matchData.valueEdge = detectValue(matchData, marketType);
-                    return matchData;
-                }).filter(m => m.home);
-
-                renderAutoMatches();
                 updateLeagueSelect();
-                document.getElementById('league_count').innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
                 updateStatus('active', 'Sistema Online');
-            } catch (e) { 
-                console.error("Sheet Sync Error", e); 
-                updateStatus('standby', 'Error de Sync');
-            }
-        }
-
-        function detectValue(match, marketType) {
-            const hStats = getTeamStats(match.liga, match.home, true);
-            const aStats = getTeamStats(match.liga, match.away, false);
-            
-            if(hStats.count === 0 || aStats.count === 0) return 0;
-
-            const lambdaH = (hStats.fav + aStats.con) / 2;
-            const lambdaA = (aStats.fav + hStats.con) / 2;
-            
-            let probPoisson = 0;
-            if(marketType === 'over25' || marketType === 'under25') {
-                for(let h=0; h<7; h++) {
-                    for(let a=0; a<7; a++) {
-                        if (h + a > 2.5) probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
-                    }
-                }
-                if(marketType === 'under25') probPoisson = 1 - probPoisson;
-            } else if(marketType.startsWith('btts')) {
-                for(let h=1; h<7; h++) {
-                    for(let a=1; a<7; a++) {
-                        probPoisson += poisson(h, lambdaH) * poisson(a, lambdaA);
-                    }
-                }
-                if(marketType === 'btts_no') probPoisson = 1 - probPoisson;
-            } else if(marketType === 'over05ht') {
-                const lambdaHT = (lambdaH + lambdaA) * 0.44;
-                probPoisson = 1 - Math.exp(-lambdaHT);
-            }
-
-            const probHouse = 1 / match.odd;
-            return (probPoisson - probHouse) * 100;
-        }
-
-        function getTeamStats(league, team, isHome) {
-            const matches = [...database].reverse().filter(r => r.league === league && (isHome ? r.home === team : r.away === team)).slice(0,10);
-            if(matches.length === 0) return { fav:0, con:0, count:0 };
-            let gf = 0, gc = 0;
-            matches.forEach(m => {
-                gf += isHome ? m.gl : m.gv;
-                gc += isHome ? m.gv : m.gl;
-            });
-            return { fav: gf/matches.length, con: gc/matches.length, count: matches.length };
-        }
-
-        async function syncAllMarkets() {
-            updateStatus('loading', 'Escaneando Radar...');
-            const markets = ['over05ht', 'over25', 'under25', 'btts_yes', 'btts_no'];
-            let allResults = [];
-            
-            for(let m of markets) {
-                if(!SHEET_IDS[m]) continue;
-                try {
-                    const url = `https://docs.google.com/spreadsheets/d/${SHEET_IDS[m]}/gviz/tq?tqx=out:json`;
-                    const res = await fetch(url);
-                    const text = await res.text();
-                    const json = JSON.parse(text.substr(47).slice(0, -2));
-                    const results = json.table.rows.map(row => {
-                        const matchData = {
-                            fecha: row.c[0]?.f || row.c[0]?.v, liga: row.c[1]?.v,
-                            home: row.c[2]?.v, away: row.c[3]?.v, odd: parseFloat(row.c[4]?.v),
-                            marketLabel: m.toUpperCase().replace('_', ' '),
-                            marketSource: m
-                        };
-                        matchData.valueEdge = detectValue(matchData, m);
-                        return matchData;
-                    }).filter(r => r.home);
-                    allResults = [...allResults, ...results];
-                } catch(e) { console.error("Sync Error en " + m); }
-            }
-            autoMatches = allResults.sort((a,b) => b.valueEdge - a.valueEdge);
-            renderAutoMatches();
-            updateStatus('active', 'Radar Actualizado');
-        }
-
-        function renderAutoMatches() {
-            const container = document.getElementById('auto_matches_list');
-            container.innerHTML = '';
-            
-            let filteredMatches = autoMatches;
-            if(selectedLeagues.length > 0) {
-                filteredMatches = autoMatches.filter(m => selectedLeagues.includes(m.liga));
-            }
-
-            if(filteredMatches.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-600 p-4">Sin datos en el radar...</p>';
-                return;
-            }
-
-            filteredMatches.forEach((m, idx) => {
-                const div = document.createElement('div');
-                let valueClass = "";
-                let badge = "";
-
-                if(m.valueEdge > 10) {
-                    valueClass = "card-value-high";
-                    badge = `<span class="badge-value-hit">VALUE 🔥 +${m.valueEdge.toFixed(1)}%</span>`;
-                } else if(m.valueEdge > 5) {
-                    valueClass = "card-value-mid";
-                    badge = `<span class="badge-value-hit" style="background:#00ff88">VALUE +${m.valueEdge.toFixed(1)}%</span>`;
-                }
-
-                div.className = `bg-slate-900 border border-white/5 p-3 rounded-lg min-w-[210px] cursor-pointer hover:border-cyan-500 transition-all ${valueClass}`;
-                div.onclick = () => selectAutoMatch(m);
-                div.innerHTML = `
-                    ${badge}
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[8px] text-slate-500 font-bold uppercase">${m.marketLabel || m.liga}</span>
-                        <span class="text-[9px] text-cyan-400 font-bold">${m.odd}</span>
-                    </div>
-                    <div class="text-[11px] font-black text-white truncate">${m.home}</div>
-                    <div class="text-[11px] font-black text-white truncate">${m.away}</div>
-                    <div class="text-[8px] text-slate-600 mt-1 font-mono">${m.fecha}</div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function selectAutoMatch(match) {
-            const lSel = document.getElementById('league_select');
-            lSel.value = match.liga;
-            filterTeamsByLeague();
-
-            document.getElementById('home_select').value = match.home;
-            document.getElementById('away_select').value = match.away;
-            
-            document.querySelectorAll('.auto-select').forEach(s => s.classList.add('active-selection-ring'));
-            setTimeout(() => {
-                document.querySelectorAll('.auto-select').forEach(s => s.classList.remove('active-selection-ring'));
-            }, 2000);
-
-            loadStatsIndependent();
-
-            let targetIdx = -1;
-            const source = match.marketSource || document.getElementById('market_auto_select').value;
-            
-            if(source === 'over05ht') targetIdx = 0;
-            else if(source === 'over25') targetIdx = 1;
-            else if(source === 'under25') targetIdx = 2;
-            else if(source === 'btts_yes') targetIdx = 3;
-            else if(source === 'btts_no') targetIdx = 4;
-
-            setTimeout(() => {
-                const oddInput = document.getElementById(`odd_${targetIdx}`);
-                if(oddInput) {
-                    oddInput.value = match.odd;
-                    const event = new Event('input', { bubbles: true });
-                    oddInput.dispatchEvent(event);
-                }
-            }, 600);
+            } catch (e) { updateStatus('standby', 'Error de Sync'); }
         }
 
         function updateLeagueSelect() {
-            let leagues = [...new Set(database.map(r => r.league))];
-            if(selectedLeagues.length > 0) {
-                leagues = leagues.filter(l => selectedLeagues.includes(l));
-            }
-
+            let leagues = [...new Set(database.map(r => r.league))].sort();
             const lSel = document.getElementById('league_select');
             lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
                              leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
-        // FUNCION PARA FILTRAR EL SELECT DESDE EL BUSCADOR
         function filterLeagueOptions() {
             const searchText = document.getElementById('league_search').value.toLowerCase();
             const lSel = document.getElementById('league_select');
-            
-            let leagues = [...new Set(database.map(r => r.league))];
-            if(selectedLeagues.length > 0) {
-                leagues = leagues.filter(l => selectedLeagues.includes(l));
-            }
-
-            const filteredLeagues = leagues.filter(l => l.toLowerCase().includes(searchText));
-            
+            let leagues = [...new Set(database.map(r => r.league))].filter(l => l.toLowerCase().includes(searchText));
             lSel.innerHTML = '<option value="">-- ELIGE LIGA --</option>' + 
-                             filteredLeagues.map(l => `<option value="${l}">${l}</option>`).join('');
+                             leagues.map(l => `<option value="${l}">${l}</option>`).join('');
         }
 
+        // --- MEJORA: INYECCIÓN DE WIDGET ---
         function filterTeamsByLeague() {
             const league = document.getElementById('league_select').value;
             const hSel = document.getElementById('home_select');
             const aSel = document.getElementById('away_select');
-            const counter = document.getElementById('league_count');
 
-            if(!league) {
-                counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${database.length} Total`;
-                hSel.innerHTML = '<option value="">Liga primero</option>';
-                aSel.innerHTML = '<option value="">Liga primero</option>';
-                return;
+            if(!league) return;
+
+            // Inyectar Widget de 365Scores
+            const widgetId = LEAGUE_WIDGET_IDS[league.toUpperCase()] || "7"; // ID 7 es PL por defecto
+            const widgetContainer = document.getElementById('scores-365-widget');
+            
+            widgetContainer.innerHTML = `<div data-widget-type="entityStandings" data-entity-type="league" data-entity-id="${widgetId}" data-lang="es-419" data-widget-id="77a71e36-8916-49a1-bbe7-3a1d6352c87b"></div>`;
+            document.getElementById('powered-by').style.display = 'block';
+            
+            // Re-ejecutar el script de 365 para que detecte el nuevo div inyectado
+            if(window._365scores && typeof window._365scores.renderWidgets === 'function'){
+                window._365scores.renderWidgets();
             }
 
             const leagueMatches = database.filter(r => r.league === league);
-            counter.innerHTML = `<i class="fa-solid fa-database text-[8px]"></i> ${leagueMatches.length} Partidos`;
-
             const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])].sort();
             const options = '<option value="">-- EQUIPO --</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
             hSel.innerHTML = options;
@@ -854,90 +583,52 @@
             const league = document.getElementById('league_select').value;
             const local = document.getElementById('home_select').value;
             const visita = document.getElementById('away_select').value;
-            
             if(!local || !visita) return;
 
             document.getElementById('league_name').value = league;
             document.getElementById('event_name').value = `${local} vs ${visita}`;
 
             const dbReversed = [...database].reverse();
-
             const homeMatches = dbReversed.filter(r => r.league === league && r.home === local).slice(0, 10);
-            
-            // --- MEJORA: APLICAR INDICADOR VISUAL SI N != 10 ---
-            const homeBadge = document.getElementById('home_sample');
-            homeBadge.innerText = `N = ${homeMatches.length}`;
-            if(homeMatches.length !== 10) {
-                homeBadge.classList.add('patrol-alert');
-            } else {
-                homeBadge.classList.remove('patrol-alert');
-            }
-
             const awayMatches = dbReversed.filter(r => r.league === league && r.away === visita).slice(0, 10);
             
-            const awayBadge = document.getElementById('away_sample');
-            awayBadge.innerText = `N = ${awayMatches.length}`;
-            if(awayMatches.length !== 10) {
-                awayBadge.classList.add('patrol-alert');
-            } else {
-                awayBadge.classList.remove('patrol-alert');
-            }
-            // ------------------------------------------------
+            document.getElementById('home_sample').innerText = `N = ${homeMatches.length}`;
+            document.getElementById('away_sample').innerText = `N = ${awayMatches.length}`;
 
             renderHistory('history-home', homeMatches, true);
             renderHistory('history-away', awayMatches, false);
 
             const getStats = (matches, isHome) => {
-                if(matches.length === 0) return { fav: 0, con: 0 };
                 let gf = 0, gc = 0;
-                matches.forEach(m => {
-                    gf += isHome ? m.gl : m.gv;
-                    gc += isHome ? m.gv : m.gl;
-                });
-                return { fav: (gf / matches.length).toFixed(2), con: (gc / matches.length).toFixed(2) };
+                matches.forEach(m => { gf += isHome ? m.gl : m.gv; gc += isHome ? m.gv : m.gl; });
+                return { fav: matches.length ? (gf / matches.length).toFixed(2) : 0, con: matches.length ? (gc / matches.length).toFixed(2) : 0 };
             };
 
             const hStats = getStats(homeMatches, true);
             const aStats = getStats(awayMatches, false);
-
             document.getElementById('h_gf').value = hStats.fav;
             document.getElementById('h_gc').value = hStats.con;
             document.getElementById('a_gf').value = aStats.fav;
             document.getElementById('a_gc').value = aStats.con;
-
             calculate();
         }
 
         function renderHistory(containerId, matches, isHome) {
             const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if(matches.length === 0) {
-                container.innerHTML = '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
-                return;
-            }
-            matches.forEach(m => {
-                container.innerHTML += `
-                    <div class="history-item">
-                        <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
-                        <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
-                    </div>`;
-            });
+            container.innerHTML = matches.map(m => `<div class="history-item">
+                <span class="text-slate-500 truncate mr-2" style="max-width: 60px">${isHome ? m.away : m.home}</span>
+                <span class="font-bold text-white">${m.gl} - ${m.gv}</span>
+            </div>`).join('') || '<p class="text-[9px] text-slate-600 text-center italic">Sin registros</p>';
         }
 
         function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
         function poisson(k, lambda) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
         function calculate() {
-            updateStatus('loading', 'Calculando...');
             const h_gf = parseFloat(document.getElementById('h_gf').value) || 0;
             const h_gc = parseFloat(document.getElementById('h_gc').value) || 0;
             const a_gf = parseFloat(document.getElementById('a_gf').value) || 0;
             const a_gc = parseFloat(document.getElementById('a_gc').value) || 0;
-            
-            if (h_gf === 0 || a_gf === 0) {
-                updateStatus('active', 'Esperando datos...');
-                return;
-            }
             
             const lambdaH = (h_gf + a_gc) / 2;
             const lambdaA = (a_gf + h_gc) / 2;
@@ -953,39 +644,18 @@
                     matrixData.push({ score: `${h}-${a}`, p: p });
                 }
             }
-            const lambdaHT = (lambdaH + lambdaA) * 0.44; 
-            const over05HT = 1 - Math.exp(-lambdaHT);
+            const over05HT = 1 - Math.exp(-(lambdaH + lambdaA) * 0.44);
             
             updateMarketUI('res_ht05', 'val_ht05', over05HT);
             updateMarketUI('res_ft25', 'val_ft25', over25);
             updateMarketUI('res_btts', 'val_btts', btts);
             
             renderTable([
-                { name: 'OVER 0.5 HT', p: over05HT },
-                { name: 'OVER 2.5 FT', p: over25 },
-                { name: 'UNDER 2.5 FT', p: 1 - over25 },
-                { name: 'BTTS YES', p: btts },
-                { name: 'BTTS NO', p: 1 - btts }
+                { name: 'OVER 0.5 HT', p: over05HT }, { name: 'OVER 2.5 FT', p: over25 },
+                { name: 'UNDER 2.5 FT', p: 1 - over25 }, { name: 'BTTS YES', p: btts }, { name: 'BTTS NO', p: 1 - btts }
             ]);
-
             renderMatrix(matrixData);
             renderChart(probsH, probsA);
-            updateStatus('active', 'Análisis Completo');
-        }
-
-        function goToDeepAnalysis() {
-            const data = {
-                liga: document.getElementById('league_name').value,
-                local: document.getElementById('home_select').value || 'Equipo Local',
-                visitante: document.getElementById('away_select').value || 'Equipo Visitante',
-                h_gf: document.getElementById('h_gf').value,
-                h_gc: document.getElementById('h_gc').value,
-                a_gf: document.getElementById('a_gf').value,
-                a_gc: document.getElementById('a_gc').value
-            };
-
-            const encodedData = btoa(JSON.stringify(data));
-            window.open(`profundo.html?d=${encodedData}`, '_blank');
         }
 
         function updateMarketUI(resId, valId, p) {
@@ -995,74 +665,34 @@
 
         function renderTable(markets) {
             const body = document.getElementById('market-body');
-            body.innerHTML = '';
-            markets.forEach((m, i) => {
-                const fair = (1/m.p).toFixed(2);
-                // Cuota sugerida para un 5% de valor (solo representativo)
-                const targetOdd = (1/(m.p-0.05)).toFixed(2);
-
-                body.innerHTML += `<tr class="market-row" id="row_${i}">
+            body.innerHTML = markets.map((m, i) => `
+                <tr class="market-row">
                     <td class="p-4 font-bold text-slate-300">${m.name}</td>
                     <td class="p-4 text-cyan-400 font-mono">${(m.p*100).toFixed(1)}%</td>
-                    <td class="p-4 text-slate-500 font-mono">${fair}</td>
-                    <td class="p-4">
-                        <input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}">
-                        <span class="target-odd-badge">Objetivo (Value +5%): ${targetOdd}</span>
-                    </td>
+                    <td class="p-4 text-slate-500 font-mono">${(1/m.p).toFixed(2)}</td>
+                    <td class="p-4"><input type="number" step="0.01" class="w-16 bg-transparent border border-white/10 rounded text-center text-xs" oninput="calcProbDiff(this, ${m.p}, 'diff_${i}')" id="odd_${i}"></td>
                     <td class="p-4 font-black" id="diff_${i}">--</td>
-                    <td class="p-4 text-center">
-                        <button onclick="sendToROI(${i}, '${m.name}', ${m.p})" class="bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-black px-3 py-1 rounded transition-all">
-                            <i class="fa-solid fa-share"></i> ROI
-                        </button>
-                    </td>
-                </tr>`;
-            });
+                    <td class="p-4 text-center"><button class="bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded">ROI</button></td>
+                </tr>`).join('');
         }
 
         function calcProbDiff(input, probPoisson, diffId) {
             const oddHouse = parseFloat(input.value);
             const diffEl = document.getElementById(diffId);
             if(oddHouse > 1) {
-                const probHouse = 1 / oddHouse;
-                const diff = probPoisson - probHouse;
-                diffEl.innerText = (diff * 100).toFixed(1) + '%';
+                const diff = (probPoisson - (1 / oddHouse)) * 100;
+                diffEl.innerText = diff.toFixed(1) + '%';
                 diffEl.className = `p-4 font-black ${diff > 0 ? 'text-green-400' : 'text-red-400'}`;
-            } else {
-                diffEl.innerText = '--';
-                diffEl.className = 'p-4 font-black text-slate-500';
             }
-        }
-
-        function sendToROI(index, market, prob) {
-            const league = document.getElementById('league_name').value || 'S/L';
-            const event = document.getElementById('event_name').value || 'Evento';
-            const odd = parseFloat(document.getElementById(`odd_${index}`).value);
-            const diffText = document.getElementById(`diff_${index}`).innerText;
-            if(!odd || odd <= 1) return alert("⚠️ Cuota no válida.");
-            
-            const newBet = { id: Date.now(), date: new Date().toISOString().split('T')[0], teams: `${league}: ${event}`, market: market, prob: prob, odd: odd, edge: diffText, stake: 1.0, status: 'pending', profit: 0 };
-            let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            bets.unshift(newBet);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
-            
-            const btn = document.querySelector(`#row_${index} button`);
-            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-            btn.classList.replace('bg-cyan-600', 'bg-green-500');
-            setTimeout(() => { 
-                btn.innerHTML = '<i class="fa-solid fa-share"></i> ROI'; 
-                btn.classList.replace('bg-green-500', 'bg-cyan-600'); 
-            }, 1000);
         }
 
         function renderMatrix(data) {
             const container = document.getElementById('score-matrix');
-            container.innerHTML = '';
-            data.sort((a,b) => b.p - a.p).slice(0, 15).forEach(item => {
-                container.innerHTML += `<div class="bg-black/40 border border-white/5 p-2 rounded text-center">
+            container.innerHTML = data.sort((a,b) => b.p - a.p).slice(0, 15).map(item => `
+                <div class="bg-black/40 border border-white/5 p-2 rounded text-center">
                     <div class="text-[10px] text-slate-500 font-bold">${item.score}</div>
                     <div class="text-xs text-cyan-400 font-black">${(item.p*100).toFixed(1)}%</div>
-                </div>`;
-            });
+                </div>`).join('');
         }
 
         function renderChart(h, a) {
@@ -1070,29 +700,12 @@
             if(chart) chart.destroy();
             chart = new Chart(ctx, { 
                 type: 'bar', 
-                data: { 
-                    labels: [0,1,2,3,4,5,6], 
-                    datasets: [
-                        { label: 'Local', data: h, backgroundColor: '#00f2ff' }, 
-                        { label: 'Visita', data: a, backgroundColor: '#00ff88' }
-                    ] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } }, 
-                    scales: { 
-                        y: { display: false }, 
-                        x: { grid: { display: false }, ticks: { color: '#475569' } } 
-                    } 
-                } 
+                data: { labels: [0,1,2,3,4,5,6], datasets: [{ label: 'Local', data: h, backgroundColor: '#00f2ff' }, { label: 'Visita', data: a, backgroundColor: '#00ff88' }] }, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } } 
             });
         }
 
-        window.onload = () => {
-            loadSavedIDs();
-            syncSheet();
-        };
+        window.onload = () => { loadSavedIDs(); syncSheet(); };
     </script>
 </body>
 </html>
